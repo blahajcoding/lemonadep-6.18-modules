@@ -6,7 +6,8 @@ Prints each command's output. Uses termios only (no pyserial).
 """
 import os, select, sys, termios, time
 
-dev = "/dev/ttyACM0"
+import glob
+dev = (sorted(glob.glob("/dev/ttyACM*")) or ["/dev/ttyACM0"])[-1]
 args = sys.argv[1:]
 timeout = 3.0
 if args[:1] == ["-t"]:

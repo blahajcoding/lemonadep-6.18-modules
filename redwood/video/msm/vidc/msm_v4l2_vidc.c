@@ -441,9 +441,6 @@ const struct v4l2_ioctl_ops msm_v4l2_ioctl_ops = {
 	.vidioc_dqbuf = msm_v4l2_dqbuf,
 	.vidioc_streamon = msm_v4l2_streamon,
 	.vidioc_streamoff = msm_v4l2_streamoff,
-	.vidioc_s_ctrl = msm_v4l2_s_ctrl,
-	.vidioc_g_ctrl = msm_v4l2_g_ctrl,
-	.vidioc_queryctrl = msm_v4l2_queryctrl,
 	.vidioc_querymenu = msm_v4l2_querymenu,
 	.vidioc_subscribe_event = msm_v4l2_subscribe_event,
 	.vidioc_unsubscribe_event = msm_v4l2_unsubscribe_event,
@@ -1022,5 +1019,6 @@ module_init(msm_vidc_init);
 module_exit(msm_vidc_exit);
 
 MODULE_SOFTDEP("pre: subsys-pil-tz");
-MODULE_IMPORT_NS(DMA_BUF);
+MODULE_IMPORT_NS("DMA_BUF");
+MODULE_IMPORT_NS("ANDROID_GKI_VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver");
 MODULE_LICENSE("GPL v2");

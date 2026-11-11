@@ -7204,5 +7204,5 @@ static void __exit fastrpc_device_exit(void)
 module_init(fastrpc_device_init);
 module_exit(fastrpc_device_exit);
 
-MODULE_IMPORT_NS(DMA_BUF);
+MODULE_IMPORT_NS("DMA_BUF");
 MODULE_LICENSE("GPL v2");

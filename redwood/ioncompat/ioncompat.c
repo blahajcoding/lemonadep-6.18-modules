@@ -239,6 +239,6 @@ static struct miscdevice ion_misc = {
 
 module_misc_device(ion_misc);
 
-MODULE_IMPORT_NS(DMA_BUF);
+MODULE_IMPORT_NS("DMA_BUF");
 MODULE_DESCRIPTION("/dev/ion on DMA-BUF heaps for redwood's 5.4 vendor");
 MODULE_LICENSE("GPL");

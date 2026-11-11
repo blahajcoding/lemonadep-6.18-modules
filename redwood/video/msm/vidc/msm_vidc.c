@@ -20,6 +20,25 @@
 static int try_get_ctrl_for_instance(struct msm_vidc_inst *inst,
 	struct v4l2_ctrl *ctrl);
 
+
+/*
+ * 6.18's v4l2_fh_add()/v4l2_fh_del() also set the file's private_data; the
+ * vidc core keeps its own private_data, so hand them a scratch file.
+ */
+static void msm_vidc_fh_add(struct v4l2_fh *fh)
+{
+	struct file scratch = {};
+
+	v4l2_fh_add(fh, &scratch);
+}
+
+static void msm_vidc_fh_del(struct v4l2_fh *fh)
+{
+	struct file scratch = {};
+
+	v4l2_fh_del(fh, &scratch);
+}
+
 static int get_poll_flags(void *instance)
 {
 	struct msm_vidc_inst *inst = instance;
@@ -1313,7 +1332,7 @@ static int setup_event_queue(void *inst,
 	struct msm_vidc_inst *vidc_inst = (struct msm_vidc_inst *)inst;
 
 	v4l2_fh_init(&vidc_inst->event_handler, pvdev);
-	v4l2_fh_add(&vidc_inst->event_handler);
+	msm_vidc_fh_add(&vidc_inst->event_handler);
 
 	return 0;
 }
@@ -1630,7 +1649,7 @@ fail_init:
 	list_del(&inst->list);
 	mutex_unlock(&core->lock);
 
-	v4l2_fh_del(&inst->event_handler);
+	msm_vidc_fh_del(&inst->event_handler);
 	v4l2_fh_exit(&inst->event_handler);
 	vb2_queue_release(&inst->bufq[INPUT_PORT].vb2_bufq);
 fail_bufq_output:
@@ -1768,7 +1787,7 @@ int msm_vidc_destroy(struct msm_vidc_inst *inst)
 
 	msm_comm_ctrl_deinit(inst);
 
-	v4l2_fh_del(&inst->event_handler);
+	msm_vidc_fh_del(&inst->event_handler);
 	v4l2_fh_exit(&inst->event_handler);
 
 	DEINIT_MSM_VIDC_LIST(&inst->scratchbufs);

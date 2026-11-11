@@ -4433,8 +4433,8 @@ int aw8697_vibrator_init(struct aw8697 *aw8697)
 		return ret;
 	}
 	g_aw8697 = aw8697;
-	hrtimer_init(&aw8697->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-	aw8697->timer.function = aw8697_vibrator_timer_func;
+	hrtimer_setup(&aw8697->timer, aw8697_vibrator_timer_func, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	
 	INIT_WORK(&aw8697->vibrator_work, aw8697_vibrator_work_routine);
 	INIT_WORK(&aw8697->rtp_work, aw8697_rtp_work_routine);
 
@@ -4468,18 +4468,13 @@ int aw8697_haptic_init(struct aw8697 *aw8697)
 	aw8697->haptic_audio.timer_val = 21318;
 	aw8697->f0_cali_status = true;
 
-	hrtimer_init(&aw8697->haptic_audio.timer, CLOCK_MONOTONIC,
-		     HRTIMER_MODE_REL);
-	aw8697->haptic_audio.timer.function = aw8697_haptic_audio_timer_func;
+	hrtimer_setup(&aw8697->haptic_audio.timer, aw8697_haptic_audio_timer_func, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	INIT_WORK(&aw8697->haptic_audio.work, aw8697_haptic_audio_work_routine);
 
 	mutex_init(&aw8697->haptic_audio.lock);
 
-	hrtimer_init(&aw8697->stop_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-	aw8697->stop_timer.function = qti_hap_stop_timer;
-	hrtimer_init(&aw8697->hap_disable_timer, CLOCK_MONOTONIC,
-		     HRTIMER_MODE_REL);
-	aw8697->hap_disable_timer.function = qti_hap_disable_timer;
+	hrtimer_setup(&aw8697->stop_timer, qti_hap_stop_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	hrtimer_setup(&aw8697->hap_disable_timer, qti_hap_disable_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 
 	/* haptic init */
 	mutex_lock(&aw8697->lock);

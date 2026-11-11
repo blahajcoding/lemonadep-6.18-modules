@@ -272,7 +272,11 @@ struct part_ctx {
 	const char *want;
 	char *dev;
 	size_t len;
+	int all;		/* collect every match into devs[] */
 };
+
+static char devs[4][64];
+static int ndevs;
 
 static int part_cb(const char *name, unsigned char type, void *vctx)
 {
@@ -299,15 +303,17 @@ static int part_cb(const char *name, unsigned char type, void *vctx)
 		snprintf(c->dev, c->len, "/dev/%s", name);
 		unlink(c->dev);
 		mknod(c->dev, S_IFBLK | 0600, makedev(atoi(txt), atoi(colon + 1)));
+		if (c->all && ndevs < 4)
+			snprintf(devs[ndevs++], sizeof(devs[0]), "%s", c->dev);
 	}
 	free(txt);
-	return colon != NULL;
+	return colon != NULL && !c->all;
 }
 
 static int find_part(const char *name, char *dev, size_t len)
 {
 	char want[128];
-	struct part_ctx c = { want, dev, len };
+	struct part_ctx c = { want, dev, len, 0 };
 
 	snprintf(want, sizeof(want), "PARTNAME=%s\n", name);
 	return each_dent("/sys/class/block", part_cb, &c) == 1;
@@ -356,15 +362,59 @@ static size_t read_kmsg(char *out, size_t cap)
 	return used;
 }
 
+/*
+ * redwood has two logdump partitions. Each boot writes to the one holding
+ * the older log (a 6.18 boot counter in the header; anything else counts as
+ * oldest), so a boot that crashes keeps its log through the next one.
+ */
+static char logdev[64];
+static unsigned int logseq;
+
+static int pick_logdev(void)
+{
+	char tmp[64], hdr[64];
+	struct part_ctx c = { "PARTNAME=logdump\n", tmp, sizeof(tmp), 1 };
+	unsigned int best = ~0u, top = 0;
+	int i;
+
+	if (logdev[0])
+		return 0;
+	ndevs = 0;
+	each_dent("/sys/class/block", part_cb, &c);
+	if (!ndevs)
+		return -ENODEV;
+	for (i = 0; i < ndevs; i++) {
+		unsigned int seq = 0;
+		int fd = open(devs[i], O_RDONLY);
+
+		memset(hdr, 0, sizeof(hdr));
+		if (fd >= 0) {
+			read(fd, hdr, sizeof(hdr) - 1);
+			close(fd);
+		}
+		if (!strncmp(hdr, "REDWOOD618LOG seq=", 18))
+			seq = strtoul(hdr + 18, NULL, 10);
+		if (seq > top)
+			top = seq;
+		if (seq < best) {
+			best = seq;
+			snprintf(logdev, sizeof(logdev), "%s", devs[i]);
+		}
+	}
+	logseq = top + 1;
+	klog("logdump: writing %s as boot %u (%d partitions)\n", logdev, logseq, ndevs);
+	return 0;
+}
+
 static int save_log(void)
 {
-	char dev[128];
+	const char *dev = logdev;
 	size_t used;
 	int fd;
 
-	if (!find_part("logdump", dev, sizeof(dev)))
+	if (pick_logdev())
 		return -ENODEV;
-	used = snprintf(logbuf, sizeof(logbuf), "REDWOOD618LOG\n");
+	used = snprintf(logbuf, sizeof(logbuf), "REDWOOD618LOG seq=%08u\n", logseq);
 	used += read_kmsg(logbuf + used, sizeof(logbuf) - used - 1);
 	logbuf[used++] = 0;
 	fd = open(dev, O_WRONLY);
@@ -544,7 +594,7 @@ static void run(char *line)
 		return;
 
 	if (!strcmp(argv[0], "help")) {
-		outs("help dmesg [n] | cat f | ls d | echo t > f | insmod f [args] | rmmod m\r\n"
+		outs("help dmesg [n] | cat f | ls d | echo t > f | insmod f [args] | rmmod m | modprobe m | loadall\r\n"
 		     "lsmod | mods | log | sync | rb | reboot | poweroff\r\n");
 	} else if (!strcmp(argv[0], "dmesg")) {
 		size_t n = read_kmsg(logbuf, sizeof(logbuf) - 1), start = 0;
@@ -593,6 +643,45 @@ static void run(char *line)
 		long r = my_syscall2(__NR_delete_module, argv[1], O_NONBLOCK);
 
 		outf("rmmod: %ld\r\n", r);
+	} else if (!strcmp(argv[0], "modprobe") && argc > 1) {
+		char name[128];
+		struct mod *m;
+		int r;
+
+		snprintf(name, sizeof(name), "%s%s", argv[1],
+			 strstr(argv[1], ".ko") ? "" : ".ko");
+		m = find(name);
+		if (m && m->state == 3)
+			m->state = 0;
+		r = load(name);
+		outf("modprobe %s: %d\r\n", name, r);
+	} else if (!strcmp(argv[0], "loadall")) {
+		char path[512], *txt, *l, *nx;
+		int ok = 0, bad = 0;
+
+		snprintf(path, sizeof(path), "%s/modules.all", dir);
+		txt = slurp(path, NULL);
+		for (l = txt; l && *l; l = nx) {
+			struct mod *m;
+
+			nx = strchr(l, '\n');
+			if (nx)
+				*nx++ = 0;
+			if (!*l)
+				continue;
+			m = find(l);
+			if (m && m->state)
+				continue;
+			outf("loading %s\r\n", l);
+			klog("loadall: %s\n", l);
+			save_log();
+			if (load(l))
+				bad++;
+			else
+				ok++;
+		}
+		free(txt);
+		outf("loadall: %d loaded, %d failed\r\n", ok, bad);
 	} else if (!strcmp(argv[0], "lsmod")) {
 		size_t n;
 		char *t = slurp("/proc/modules", &n);

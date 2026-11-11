@@ -44,6 +44,9 @@ while read -r m; do
 	fi
 done < <(grep -vxF -e qcom_wdt_core.ko -e qcom_soc_wdt.ko $LOAD | head -n ${LIMIT:-100000})
 for m in $EXTRA; do f=$(grep -m1 "/$m$" $W/all.txt || true); [ -n "$f" ] && { cp "$f" $MD/; echo "$m" >> $MD/modules.load; }; done
+# VENDOR: a directory of out-of-tree modules to carry in the ramdisk (not
+# auto-loaded; the shell's modprobe and loadall can load them)
+if [ -n "$VENDOR" ]; then cp $VENDOR/*.ko $MD/; fi
 # Pull in every dependency the listed modules need, from the full modules.dep
 # modules_install wrote (a depmod over the copied subset can't name providers
 # it doesn't have)
@@ -65,6 +68,8 @@ while todo:
         continue
     seen.add(m)
     if m not in path:
+        if os.path.exists(os.path.join(md, m)):
+            continue
         sys.exit("dependency %s not built" % m)
     drop = set(os.environ.get("DROP", "").split())
     def needs_drop(x, seen2=None):
@@ -88,6 +93,7 @@ S=$W/dep/lib/modules/$REL; rm -rf $W/dep; mkdir -p $S; cp $MD/*.ko $S/
 depmod -b $W/dep $REL 2>/dev/null
 # keep modules.load to what is in the ramdisk
 grep -xF -f <(ls $MD | grep "\.ko$") $MD/modules.load > $MD/modules.load.new; mv $MD/modules.load.new $MD/modules.load
+cp $MD/modules.load $MD/modules.all; if [ -n "$VENDOR" ]; then (cd $VENDOR && ls *.ko) >> $MD/modules.all; fi; if [ -n "$LOADLIST" ]; then grep -xF -f <(ls $MD | grep "\.ko$") $LOADLIST > $MD/modules.load; fi
 # modules.dep with bare names, as modload wants them
 sed -E "s#[^ :]*/##g" $S/modules.dep > $MD/modules.dep
 if [ -n "$NOLOAD" ]; then rm -f $MD/*.ko; : > $MD/modules.load; : > $MD/modules.dep; echo "NOLOAD: no modules in the ramdisk"; fi
