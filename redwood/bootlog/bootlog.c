@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
  * Keep the kernel log on the logdump partition while testing Android on
- * redwood 6.12. It runs in the kernel and writes with bios, so it keeps
+ * redwood 6.18. It runs in the kernel and writes with bios, so it keeps
  * going once Android's init has loaded its SELinux policy, which cuts off a
  * userspace logger reading /dev/kmsg.
  */
@@ -30,13 +30,14 @@ static bool is_logdump(struct block_device *bdev)
 }
 
 /*
- * Every log starts with "REDWOOD612ANDROID seq=NNNNNNNN". Write to a cleared
+ * Every log starts with "REDWOOD618LOG seq=NNNNNNNN android", the bring-up
+ * shell's header, so the two share one boot counter. Write to a cleared
  * logdump if there is one, else over the one with the older log, so the two
  * newest boots are always kept and nothing has to be cleared by hand.
  * Returns the log's sequence number, -1 for a cleared partition, or -2 if
  * it can't be read. A log from before the sequence numbers counts as 0.
  */
-#define HEADER		"REDWOOD612ANDROID seq="
+#define HEADER		"REDWOOD618LOG seq="
 #define HEADER_LEN	(sizeof(HEADER) - 1)
 #define SEQ_DIGITS	8
 
@@ -189,7 +190,7 @@ static int bootlog_thread(void *unused)
 
 	kmsg_dump_rewind(&iter);
 	/* the sequence number goes in once the partition is picked */
-	append(HEADER "00000000\n", HEADER_LEN + SEQ_DIGITS + 1);
+	append(HEADER "00000000 android\n", HEADER_LEN + SEQ_DIGITS + 9);
 	while (!kthread_should_stop() && tick < 600) {
 		if (time_after_eq(jiffies, beat)) {
 			beat = jiffies + 2 * HZ;
@@ -247,5 +248,5 @@ static void __exit bootlog_exit(void)
 
 module_init(bootlog_init);
 module_exit(bootlog_exit);
-MODULE_DESCRIPTION("Kernel log on the logdump partition for redwood 6.12 bring-up");
+MODULE_DESCRIPTION("Kernel log on the logdump partition for redwood bring-up");
 MODULE_LICENSE("GPL");

@@ -36,10 +36,10 @@ MD=$W/rd/lib/modules/$REL; mkdir -p $MD
 cp $SRC/*.ko $SRC/modules.dep $MD/
 for f in modules.alias modules.softdep modules.options modules.blocklist; do : > $MD/$f; done
 {
-	echo ufs-qcom.ko; echo testguard.ko; echo logcap.ko
+	echo ufs-qcom.ko; echo testguard.ko; echo bootlog.ko; echo logcap.ko
 	grep -vxE "ufs-qcom\.ko|testguard\.ko|logcap\.ko|bootlog\.ko|tz_log_dlkm\.ko|qcom_lpm\.ko|coresight.*\.ko|qcom_wdt_core\.ko|qcom_soc_wdt\.ko" $SRC/modules.all
 } | awk '!seen[$0]++' | while read -r m; do [ -f $MD/$m ] && echo $m; done > $MD/modules.load
-for m in ufs-qcom.ko testguard.ko; do grep -qx $m $MD/modules.load || { echo "$m missing"; exit 1; }; done
+for m in ufs-qcom.ko testguard.ko bootlog.ko; do grep -qx $m $MD/modules.load || { echo "$m missing"; exit 1; }; done
 
 # the test fstab, used by first stage (in the ramdisk) and second stage (bound
 # over /vendor/etc/fstab.default): /data on tmpfs, /metadata and persist
@@ -54,6 +54,12 @@ $2=="/mnt/vendor/qmcs" {o=$4; sub(/^/, "ro,", o); print $1, $2, $3, o, "wait"; n
 {print}' $FS > $W/rd/fstab.test
 mkdir -p $W/rd/first_stage_ramdisk
 cp $W/rd/fstab.test $W/rd/first_stage_ramdisk/fstab.default
+# second stage reads it from a small ext4 image whose file is labeled like
+# the vendor's fstab (vendor_configs_file), which logsaver618 loop mounts
+rm -rf $W/img; mkdir -p $W/img; cp $W/rd/fstab.test $W/img/fstab.default
+mke2fs -q -t ext4 -O ^has_journal,^metadata_csum -b 4096 -L fstab618 -d $W/img $W/rd/fstab.img 1M
+debugfs -w -R "ea_set /fstab.default security.selinux u:object_r:vendor_configs_file:s0" $W/rd/fstab.img 2>/dev/null
+debugfs -R "ea_list /fstab.default" $W/rd/fstab.img 2>/dev/null | grep -q vendor_configs_file || { echo "fstab.img not labeled"; exit 1; }
 grep -E "/data|/metadata|persist|qmcs" $W/rd/fstab.test
 ! grep -E "formattable|userdata" $W/rd/fstab.test $W/rd/first_stage_ramdisk/fstab.default || { echo "unsafe fstab"; exit 1; }
 
