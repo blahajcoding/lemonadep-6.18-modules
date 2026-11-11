@@ -46,7 +46,7 @@ done < <(grep -vxF -e qcom_wdt_core.ko -e qcom_soc_wdt.ko $LOAD | head -n ${LIMI
 for m in $EXTRA; do f=$(grep -m1 "/$m$" $W/all.txt || true); [ -n "$f" ] && { cp "$f" $MD/; echo "$m" >> $MD/modules.load; }; done
 # VENDOR: a directory of out-of-tree modules to carry in the ramdisk (not
 # auto-loaded; the shell's modprobe and loadall can load them)
-if [ -n "$VENDOR" ]; then cp $VENDOR/*.ko $MD/; fi
+if [ -n "$VENDOR" ]; then cp $VENDOR/*.ko $MD/; for f in $VENDOR/*.ko; do llvm-strip --strip-debug $MD/$(basename $f); done; fi
 # Pull in every dependency the listed modules need, from the full modules.dep
 # modules_install wrote (a depmod over the copied subset can't name providers
 # it doesn't have)
@@ -129,10 +129,14 @@ args=(); while [ $# -gt 0 ]; do
 	case "$1" in
 	--kernel) args+=("$1" "${KIMG:-$O/arch/arm64/boot/Image}"); shift 2 ;;
 	--ramdisk) args+=("$1" "$W/ramdisk.lz4"); shift 2 ;;
+	--cmdline) [ -z "$BOOTARGS" ] && args+=("$1" "$2"); shift 2 ;;
 	--output|-o) shift 2 ;;
 	*) args+=("$1"); shift ;;
 	esac
 done
+# BOOTARGS: kernel arguments in the boot image itself, so a RAM boot
+# (fastboot boot) works with whatever vendor_boot and dtb the active slot has
+[ -n "$BOOTARGS" ] && args+=(--cmdline "$BOOTARGS")
 $MK "${args[@]}" --output $W/boot.img
 
 python3 $T/mkdtboimg create $W/dtbo.img $DT/redwood-overlay.dtbo

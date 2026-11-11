@@ -12,6 +12,8 @@
  */
 #include "nolibc.h"
 #include <linux/reboot.h>
+#include <linux/blk-crypto.h>
+#include <linux/dm-ioctl.h>
 
 #define MAX_MODS 1024
 
@@ -379,6 +381,23 @@ static int pick_logdev(void)
 
 	if (logdev[0])
 		return 0;
+	/*
+	 * PID 1 and its children each call this; the first one to pick
+	 * records the choice in /.logdev so they all write the same
+	 * partition and the other one keeps the previous boot's log.
+	 */
+	{
+		char *t = slurp("/.logdev", NULL), *sp;
+
+		if (t && (sp = strchr(t, ' '))) {
+			*sp = 0;
+			snprintf(logdev, sizeof(logdev), "%s", t);
+			logseq = strtoul(sp + 1, NULL, 10);
+			free(t);
+			return 0;
+		}
+		free(t);
+	}
 	ndevs = 0;
 	each_dent("/sys/class/block", part_cb, &c);
 	if (!ndevs)
@@ -402,6 +421,31 @@ static int pick_logdev(void)
 		}
 	}
 	logseq = top + 1;
+	{
+		char rec[96];
+		int fd = open("/.logdev", O_WRONLY | O_CREAT | O_EXCL, 0600);
+
+		if (fd < 0) {
+			/* someone else picked first: use theirs */
+			logdev[0] = 0;
+			for (i = 0; i < 50 && !logdev[0]; i++) {
+				char *t = slurp("/.logdev", NULL), *sp;
+
+				if (t && (sp = strchr(t, ' '))) {
+					*sp = 0;
+					snprintf(logdev, sizeof(logdev), "%s", t);
+					logseq = strtoul(sp + 1, NULL, 10);
+				}
+				free(t);
+				if (!logdev[0])
+					usleep(20000);
+			}
+			return logdev[0] ? 0 : -EAGAIN;
+		}
+		snprintf(rec, sizeof(rec), "%s %u\n", logdev, logseq);
+		write(fd, rec, strlen(rec));
+		close(fd);
+	}
 	klog("logdump: writing %s as boot %u (%d partitions)\n", logdev, logseq, ndevs);
 	return 0;
 }
@@ -566,6 +610,191 @@ static void reboot_to(const char *target)
 			    LINUX_REBOOT_CMD_POWER_OFF, 0);
 }
 
+/* ---------- ICE check ---------- */
+
+/*
+ * icetest: prove that UFS inline encryption with hardware-wrapped keys works
+ * before Android is allowed near /data. TZ generates a long-term wrapped key
+ * and prepares it for this boot; a dm-default-key mapping with wrappedkey_v0
+ * (what metadata encryption uses) is laid over 4 MiB in the middle of the
+ * logdump partition this boot does not write. Data written through the
+ * mapping must read back the same, and must read differently from the raw
+ * partition. The mapping is taken down at the end.
+ */
+#define ICE_START	65536ULL	/* sectors: 32 MiB into logdump */
+#define ICE_LEN		8192ULL		/* sectors: 4 MiB */
+
+static unsigned char ice_lt[256], ice_eph[256];
+static char ice_buf[(ICE_LEN * 512) + 4096], ice_raw[(ICE_LEN * 512) + 4096];
+
+static int dm_call(int ctl, unsigned long cmd, struct dm_ioctl *io, size_t size,
+		   const char *name)
+{
+	io->version[0] = DM_VERSION_MAJOR;
+	io->version[1] = 0;
+	io->version[2] = 0;
+	io->data_size = size;
+	io->data_start = sizeof(*io);
+	snprintf(io->name, sizeof(io->name), "%s", name);
+	return ioctl(ctl, cmd, io);
+}
+
+static int bdev_rw(const char *dev, int wr, char *buf, size_t len, unsigned long long off)
+{
+	int fd = open(dev, (wr ? O_WRONLY : O_RDONLY) | O_DIRECT);
+	long r;
+
+	if (fd < 0)
+		return -errno;
+	r = lseek(fd, off, SEEK_SET);
+	if (r >= 0)
+		r = wr ? write(fd, buf, len) : read(fd, buf, len);
+	if (wr)
+		fsync(fd);
+	close(fd);
+	return r == (long)len ? 0 : (r < 0 ? (int)r : -EIO);
+}
+
+static void icetest(void)
+{
+	static char tbl[sizeof(struct dm_ioctl) + sizeof(struct dm_target_spec) + 1024];
+	struct dm_ioctl *io = (struct dm_ioctl *)tbl;
+	struct dm_target_spec *sp = (struct dm_target_spec *)(tbl + sizeof(*io));
+	struct blk_crypto_generate_key_arg g;
+	struct blk_crypto_prepare_key_arg pr;
+	char *buf = (char *)(((unsigned long)ice_buf + 4095) & ~4095UL);
+	char *raw = (char *)(((unsigned long)ice_raw + 4095) & ~4095UL);
+	char other[64], hex[600], devno[32], *params;
+	unsigned int maj, mnr;
+	size_t i, len = ICE_LEN * 512, same = 0, plain = 0;
+	int fd, ctl, r;
+
+	pick_logdev();
+	ndevs = 0;
+	{
+		char tmp[64];
+		struct part_ctx c = { "PARTNAME=logdump\n", tmp, sizeof(tmp), 1 };
+
+		each_dent("/sys/class/block", part_cb, &c);
+	}
+	other[0] = 0;
+	for (i = 0; i < (size_t)ndevs; i++)
+		if (strcmp(devs[i], logdev))
+			snprintf(other, sizeof(other), "%s", devs[i]);
+	if (!other[0]) {
+		outs("icetest: no spare logdump partition\r\n");
+		return;
+	}
+	{
+		char path[96], *t, *colon;
+
+		snprintf(path, sizeof(path), "/sys/class/block/%s/dev", strrchr(other, '/') + 1);
+		t = slurp(path, NULL);
+		if (!t || !(colon = strchr(t, ':'))) {
+			outs("icetest: no dev number\r\n");
+			free(t);
+			return;
+		}
+		*colon = 0;
+		maj = atoi(t);
+		mnr = atoi(colon + 1);
+		free(t);
+	}
+	outf("icetest: scratch %s (%u:%u) sectors %llu+%llu, log stays on %s\r\n",
+	     other, maj, mnr, ICE_START, ICE_LEN, logdev);
+
+	fd = open(other, O_RDWR);
+	if (fd < 0) {
+		outf("icetest: open %s: %d\r\n", other, errno);
+		return;
+	}
+	memset(&g, 0, sizeof(g));
+	g.lt_key_ptr = (unsigned long)ice_lt;
+	g.lt_key_size = sizeof(ice_lt);
+	r = ioctl(fd, BLKCRYPTOGENERATEKEY, &g);
+	outf("icetest: generate key: %d (%d), %llu bytes\r\n", r, r < 0 ? errno : 0,
+	     (unsigned long long)g.lt_key_size);
+	if (r < 0) {
+		close(fd);
+		return;
+	}
+	memset(&pr, 0, sizeof(pr));
+	pr.lt_key_ptr = (unsigned long)ice_lt;
+	pr.lt_key_size = g.lt_key_size;
+	pr.eph_key_ptr = (unsigned long)ice_eph;
+	pr.eph_key_size = sizeof(ice_eph);
+	r = ioctl(fd, BLKCRYPTOPREPAREKEY, &pr);
+	close(fd);
+	outf("icetest: prepare key: %d (%d), %llu bytes\r\n", r, r < 0 ? errno : 0,
+	     (unsigned long long)pr.eph_key_size);
+	if (r < 0)
+		return;
+	for (i = 0; i < pr.eph_key_size; i++)
+		snprintf(hex + 2 * i, 3, "%02x", ice_eph[i]);
+
+	mknod("/dev/dmctl", S_IFCHR | 0600, makedev(10, 236));
+	ctl = open("/dev/dmctl", O_RDWR);
+	if (ctl < 0) {
+		outf("icetest: /dev/mapper/control: %d\r\n", errno);
+		return;
+	}
+	memset(tbl, 0, sizeof(tbl));
+	dm_call(ctl, DM_DEV_REMOVE, io, sizeof(*io), "icetest");
+	memset(tbl, 0, sizeof(tbl));
+	r = dm_call(ctl, DM_DEV_CREATE, io, sizeof(*io), "icetest");
+	outf("icetest: dm create: %d (%d)\r\n", r, r < 0 ? errno : 0);
+	if (r < 0)
+		goto out;
+
+	memset(tbl, 0, sizeof(tbl));
+	io->target_count = 1;
+	sp->sector_start = 0;
+	sp->length = ICE_LEN;
+	snprintf(sp->target_type, sizeof(sp->target_type), "default-key");
+	params = (char *)(sp + 1);
+	snprintf(devno, sizeof(devno), "%u:%u", maj, mnr);
+	snprintf(params, 1024, "aes-xts-plain64 %s 0 %s %llu 4 allow_discards sector_size:4096 iv_large_sectors wrappedkey_v0",
+		 hex, devno, ICE_START);
+	sp->next = 0;
+	r = dm_call(ctl, DM_TABLE_LOAD, io, sizeof(tbl), "icetest");
+	outf("icetest: dm table load: %d (%d)\r\n", r, r < 0 ? errno : 0);
+	if (r < 0)
+		goto remove;
+	memset(tbl, 0, sizeof(tbl));
+	r = dm_call(ctl, DM_DEV_SUSPEND, io, sizeof(*io), "icetest");
+	outf("icetest: dm resume: %d (%d), dev %u:%u\r\n", r, r < 0 ? errno : 0,
+	     (unsigned int)(io->dev >> 8) & 0xfff, (unsigned int)((io->dev & 0xff) | ((io->dev >> 12) & 0xfff00)));
+	if (r < 0)
+		goto remove;
+	unlink("/dev/icetest");
+	mknod("/dev/icetest", S_IFBLK | 0600, io->dev);
+
+	for (i = 0; i < len; i++)
+		buf[i] = (char)(i * 7 + (i >> 9) * 13 + 0x5a);
+	r = bdev_rw("/dev/icetest", 1, buf, len, 0);
+	outf("icetest: write through ICE: %d\r\n", r);
+	if (r)
+		goto remove;
+	memset(buf, 0, len);
+	r = bdev_rw("/dev/icetest", 0, buf, len, 0);
+	for (i = 0; i < len; i++)
+		same += buf[i] == (char)(i * 7 + (i >> 9) * 13 + 0x5a);
+	outf("icetest: read back through ICE: %d, %zu/%zu bytes match\r\n", r, same, len);
+	r = bdev_rw(other, 0, raw, len, ICE_START * 512);
+	for (i = 0; i < len; i++)
+		plain += raw[i] == (char)(i * 7 + (i >> 9) * 13 + 0x5a);
+	outf("icetest: raw partition: %d, %zu/%zu bytes equal the plaintext\r\n", r, plain, len);
+	outf("icetest: %s\r\n", same == len && plain < len / 64 ? "PASS: ICE encrypts and decrypts with a wrapped key" :
+	     same != len ? "FAIL: data does not survive the round trip" :
+			   "FAIL: data reached the disk in the clear");
+remove:
+	memset(tbl, 0, sizeof(tbl));
+	r = dm_call(ctl, DM_DEV_REMOVE, io, sizeof(*io), "icetest");
+	outf("icetest: dm remove: %d\r\n", r);
+out:
+	close(ctl);
+}
+
 static void run(char *line)
 {
 	char *argv[16];
@@ -595,7 +824,7 @@ static void run(char *line)
 
 	if (!strcmp(argv[0], "help")) {
 		outs("help dmesg [n] | cat f | ls d | echo t > f | insmod f [args] | rmmod m | modprobe m | loadall\r\n"
-		     "lsmod | mods | log | sync | rb | reboot | poweroff\r\n");
+		     "lsmod | mods | log | icetest | sync | rb | reboot | poweroff\r\n");
 	} else if (!strcmp(argv[0], "dmesg")) {
 		size_t n = read_kmsg(logbuf, sizeof(logbuf) - 1), start = 0;
 		long tail = argc > 1 ? atol(argv[1]) * 120 : 0;
@@ -699,6 +928,8 @@ static void run(char *line)
 		outf("%d loaded, %d failed\r\n", nok, nbad);
 	} else if (!strcmp(argv[0], "log")) {
 		outf("log: %d\r\n", save_log());
+	} else if (!strcmp(argv[0], "icetest")) {
+		icetest();
 	} else if (!strcmp(argv[0], "sync")) {
 		sync();
 	} else if (!strcmp(argv[0], "rb")) {
