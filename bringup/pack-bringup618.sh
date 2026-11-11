@@ -100,7 +100,9 @@ S=$W/dep/lib/modules/$REL; rm -rf $W/dep; mkdir -p $S; cp $MD/*.ko $S/
 depmod -b $W/dep $REL 2>/dev/null
 # keep modules.load to what is in the ramdisk
 grep -xF -f <(ls $MD | grep "\.ko$") $MD/modules.load > $MD/modules.load.new; mv $MD/modules.load.new $MD/modules.load
-cp $MD/modules.load $MD/modules.all; if [ -n "$VENDOR" ]; then (cd $VENDOR && ls *.ko) >> $MD/modules.all; fi; if [ -n "$LOADLIST" ]; then grep -xF -f <(ls $MD | grep "\.ko$") $LOADLIST > $MD/modules.load; fi
+# loadall list: everything except what still takes the SoC down on 6.18
+# (CoreSight resets the SoC, the LPM governor panics)
+grep -vE "^(coresight.*|qcom_lpm)\\.ko$" $MD/modules.load > $MD/modules.all; if [ -n "$VENDOR" ]; then (cd $VENDOR && ls *.ko) >> $MD/modules.all; fi; if [ -n "$LOADLIST" ]; then grep -xF -f <(ls $MD | grep "\.ko$") $LOADLIST > $MD/modules.load; fi
 # modules.dep with bare names, as modload wants them
 sed -E "s#[^ :]*/##g" $S/modules.dep > $MD/modules.dep
 if [ -n "$NOLOAD" ]; then rm -f $MD/*.ko; : > $MD/modules.load; : > $MD/modules.dep; echo "NOLOAD: no modules in the ramdisk"; fi
