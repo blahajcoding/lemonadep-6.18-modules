@@ -37,7 +37,7 @@ cp $SRC/*.ko $SRC/modules.dep $MD/
 for f in modules.alias modules.softdep modules.options modules.blocklist; do : > $MD/$f; done
 {
 	echo ufs-qcom.ko; echo testguard.ko; echo bootlog.ko; echo logcap.ko
-	grep -vxE "ufs-qcom\.ko|testguard\.ko|logcap\.ko|bootlog\.ko|tz_log_dlkm\.ko|qcom_lpm\.ko|coresight.*\.ko|qcom_wdt_core\.ko|qcom_soc_wdt\.ko" $SRC/modules.all
+	grep -vxE "${SKIP:+$SKIP|}ufs-qcom\.ko|testguard\.ko|logcap\.ko|bootlog\.ko|tz_log_dlkm\.ko|qcom_lpm\.ko|coresight.*\.ko|qcom_wdt_core\.ko|qcom_soc_wdt\.ko" $SRC/modules.all
 } | awk '!seen[$0]++' | while read -r m; do [ -f $MD/$m ] && echo $m; done > $MD/modules.load
 for m in ufs-qcom.ko testguard.ko bootlog.ko; do grep -qx $m $MD/modules.load || { echo "$m missing"; exit 1; }; done
 

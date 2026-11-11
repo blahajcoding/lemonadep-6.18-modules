@@ -1867,7 +1867,12 @@ int cam_smmu_reserve_sec_heap(int32_t smmu_hdl,
 	}
 
 	secheap_buf = &iommu_cb_set.cb_info[idx].secheap_buf;
+	/*
+	 * Hold a reference of our own: release (and the error paths below)
+	 * put it, and the caller still puts its own when it frees the buffer.
+	 */
 	secheap_buf->buf = buf;
+	get_dma_buf(secheap_buf->buf);
 	secheap_buf->attach = dma_buf_attach(secheap_buf->buf,
 		iommu_cb_set.cb_info[idx].dev);
 	if (IS_ERR_OR_NULL(secheap_buf->attach)) {
