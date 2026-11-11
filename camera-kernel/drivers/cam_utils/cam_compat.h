@@ -27,7 +27,7 @@
 #include <linux/interconnect.h>
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
-MODULE_IMPORT_NS(DMA_BUF);
+MODULE_IMPORT_NS("DMA_BUF");
 #endif
 
 #ifdef CONFIG_DOMAIN_ID_SECURE_CAMERA
