@@ -1539,10 +1539,8 @@ void rmnet_shs_rx_wq_init(void)
 		INIT_WORK(&rmnet_shs_cfg.core_flush[i].work,
 			  rmnet_shs_flush_core_work);
 
-		hrtimer_init(&rmnet_shs_cfg.core_flush[i].core_timer,
-			     CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-		rmnet_shs_cfg.core_flush[i].core_timer.function =
-							rmnet_shs_queue_core;
+		hrtimer_setup(&rmnet_shs_cfg.core_flush[i].core_timer, rmnet_shs_queue_core, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+		
 	}
 	/* Initialize a fallback/failsafe work for when dl ind fails */
 	hrtimer_init(&rmnet_shs_cfg.hrtimer_shs,
