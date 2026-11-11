@@ -6,6 +6,7 @@
  * userspace logger reading /dev/kmsg.
  */
 #include <linux/bio.h>
+#include <linux/ctype.h>
 #include <linux/blkdev.h>
 #include <linux/delay.h>
 #include <linux/fs.h>
@@ -66,9 +67,18 @@ static long log_seq(struct block_device *bdev)
 		if (i == 64) {
 			seq = -1;
 		} else if (!memcmp(head, HEADER, HEADER_LEN)) {
-			memcpy(digits, head + HEADER_LEN, SEQ_DIGITS);
-			digits[SEQ_DIGITS] = 0;
-			if (kstrtol(digits, 10, &seq) || seq < 0)
+			/* the bring-up shell pads its counter with spaces */
+			u8 *d = head + HEADER_LEN;
+			int k = 0;
+
+			while (d < head + 64 && *d == ' ')
+				d++;
+			while (k < SEQ_DIGITS && d + k < head + 64 && isdigit(d[k])) {
+				digits[k] = d[k];
+				k++;
+			}
+			digits[k] = 0;
+			if (!k || kstrtol(digits, 10, &seq) || seq < 0)
 				seq = 0;
 		} else {
 			seq = 0;
