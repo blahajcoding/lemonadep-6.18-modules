@@ -12031,7 +12031,7 @@ static int tasha_set_dai_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 		snd_soc_component_get_drvdata(dai->component);
 
 	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
-	case SND_SOC_DAIFMT_CBS_CFS:
+	case SND_SOC_DAIFMT_CBC_CFC:
 		/* CPU is master */
 		if (tasha->intf_type == WCD9XXX_INTERFACE_TYPE_I2C) {
 			if (dai->id == AIF1_CAP)
@@ -12044,7 +12044,7 @@ static int tasha_set_dai_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 					0x2, 0);
 		}
 		break;
-	case SND_SOC_DAIFMT_CBM_CFM:
+	case SND_SOC_DAIFMT_CBP_CFP:
 		/* CPU is slave */
 		if (tasha->intf_type == WCD9XXX_INTERFACE_TYPE_I2C) {
 			if (dai->id == AIF1_CAP)

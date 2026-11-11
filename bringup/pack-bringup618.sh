@@ -69,6 +69,13 @@ while todo:
     seen.add(m)
     if m not in path:
         if os.path.exists(os.path.join(md, m)):
+            # out-of-tree module: follow its in-tree dependencies too
+            import subprocess
+            d = subprocess.run(["/sbin/modinfo", "-F", "depends", os.path.join(md, m)],
+                               capture_output=True, text=True).stdout.strip()
+            alias = {k.replace("-", "_"): k for k in path}
+            alias.update({f.replace("-", "_"): f for f in os.listdir(md)})
+            todo += [alias.get(x.replace("-", "_") + ".ko", x + ".ko") for x in d.split(",") if x]
             continue
         sys.exit("dependency %s not built" % m)
     drop = set(os.environ.get("DROP", "").split())
