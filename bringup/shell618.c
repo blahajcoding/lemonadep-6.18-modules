@@ -32,7 +32,7 @@ static void klog(const char *fmt, ...)
 {
 	char buf[512];
 	va_list ap;
-	int fd, n = snprintf(buf, sizeof(buf), "<6>shell618: ");
+	int fd, n = snprintf(buf, sizeof(buf), "<3>shell618: ");
 
 	va_start(ap, fmt);
 	n += vsnprintf(buf + n, sizeof(buf) - n, fmt, ap);
@@ -222,6 +222,8 @@ static void load_list(const char *list)
 		klog("loading %s\n", line);
 		if (log_ready)
 			save_log();
+		else
+			log_ready = !save_log();
 		load(line);
 	}
 	klog("%s done: %d loaded, %d failed\n", list, nok, nbad);
@@ -666,7 +668,97 @@ int main(void)
 	mount("devtmpfs", "/dev", "devtmpfs", 0, NULL);
 	mknod("/dev/kmsg", S_IFCHR | 0600, makedev(1, 11));
 	mknod("/dev/null", S_IFCHR | 0666, makedev(1, 3));
+	write_str("/proc/sys/kernel/printk_devkmsg", "on\n");
 	klog("started\n");
+
+	/*
+	 * Log keeper: write the whole kernel log to logdump every 2 s for the
+	 * life of the boot, so even a reset leaves the last seconds behind.
+	 */
+	if (fork() == 0) {
+		for (;;) {
+			save_log();
+			sleep(2);
+		}
+	}
+
+	/*
+	 * Report child: after 40 s print what is deferred and which module is
+	 * still loading, even if PID 1 is stuck in a module's probe.
+	 */
+	if (fork() == 0) {
+		char *t, *l, *nx;
+
+		sleep(20);
+		mkdir("/sys/kernel/debug", 0755);
+		mount("debugfs", "/sys/kernel/debug", "debugfs", 0, NULL);
+		klog("==== 20s report: deferred devices ====\n");
+		t = slurp("/sys/kernel/debug/devices_deferred", NULL);
+		for (l = t; l && *l; l = nx) {
+			nx = strchr(l, '\n');
+			if (nx)
+				*nx++ = 0;
+			if (*l)
+				klog("DEFER %s\n", l);
+		}
+		free(t);
+		klog("==== log lines about smem, ufs, hwlock, phy ====\n");
+		{
+			size_t n = read_kmsg(logbuf, sizeof(logbuf) - 1);
+			char *ln, *nl;
+			int shown = 0;
+
+			logbuf[n] = 0;
+			for (ln = logbuf; ln && *ln && shown < 45; ln = nl) {
+				nl = strchr(ln, '\n');
+				if (nl)
+					*nl++ = 0;
+				if (strstr(ln, "shell618"))
+					continue;
+				if (strstr(ln, "smem") || strstr(ln, "SMEM") || strstr(ln, "ufs") ||
+				    strstr(ln, "hwlock") || strstr(ln, "hwspin") || strstr(ln, "phy") ||
+				    strstr(ln, "1d84000") || strstr(ln, "mutex")) {
+					klog("LOG%s\n", strchr(ln, ']') ? strchr(ln, ']') + 1 : ln);
+					shown++;
+				}
+			}
+		}
+		klog("==== drivers bound ====\n");
+		{
+			const char *devs[] = { "1d84000.ufshc", "1d87000.ufsphy_mem", "1d87000.ufsphy",
+				"soc:qcom,smem", "qcom,smem", "1f40000.syscon", "soc:hwlock", "hwlock",
+				"a600000.ssusb", "88e3000.hsphy", "88e8000.ssphy", NULL };
+			int k;
+
+			for (k = 0; devs[k]; k++) {
+				char path[256], target[256];
+				long r;
+
+				snprintf(path, sizeof(path), "/sys/bus/platform/devices/%s/driver", devs[k]);
+				r = my_syscall4(__NR_readlinkat, AT_FDCWD, path, target, sizeof(target) - 1);
+				if (r > 0) {
+					target[r] = 0;
+					klog("BOUND %s -> %s\n", devs[k], strrchr(target, '/') ? strrchr(target, '/') + 1 : target);
+				} else {
+					snprintf(path, sizeof(path), "/sys/bus/platform/devices/%s", devs[k]);
+					klog("BOUND %s: %s\n", devs[k], access(path, F_OK) ? "no device" : "no driver");
+				}
+			}
+		}
+		klog("==== modules not Live ====\n");
+		t = slurp("/proc/modules", NULL);
+		for (l = t; l && *l; l = nx) {
+			nx = strchr(l, '\n');
+			if (nx)
+				*nx++ = 0;
+			if (*l && !strstr(l, " Live "))
+				klog("MOD %s\n", l);
+		}
+		free(t);
+		klog("==== 20s report done, logdump save: %d ====\n", save_log());
+		for (;;)
+			sleep(60);
+	}
 
 
 	uname(&u);
@@ -676,49 +768,13 @@ int main(void)
 
 	/* UFS first, so the log has somewhere to go; then reboot reasons */
 	load("ufs-qcom.ko");
-	for (i = 0; i < 15 && save_log(); i++)
-		sleep(1);
-	log_ready = i < 15;
-	klog("logdump %s after %ds\n", log_ready ? "reachable" : "not reachable", i);
+	log_ready = !save_log();
+	klog("logdump %s\n", log_ready ? "reachable" : "not reachable yet");
 	if (log_ready)
 		save_log();
 
 	load_list("modules.load");
 
-	/*
-	 * Report what is still waiting, then stop: the splash console keeps
-	 * the list on screen for a photo.
-	 */
-	sleep(15);
-	mkdir("/sys/kernel/debug", 0755);
-	mount("debugfs", "/sys/kernel/debug", "debugfs", 0, NULL);
-	{
-		char *t = slurp("/sys/kernel/debug/devices_deferred", NULL), *l, *nx;
-		int n = 0;
-
-		klog("==== devices still deferred ====\n");
-		for (l = t; l && *l; l = nx) {
-			nx = strchr(l, '\n');
-			if (nx)
-				*nx++ = 0;
-			if (*l) {
-				klog("DEFER %s\n", l);
-				n++;
-			}
-		}
-		klog("==== %d deferred, %d modules loaded, %d failed ====\n", n, nok, nbad);
-		free(t);
-	}
-	{
-		int i2;
-
-		for (i2 = 0; i2 < nmods; i2++)
-			if (mods[i2].state == 3)
-				klog("FAILED %s\n", mods[i2].name);
-	}
-	klog("==== report done; halting here ====\n");
-	for (;;)
-		sleep(60);
 
 	for (i = 0; i < 30 && save_log(); i++)
 		sleep(1);
