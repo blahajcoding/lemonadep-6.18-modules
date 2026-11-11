@@ -360,4 +360,4 @@ void __exit msm_lsr_exit(void)
 
 MODULE_SOFTDEP("pre: synx-driver");
 MODULE_LICENSE("GPL");
-MODULE_IMPORT_NS(DMA_BUF);
+MODULE_IMPORT_NS("DMA_BUF");

@@ -3343,10 +3343,8 @@ skip_irq_init:
 	phys_enc->enable_state = SDE_ENC_DISABLED;
 
 #if (KERNEL_VERSION(6, 15, 0) > LINUX_VERSION_CODE)
-	hrtimer_init(&phys_enc->sde_vrr_cfg.freq_step_timer,
-		CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-	phys_enc->sde_vrr_cfg.freq_step_timer.function =
-		sde_encoder_phys_vid_freq_step_callback;
+	hrtimer_setup(&phys_enc->sde_vrr_cfg.freq_step_timer, sde_encoder_phys_vid_freq_step_callback, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	
 	hrtimer_init(&phys_enc->sde_vrr_cfg.arp_transition_timer,
 		CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	phys_enc->sde_vrr_cfg.arp_transition_timer.function =

@@ -257,7 +257,7 @@ static void msm_smmu_destroy(struct msm_mmu *mmu)
 
 		if (domain) {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0))
-			qcom_iommu_set_fault_handler(domain, NULL, NULL);
+			iommu_set_fault_handler(domain, NULL, NULL);
 #else
 			iommu_set_fault_handler(domain, NULL, NULL);
 #endif
@@ -597,7 +597,7 @@ static int msm_smmu_probe(struct platform_device *pdev)
 	dma_set_seg_boundary(client->dev, (unsigned long)DMA_BIT_MASK(64));
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0))
-	qcom_iommu_set_fault_handler(client->domain,
+	iommu_set_fault_handler(client->domain,
 			msm_smmu_fault_handler, (void *)client);
 #else
 	iommu_set_fault_handler(client->domain,
@@ -682,5 +682,5 @@ MODULE_DESCRIPTION("MSM SMMU driver");
 #if (KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE)
 MODULE_IMPORT_NS("DMA_BUF");
 #elif (KERNEL_VERSION(5, 19, 0) <= LINUX_VERSION_CODE)
-MODULE_IMPORT_NS(DMA_BUF);
+MODULE_IMPORT_NS("DMA_BUF");
 #endif

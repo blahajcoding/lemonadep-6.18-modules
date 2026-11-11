@@ -1207,7 +1207,7 @@ static size_t trans_stat_print(char *buf, size_t count, loff_t off,
 #if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
 static ssize_t gpu_trans_stat_read(struct file *filp,
 				struct kobject *kobj,
-				struct bin_attribute *attr,
+				const struct bin_attribute *attr,
 				char *buf, loff_t off, size_t count)
 #else
 static ssize_t gpu_trans_stat_read(struct file *filp,
@@ -1272,7 +1272,7 @@ static ssize_t gpu_trans_stat_read(struct file *filp,
 #if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
 static ssize_t gpu_trans_stat_write(struct file *filp,
 				struct kobject *kobj,
-				struct bin_attribute *attr,
+				const struct bin_attribute *attr,
 				char *buf, loff_t off, size_t count)
 #else
 static ssize_t gpu_trans_stat_write(struct file *filp,
