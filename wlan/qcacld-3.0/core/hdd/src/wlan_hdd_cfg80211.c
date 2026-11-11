@@ -25733,18 +25733,84 @@ bool wlan_hdd_cfg80211_rx_control_port(struct net_device *dev,
  * @key_mgmt_set_pmk = Set pmk key management
  * @update_connect_params = Update connect params
  */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
+/* 6.17+ cfg80211 passes a wireless_dev to these ops */
+static int hdd618_change_station(struct wiphy *wiphy, struct wireless_dev *wdev,
+		const u8 *mac, struct station_parameters *params)
+{
+	return wlan_hdd_change_station(wiphy, wdev->netdev, mac, params);
+}
+static int hdd618_add_key(struct wiphy *wiphy, struct wireless_dev *wdev,
+		int link_id, u8 key_index, bool pairwise, const u8 *mac_addr, struct key_params *params)
+{
+	return wlan_hdd_cfg80211_add_key(wiphy, wdev->netdev, link_id, key_index, pairwise, mac_addr, params);
+}
+static int hdd618_get_key(struct wiphy *wiphy, struct wireless_dev *wdev,
+		int link_id, u8 key_index, bool pairwise, const u8 *mac_addr, void *cookie, void (*callback)(void *cookie, struct key_params *))
+{
+	return wlan_hdd_cfg80211_get_key(wiphy, wdev->netdev, link_id, key_index, pairwise, mac_addr, cookie, callback);
+}
+static int hdd618_del_key(struct wiphy *wiphy, struct wireless_dev *wdev,
+		int link_id, u8 key_index, bool pairwise, const u8 *mac_addr)
+{
+	return wlan_hdd_cfg80211_del_key(wiphy, wdev->netdev, link_id, key_index, pairwise, mac_addr);
+}
+static int hdd618_set_default_mgmt_key(struct wiphy *wiphy, struct wireless_dev *wdev,
+		int link_id, u8 key_index)
+{
+	return wlan_hdd_set_default_mgmt_key(wiphy, wdev->netdev, link_id, key_index);
+}
+#if defined (CFG80211_BIGTK_CONFIGURATION_SUPPORT) || \
+	    (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
+static int hdd618_set_default_beacon_key(struct wiphy *wiphy, struct wireless_dev *wdev,
+		int link_id, u8 key_index)
+{
+	return wlan_hdd_cfg80211_set_default_beacon_key(wiphy, wdev->netdev, link_id, key_index);
+}
+#endif
+static int hdd618_dump_station(struct wiphy *wiphy, struct wireless_dev *wdev,
+		int idx, u8 *mac, struct station_info *sinfo)
+{
+	return wlan_hdd_cfg80211_dump_station(wiphy, wdev->netdev, idx, mac, sinfo);
+}
+static int hdd618_get_station(struct wiphy *wiphy, struct wireless_dev *wdev,
+		const u8 *mac, struct station_info *sinfo)
+{
+	return wlan_hdd_cfg80211_get_station(wiphy, wdev->netdev, mac, sinfo);
+}
+static int hdd618_del_station(struct wiphy *wiphy, struct wireless_dev *wdev,
+		struct station_del_parameters *params)
+{
+	return wlan_hdd_cfg80211_del_station(wiphy, wdev->netdev, params);
+}
+static int hdd618_add_station(struct wiphy *wiphy, struct wireless_dev *wdev,
+		const u8 *mac, struct station_parameters *params)
+{
+	return wlan_hdd_cfg80211_add_station(wiphy, wdev->netdev, mac, params);
+}
+static int hdd618_remain_on_channel(struct wiphy *wiphy, struct wireless_dev *wdev,
+		struct ieee80211_channel *chan, unsigned int duration, u64 *cookie,
+		const u8 *rx_addr)
+{
+	return wlan_hdd_cfg80211_remain_on_channel(wiphy, wdev, chan, duration, cookie);
+}
+#define HDD618(op, fn) hdd618_##op
+#else
+#define HDD618(op, fn) fn
+#endif
+
 static struct cfg80211_ops wlan_hdd_cfg80211_ops = {
 	.add_virtual_intf = wlan_hdd_add_virtual_intf,
 	.del_virtual_intf = wlan_hdd_del_virtual_intf,
 	.change_virtual_intf = wlan_hdd_cfg80211_change_iface,
-	.change_station = wlan_hdd_change_station,
+	.change_station = HDD618(change_station, wlan_hdd_change_station),
 	.start_ap = wlan_hdd_cfg80211_start_ap,
 	.change_beacon = wlan_hdd_cfg80211_change_beacon,
 	.stop_ap = wlan_hdd_cfg80211_stop_ap,
 	.change_bss = wlan_hdd_cfg80211_change_bss,
-	.add_key = wlan_hdd_cfg80211_add_key,
-	.get_key = wlan_hdd_cfg80211_get_key,
-	.del_key = wlan_hdd_cfg80211_del_key,
+	.add_key = HDD618(add_key, wlan_hdd_cfg80211_add_key),
+	.get_key = HDD618(get_key, wlan_hdd_cfg80211_get_key),
+	.del_key = HDD618(del_key, wlan_hdd_cfg80211_del_key),
 	.set_default_key = wlan_hdd_cfg80211_set_default_key,
 	.scan = wlan_hdd_cfg80211_scan,
 	.connect = wlan_hdd_cfg80211_connect,
@@ -25752,21 +25818,21 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops = {
 	.set_wiphy_params = wlan_hdd_cfg80211_set_wiphy_params,
 	.set_tx_power = wlan_hdd_cfg80211_set_txpower,
 	.get_tx_power = wlan_hdd_cfg80211_get_txpower,
-	.remain_on_channel = wlan_hdd_cfg80211_remain_on_channel,
+	.remain_on_channel = HDD618(remain_on_channel, wlan_hdd_cfg80211_remain_on_channel),
 	.cancel_remain_on_channel = wlan_hdd_cfg80211_cancel_remain_on_channel,
 	.mgmt_tx = wlan_hdd_mgmt_tx,
 	.mgmt_tx_cancel_wait = wlan_hdd_cfg80211_mgmt_tx_cancel_wait,
-	.set_default_mgmt_key = wlan_hdd_set_default_mgmt_key,
+	.set_default_mgmt_key = HDD618(set_default_mgmt_key, wlan_hdd_set_default_mgmt_key),
 #if defined (CFG80211_BIGTK_CONFIGURATION_SUPPORT) || \
 	    (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
-	.set_default_beacon_key = wlan_hdd_cfg80211_set_default_beacon_key,
+	.set_default_beacon_key = HDD618(set_default_beacon_key, wlan_hdd_cfg80211_set_default_beacon_key),
 #endif
 	.set_txq_params = wlan_hdd_set_txq_params,
-	.dump_station = wlan_hdd_cfg80211_dump_station,
-	.get_station = wlan_hdd_cfg80211_get_station,
+	.dump_station = HDD618(dump_station, wlan_hdd_cfg80211_dump_station),
+	.get_station = HDD618(get_station, wlan_hdd_cfg80211_get_station),
 	.set_power_mgmt = wlan_hdd_cfg80211_set_power_mgmt,
-	.del_station = wlan_hdd_cfg80211_del_station,
-	.add_station = wlan_hdd_cfg80211_add_station,
+	.del_station = HDD618(del_station, wlan_hdd_cfg80211_del_station),
+	.add_station = HDD618(add_station, wlan_hdd_cfg80211_add_station),
 	.set_pmksa = wlan_hdd_cfg80211_set_pmksa,
 	.del_pmksa = wlan_hdd_cfg80211_del_pmksa,
 	.flush_pmksa = wlan_hdd_cfg80211_flush_pmksa,
