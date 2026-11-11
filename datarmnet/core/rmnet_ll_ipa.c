@@ -13,6 +13,7 @@
  * RmNet IPA Low Latency channel handlers
  */
 
+#include <linux/workqueue.h>
 #include <linux/netdevice.h>
 #include <linux/skbuff.h>
 #if !defined(__arch_um__) && !defined(TRANSPORT_RMNET_BAM)
@@ -192,15 +193,41 @@ queue_skb:
 	return 0;
 }
 
+static int rmnet_ll_ipa_register(void)
+{
+	int rc = ipa_register_ipa_ready_cb(rmnet_ll_ipa_ready, NULL);
+
+	if (rc == -EEXIST) {
+		/* IPA is already up. Call it ourselves, since they don't */
+		rmnet_ll_ipa_ready(NULL);
+		rc = 0;
+	}
+	return rc;
+}
+
+/*
+ * ipam only sets up its context once the IPA device and its SMMU context
+ * banks have probed; until then it answers -EPERM. Loaded from the same
+ * modules.load, rmnet can get there first, so keep asking for a while.
+ */
+static void rmnet_ll_ipa_retry_fn(struct work_struct *work);
+static DECLARE_DELAYED_WORK(rmnet_ll_ipa_retry, rmnet_ll_ipa_retry_fn);
+static int rmnet_ll_ipa_tries;
+
+static void rmnet_ll_ipa_retry_fn(struct work_struct *work)
+{
+	if (rmnet_ll_ipa_register() == -EPERM && ++rmnet_ll_ipa_tries < 240)
+		schedule_delayed_work(&rmnet_ll_ipa_retry, msecs_to_jiffies(500));
+}
+
 static int rmnet_ll_ipa_init(void)
 {
 	int rc;
 
 	__skb_queue_head_init(&tx_pending_list);
-	rc = ipa_register_ipa_ready_cb(rmnet_ll_ipa_ready, NULL);
-	if (rc == -EEXIST) {
-		/* IPA is already up. Call it ourselves, since they don't */
-		rmnet_ll_ipa_ready(NULL);
+	rc = rmnet_ll_ipa_register();
+	if (rc == -EPERM) {
+		schedule_delayed_work(&rmnet_ll_ipa_retry, msecs_to_jiffies(500));
 		rc = 0;
 	}
 
@@ -209,6 +236,7 @@ static int rmnet_ll_ipa_init(void)
 
 static int rmnet_ll_ipa_exit(void)
 {
+	cancel_delayed_work_sync(&rmnet_ll_ipa_retry);
 	if (rmnet_ll_ipa_ep) {
 		ipa_unregister_rmnet_ll_cb();
 		/* Teardown? */

@@ -5,6 +5,7 @@
  *
  */
 
+#include <linux/workqueue.h>
 #include <linux/module.h>
 #include <linux/skbuff.h>
 #include <linux/ipa.h>
@@ -85,13 +86,38 @@ static void rmnet_ctl_ipa_ready(void *user_data)
 		rmnet_ctl_ipa_registered = true;
 }
 
+static int rmnet_ctl_register(void)
+{
+	int rc = ipa_register_ipa_ready_cb(rmnet_ctl_ipa_ready, NULL);
+
+	if (rc == -EEXIST) {
+		rmnet_ctl_ipa_ready(NULL);
+		rc = 0;
+	}
+	return rc;
+}
+
+/* ipam answers -EPERM until the IPA device has probed: wait for it */
+static void rmnet_ctl_retry_fn(struct work_struct *work);
+static DECLARE_DELAYED_WORK(rmnet_ctl_retry, rmnet_ctl_retry_fn);
+static int rmnet_ctl_tries;
+
+static void rmnet_ctl_retry_fn(struct work_struct *work)
+{
+	int rc = rmnet_ctl_register();
+
+	if (rc == -EPERM && ++rmnet_ctl_tries < 240)
+		schedule_delayed_work(&rmnet_ctl_retry, msecs_to_jiffies(500));
+	else if (rc)
+		pr_err("%s: %d\n", __func__, rc);
+}
+
 static int __init rmnet_ctl_init(void)
 {
-	int rc;
+	int rc = rmnet_ctl_register();
 
-	rc = ipa_register_ipa_ready_cb(rmnet_ctl_ipa_ready, NULL);
-	if (rc == -EEXIST)
-		rmnet_ctl_ipa_ready(NULL);
+	if (rc == -EPERM)
+		schedule_delayed_work(&rmnet_ctl_retry, msecs_to_jiffies(500));
 	else if (rc)
 		pr_err("%s: %d\n", __func__, rc);
 
@@ -100,6 +126,7 @@ static int __init rmnet_ctl_init(void)
 
 static void __exit rmnet_ctl_exit(void)
 {
+	cancel_delayed_work_sync(&rmnet_ctl_retry);
 	if (rmnet_ctl_ipa_registered) {
 		ipa_unregister_rmnet_ctl_cb();
 		rmnet_ctl_ipa_registered = false;
