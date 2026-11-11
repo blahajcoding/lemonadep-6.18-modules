@@ -668,6 +668,7 @@ int main(void)
 	mknod("/dev/null", S_IFCHR | 0666, makedev(1, 3));
 	klog("started\n");
 
+
 	uname(&u);
 	snprintf(dir, sizeof(dir), "/lib/modules/%s", u.release);
 	read_deps();
@@ -679,13 +680,45 @@ int main(void)
 		sleep(1);
 	log_ready = i < 15;
 	klog("logdump %s after %ds\n", log_ready ? "reachable" : "not reachable", i);
-	load("qcom-reboot-reason.ko");
-	load("reboot-mode.ko");
-	load("qcom-pon.ko");
 	if (log_ready)
 		save_log();
 
 	load_list("modules.load");
+
+	/*
+	 * Report what is still waiting, then stop: the splash console keeps
+	 * the list on screen for a photo.
+	 */
+	sleep(15);
+	mkdir("/sys/kernel/debug", 0755);
+	mount("debugfs", "/sys/kernel/debug", "debugfs", 0, NULL);
+	{
+		char *t = slurp("/sys/kernel/debug/devices_deferred", NULL), *l, *nx;
+		int n = 0;
+
+		klog("==== devices still deferred ====\n");
+		for (l = t; l && *l; l = nx) {
+			nx = strchr(l, '\n');
+			if (nx)
+				*nx++ = 0;
+			if (*l) {
+				klog("DEFER %s\n", l);
+				n++;
+			}
+		}
+		klog("==== %d deferred, %d modules loaded, %d failed ====\n", n, nok, nbad);
+		free(t);
+	}
+	{
+		int i2;
+
+		for (i2 = 0; i2 < nmods; i2++)
+			if (mods[i2].state == 3)
+				klog("FAILED %s\n", mods[i2].name);
+	}
+	klog("==== report done; halting here ====\n");
+	for (;;)
+		sleep(60);
 
 	for (i = 0; i < 30 && save_log(); i++)
 		sleep(1);
