@@ -208,12 +208,8 @@ static void ecm_ipa_packet_receive_notify
 static void ecm_ipa_tx_complete_notify
 	(void *priv, enum ipa_dp_evt_type evt, unsigned long data);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
 static void ecm_ipa_tx_timeout(struct net_device *net,
 	unsigned int txqueue);
-#else /* Legacy API. */
-static void ecm_ipa_tx_timeout(struct net_device *net);
-#endif
 
 static int ecm_ipa_stop(struct net_device *net);
 static void ecm_ipa_enable_data_path(struct ecm_ipa_dev *ecm_ipa_ctx);
@@ -332,11 +328,7 @@ int ecm_ipa_init(struct ecm_ipa_params *params)
 		ecm_ipa_ctx->netif_rx_function = netif_receive_skb;
 		ECM_IPA_DEBUG("LAN RX NAPI enabled = True");
 	} else {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))
-		ecm_ipa_ctx->netif_rx_function = netif_rx_ni;
-#else
                 ecm_ipa_ctx->netif_rx_function = netif_rx;
-#endif
 		ECM_IPA_DEBUG("LAN RX NAPI enabled = False");
 	}
 	ECM_IPA_DEBUG("internal data structures were initialized\n");
@@ -1336,12 +1328,8 @@ out:
 	dev_kfree_skb_any(skb);
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
 static void ecm_ipa_tx_timeout(struct net_device *net,
 	unsigned int txqueue)
-#else /* Legacy API */
-static void ecm_ipa_tx_timeout(struct net_device *net)
-#endif
 {
 	struct ecm_ipa_dev *ecm_ipa_ctx = netdev_priv(net);
 
@@ -1518,13 +1506,8 @@ static int ecm_ipa_set_device_ethernet_addr
 	if (!is_valid_ether_addr(device_ethaddr))
 		return -EINVAL;
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(5, 15, 0))
 	net->addr_len = ETH_ALEN;
 	dev_addr_set(net, device_ethaddr);
-#else
-	memcpy((u8 *)net->dev_addr, device_ethaddr, ETH_ALEN);
-	ECM_IPA_DEBUG("device ethernet address: %pM\n", (u8 *)net->dev_addr);
-#endif
 	return 0;
 }
 

@@ -39,11 +39,7 @@
 #include <linux/of_address.h>
 #include <linux/soc/qcom/mdt_loader.h>
 #include <linux/version.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 #include <linux/panic_notifier.h>
-#else
-#include <soc/qcom/subsystem_restart.h>
-#endif
 #include "gsi.h"
 #include "ipa_stats.h"
 #include <linux/suspend.h>
@@ -9007,13 +9003,6 @@ static int ipa3_pil_load_ipa_fws(const char *sub_sys)
 
 	IPADBG_BOOTUP("PIL FW loading process initiated sub_sys=%s\n",
 		sub_sys);
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0))
-	ipa3_ctx->subsystem_get_retval = subsystem_get(sub_sys);
-	if (IS_ERR_OR_NULL(ipa3_ctx->subsystem_get_retval)) {
-		IPAERR_BOOTUP("Unable to PIL load FW for sub_sys=%s\n", sub_sys);
-		return -EINVAL;
-	}
-#endif
 	IPADBG_BOOTUP("PIL FW loading process is complete sub_sys=%s\n", sub_sys);
 	return 0;
 }
@@ -9630,31 +9619,18 @@ static inline void ipa3_enable_napi_netdev(void)
 	struct net_device *dummy_ndev = NULL;
 
 	if (ipa3_ctx->lan_rx_napi_enable || ipa3_ctx->tx_napi_enable) {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 13, 0))
-		init_dummy_netdev(&ipa3_ctx->generic_ndev);
-		dummy_ndev = &ipa3_ctx->generic_ndev;
-#else
 		ipa3_ctx->generic_ndev = alloc_netdev_dummy(0);
 		if (!ipa3_ctx->generic_ndev) {
 			IPAERR("Error allocating LAN netdev, disable LAN NAPI\n");
 			ipa3_ctx->lan_rx_napi_enable = false;
 		}
 		dummy_ndev = ipa3_ctx->generic_ndev;
-#endif
 
 		if(ipa3_ctx->lan_rx_napi_enable) {
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(6, 0, 14))
 			netif_napi_add(
 				dummy_ndev,
 				&ipa3_ctx->napi_lan_rx,
 				ipa3_lan_poll);
-#else
-			netif_napi_add(
-				dummy_ndev,
-				&ipa3_ctx->napi_lan_rx,
-				ipa3_lan_poll,
-				NAPI_WEIGHT);
-#endif
 		}
 	}
 }
@@ -11285,23 +11261,12 @@ static int get_ipa_dts_configuration(struct platform_device *pdev,
 			ipa_drv_res->transport_mem_size);
 
 	/* Get IPA GSI IRQ number */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))
-	irq = 0;
-	resource = platform_get_resource_byname(pdev, IORESOURCE_IRQ,
-			"gsi-irq");
-	if (!resource) {
-		IPAERR_BOOTUP(":get resource failed for gsi-irq\n");
-		return -ENODEV;
-	}
-	ipa_drv_res->transport_irq = resource->start;
-#else
 	irq = platform_get_irq_byname(pdev, "gsi-irq");
 	if (irq < 0) {
 		IPAERR_BOOTUP(":get resource failed for gsi-irq\n");
 		return -ENODEV;
 	}
 	ipa_drv_res->transport_irq = irq;
-#endif
 	IPADBG_BOOTUP(": gsi-irq = %d\n", ipa_drv_res->transport_irq);
 
 	/* Get IPA pipe mem start ofst */
@@ -11318,22 +11283,12 @@ static int get_ipa_dts_configuration(struct platform_device *pdev,
 	}
 
 	/* Get IPA IRQ number */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))
-	resource = platform_get_resource_byname(pdev, IORESOURCE_IRQ,
-			"ipa-irq");
-	if (!resource) {
-		IPAERR_BOOTUP(":get resource failed for ipa-irq\n");
-		return -ENODEV;
-	}
-	ipa_drv_res->ipa_irq = resource->start;
-#else
 	irq = platform_get_irq_byname(pdev, "ipa-irq");
 	if (irq < 0) {
 		IPAERR_BOOTUP(":get resource failed for ipa-irq\n");
 		return -ENODEV;
 	}
 	ipa_drv_res->ipa_irq = irq;
-#endif
 	IPADBG_BOOTUP(":ipa-irq = %d\n", ipa_drv_res->ipa_irq);
 
 	result = of_property_read_u32(pdev->dev.of_node, "qcom,ee",
@@ -11623,9 +11578,7 @@ static int ipa_smmu_perph_cb_probe(struct device *dev,
 	phys_addr_t pa_p;
 	u32 size_p;
 	u32 iova_ap_mapping[2];
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
 	int mapping_config;
-#endif
 
 	IPADBG_BOOTUP("CB %d PROBE dev=%pK\n", cb_type, dev);
 
@@ -11649,7 +11602,6 @@ static int ipa_smmu_perph_cb_probe(struct device *dev,
 	cb->valid = true;
 
 	cb->va_start = cb->va_end  = cb->va_size = 0;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0))
 	if (of_property_read_u32_array(
 			dev->of_node, "qcom,ipa-dma-addr-pool",
 			iova_ap_mapping, 2) == 0) {
@@ -11657,15 +11609,6 @@ static int ipa_smmu_perph_cb_probe(struct device *dev,
 		cb->va_size  = iova_ap_mapping[1];
 		cb->va_end   = cb->va_start + cb->va_size;
 	}
-#else
-	if (of_property_read_u32_array(
-			dev->of_node, "qcom,iommu-dma-addr-pool",
-			iova_ap_mapping, 2) == 0) {
-		cb->va_start = iova_ap_mapping[0];
-		cb->va_size  = iova_ap_mapping[1];
-		cb->va_end   = cb->va_start + cb->va_size;
-	}
-#endif
 	IPADBG_BOOTUP("CB %d PROBE dev=%pK va_start=0x%x va_size=0x%x\n",
 		   cb_type, dev, cb->va_start, cb->va_size);
 
@@ -11681,7 +11624,6 @@ static int ipa_smmu_perph_cb_probe(struct device *dev,
 	 * checks to see if they've been set in dtsi.  If so, the logic
 	 * further below acts accordingly...
 	 */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
 
 	mapping_config = qcom_iommu_get_mappings_configuration(cb->iommu_domain);
 
@@ -11691,10 +11633,6 @@ static int ipa_smmu_perph_cb_probe(struct device *dev,
 		bypass = (mapping_config & QCOM_IOMMU_MAPPING_CONF_S1_BYPASS) ? 1 : 0;
 		fast = (mapping_config & QCOM_IOMMU_MAPPING_CONF_FAST) ? 1 : 0;
 	}
-#else
-	iommu_domain_get_attr(cb->iommu_domain, DOMAIN_ATTR_S1_BYPASS, &bypass);
-	iommu_domain_get_attr(cb->iommu_domain, DOMAIN_ATTR_FAST, &fast);
-#endif
 	IPADBG_BOOTUP(
 	  "CB %d PROBE dev=%pK DOMAIN ATTRS bypass=%d fast=%d\n",
 	  cb_type, dev, bypass, fast);
@@ -11752,9 +11690,7 @@ static int ipa_smmu_uc_cb_probe(struct device *dev)
 	u32 add_map_size;
 	const u32 *add_map;
 	int i = 0;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
 	int mapping_config;
-#endif
 
 	IPADBG_BOOTUP("UC CB PROBE dev=%pK\n", dev);
 
@@ -11793,7 +11729,6 @@ static int ipa_smmu_uc_cb_probe(struct device *dev)
 	cb->valid = true;
 
 	cb->va_start = cb->va_end  = cb->va_size = 0;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0))
 	if (of_property_read_u32_array(
 			dev->of_node, "qcom,ipa-dma-addr-pool",
 			iova_ap_mapping, 2) == 0) {
@@ -11801,15 +11736,6 @@ static int ipa_smmu_uc_cb_probe(struct device *dev)
 		cb->va_size  = iova_ap_mapping[1];
 		cb->va_end   = cb->va_start + cb->va_size;
 	}
-#else
-	if (of_property_read_u32_array(
-			dev->of_node, "qcom,iommu-dma-addr-pool",
-			iova_ap_mapping, 2) == 0) {
-		cb->va_start = iova_ap_mapping[0];
-		cb->va_size  = iova_ap_mapping[1];
-		cb->va_end   = cb->va_start + cb->va_size;
-	}
-#endif
 	IPADBG_BOOTUP("UC CB PROBE dev=%pK va_start=0x%x va_size=0x%x\n",
 		   dev, cb->va_start, cb->va_size);
 
@@ -11825,7 +11751,6 @@ static int ipa_smmu_uc_cb_probe(struct device *dev)
 	 * checks to see if they've been set in dtsi.  If so, the logic
 	 * further below acts accordingly...
 	 */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
 
         mapping_config = qcom_iommu_get_mappings_configuration(cb->iommu_domain);
 
@@ -11835,10 +11760,6 @@ static int ipa_smmu_uc_cb_probe(struct device *dev)
                 bypass = (mapping_config & QCOM_IOMMU_MAPPING_CONF_S1_BYPASS) ? 1 : 0;
                 fast = (mapping_config & QCOM_IOMMU_MAPPING_CONF_FAST) ? 1 : 0;
         }
-#else
-        iommu_domain_get_attr(cb->iommu_domain, DOMAIN_ATTR_S1_BYPASS, &bypass);
-        iommu_domain_get_attr(cb->iommu_domain, DOMAIN_ATTR_FAST, &fast);
-#endif
 	IPADBG_BOOTUP("UC CB PROBE dev=%pK DOMAIN ATTRS bypass=%d fast=%d\n",
 		   dev, bypass, fast);
 
@@ -11920,9 +11841,7 @@ static int ipa_smmu_ap_cb_probe(struct device *dev)
 	phys_addr_t pa_p;
 	u32 size_p;
 	u32 iova_ap_mapping[2];
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
 	int mapping_config;
-#endif
 	u32 geometry_ap_mapping[2];
 
 	IPADBG_BOOTUP("AP CB PROBE dev=%pK\n", dev);
@@ -11962,7 +11881,6 @@ static int ipa_smmu_ap_cb_probe(struct device *dev)
 	cb->valid = true;
 
 	cb->va_start = cb->va_end  = cb->va_size = 0;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0))
 	if (of_property_read_u32_array(
 			dev->of_node, "qcom,ipa-dma-addr-pool",
 			iova_ap_mapping, 2) == 0) {
@@ -11970,15 +11888,6 @@ static int ipa_smmu_ap_cb_probe(struct device *dev)
 		cb->va_size  = iova_ap_mapping[1];
 		cb->va_end   = cb->va_start + cb->va_size;
 	}
-#else
-	if (of_property_read_u32_array(
-			dev->of_node, "qcom,iommu-dma-addr-pool",
-			iova_ap_mapping, 2) == 0) {
-		cb->va_start = iova_ap_mapping[0];
-		cb->va_size  = iova_ap_mapping[1];
-		cb->va_end   = cb->va_start + cb->va_size;
-	}
-#endif
 	IPADBG_BOOTUP("AP CB PROBE dev=%pK va_start=0x%x va_size=0x%x\n",
 		   dev, cb->va_start, cb->va_size);
 	if (of_property_read_u32_array(
@@ -12007,7 +11916,6 @@ static int ipa_smmu_ap_cb_probe(struct device *dev)
 	 * checks to see if they've been set in dtsi.  If so, the logic
 	 * further below acts accordingly...
 	 */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
 
         mapping_config = qcom_iommu_get_mappings_configuration(cb->iommu_domain);
 
@@ -12017,10 +11925,6 @@ static int ipa_smmu_ap_cb_probe(struct device *dev)
                 bypass = (mapping_config & QCOM_IOMMU_MAPPING_CONF_S1_BYPASS) ? 1 : 0;
                 fast = (mapping_config & QCOM_IOMMU_MAPPING_CONF_FAST) ? 1 : 0;
         }
-#else
-        iommu_domain_get_attr(cb->iommu_domain, DOMAIN_ATTR_S1_BYPASS, &bypass);
-        iommu_domain_get_attr(cb->iommu_domain, DOMAIN_ATTR_FAST, &fast);
-#endif
 	IPADBG_BOOTUP("AP CB PROBE dev=%pK DOMAIN ATTRS bypass=%d fast=%d\n",
 		   dev, bypass, fast);
 
@@ -12139,9 +12043,7 @@ static int ipa_smmu_rtp_cb_probe(struct device *dev)
 	phys_addr_t pa_p;
 	u32 size_p;
 	u32 iova_ap_mapping[2];
-#if (KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE)
 	int mapping_config;
-#endif
 	u32 geometry_ap_mapping[2];
 
 	IPADBG("RTP CB PROBE dev=%pK\n", dev);
@@ -12217,7 +12119,6 @@ static int ipa_smmu_rtp_cb_probe(struct device *dev)
 	 * checks to see if they've been set in dtsi.  If so, the logic
 	 * further below acts accordingly...
 	 */
-#if (KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE)
 
 	mapping_config = qcom_iommu_get_mappings_configuration(cb->iommu_domain);
 
@@ -12227,10 +12128,6 @@ static int ipa_smmu_rtp_cb_probe(struct device *dev)
 		bypass = (mapping_config & QCOM_IOMMU_MAPPING_CONF_S1_BYPASS) ? 1 : 0;
 		fast = (mapping_config & QCOM_IOMMU_MAPPING_CONF_FAST) ? 1 : 0;
 	}
-#else
-	iommu_domain_get_attr(cb->iommu_domain, DOMAIN_ATTR_S1_BYPASS, &bypass);
-	iommu_domain_get_attr(cb->iommu_domain, DOMAIN_ATTR_FAST, &fast);
-#endif
 	IPADBG("RTP CB PROBE dev=%pK DOMAIN ATTRS bypass=%d fast=%d\n",
 		   dev, bypass, fast);
 
@@ -12276,9 +12173,7 @@ static int ipa_smmu_11ad_cb_probe(struct device *dev)
 	int bypass = 0;
 	struct ipa_smmu_cb_ctx *cb = ipa3_get_smmu_ctx(IPA_SMMU_CB_11AD);
 	u32 iova_ap_mapping[2];
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
 	int mapping_config;
-#endif
 
 	IPADBG_BOOTUP("11AD CB probe: dev=%pK\n", dev);
 
@@ -12298,7 +12193,6 @@ static int ipa_smmu_11ad_cb_probe(struct device *dev)
 	cb->valid = true;
 
 	cb->va_start = cb->va_end  = cb->va_size = 0;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0))
 	if (of_property_read_u32_array(
 			dev->of_node, "qcom,ipa-dma-addr-pool",
 			iova_ap_mapping, 2) == 0) {
@@ -12306,18 +12200,8 @@ static int ipa_smmu_11ad_cb_probe(struct device *dev)
 		cb->va_size  = iova_ap_mapping[1];
 		cb->va_end   = cb->va_start + cb->va_size;
 	}
-#else
-	if (of_property_read_u32_array(
-			dev->of_node, "qcom,iommu-dma-addr-pool",
-			iova_ap_mapping, 2) == 0) {
-		cb->va_start = iova_ap_mapping[0];
-		cb->va_size  = iova_ap_mapping[1];
-		cb->va_end   = cb->va_start + cb->va_size;
-	}
-#endif
 	IPADBG_BOOTUP("11AD CB PROBE dev=%pK va_start=0x%x va_size=0x%x\n",
 		   dev, cb->va_start, cb->va_size);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
 
         mapping_config = qcom_iommu_get_mappings_configuration(cb->iommu_domain);
 
@@ -12326,9 +12210,6 @@ static int ipa_smmu_11ad_cb_probe(struct device *dev)
         } else {
                 bypass = (mapping_config & QCOM_IOMMU_MAPPING_CONF_S1_BYPASS) ? 1 : 0;
         }
-#else
-        iommu_domain_get_attr(cb->iommu_domain, DOMAIN_ATTR_S1_BYPASS, &bypass);
-#endif
 	IPADBG_BOOTUP("11AD CB PROBE dev=%pK DOMAIN ATTRS bypass=%d\n",
 		   dev, bypass);
 

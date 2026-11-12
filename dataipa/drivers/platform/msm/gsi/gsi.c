@@ -840,9 +840,7 @@ static void gsi_handle_ieob(int ee)
 			if (trace_gsi_qtimer_enabled())
 			{
 				uint64_t qtimer = 0;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 				qtimer = arch_timer_read_cntpct_el0();
-#endif
 				trace_gsi_qtimer(qtimer, false, 0, ch, msk);
 			}
 
@@ -1149,9 +1147,7 @@ static irqreturn_t gsi_msi_isr(int irq, void *ctxt)
 
 	if (trace_gsi_qtimer_enabled()) {
 		uint64_t qtimer = 0;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 		qtimer = arch_timer_read_cntpct_el0();
-#endif
 		trace_gsi_qtimer(qtimer, true, evt, 0, 0);
 	}
 
@@ -1350,11 +1346,7 @@ static void __gsi_msi_write_msg(struct msi_desc *desc, struct msi_msg *msg)
 	if (IS_ERR_OR_NULL(desc) || IS_ERR_OR_NULL(msg) || IS_ERR_OR_NULL(gsi_ctx))
 		BUG();
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0))
 	msi = desc->msi_index;
-#else
-	msi = desc->platform.msi_index;
-#endif
 
 	/* MSI should be valid and unallocated */
 	if ((msi >= gsi_ctx->msi.num) || (test_bit(msi, gsi_ctx->msi.allocated)))
@@ -1410,20 +1402,12 @@ static int __gsi_request_msi_irq(unsigned long msi)
 static int __gsi_allocate_msis(void)
 {
 	int result = 0;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))
-	struct msi_desc *desc = NULL;
-#endif
 	size_t size = 0;
 
 	/* Allocate all MSIs */
 	GSIDBG("gsi_ctx->dev = %p, gsi_ctx->msi.num = %d", gsi_ctx->dev, gsi_ctx->msi.num);
-#if (KERNEL_VERSION(6, 8, 0) > LINUX_VERSION_CODE)
-	result = platform_msi_domain_alloc_irqs(gsi_ctx->dev, gsi_ctx->msi.num,
-			__gsi_msi_write_msg);
-#else
 	result = platform_device_msi_init_and_alloc_irqs(gsi_ctx->dev, gsi_ctx->msi.num,
 			__gsi_msi_write_msg);
-#endif
 	if (result) {
 		GSIERR("error allocating platform MSIs - %d\n", result);
 		return -GSI_STATUS_ERROR;
@@ -1433,25 +1417,9 @@ static int __gsi_allocate_msis(void)
 	/* Loop through the allocated MSIs and save the info, then
 	 * request the IRQ.
 	 */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0))
 	for (unsigned long msi = 0; msi < gsi_ctx->msi.num; msi++) {
 		/* Save IRQ */
 		gsi_ctx->msi.irq[msi] = msi_get_virq(gsi_ctx->dev, msi);
-#else
-	for_each_msi_entry(desc, gsi_ctx->dev) {
-		unsigned long msi = desc->platform.msi_index;
-
-		/* Ensure a valid index */
-		if (msi >= gsi_ctx->msi.num) {
-			GSIERR("error invalid MSI %lu\n", msi);
-			result = -GSI_STATUS_ERROR;
-			goto err_free_msis;
-		}
-
-		/* Save IRQ */
-		gsi_ctx->msi.irq[msi] = desc->irq;
-		GSIDBG("desc->irq =%d\n", desc->irq);
-#endif
 		/* Request the IRQ */
 		if (__gsi_request_msi_irq(msi)) {
 			GSIERR("error requesting IRQ for MSI %lu\n",
@@ -1466,11 +1434,7 @@ static int __gsi_allocate_msis(void)
 
 err_free_msis:
 	size = sizeof(unsigned long) * BITS_TO_LONGS(gsi_ctx->msi.num);
-#if (KERNEL_VERSION(6, 8, 0) > LINUX_VERSION_CODE)
-	platform_msi_domain_free_irqs(gsi_ctx->dev);
-#else
 	platform_device_msi_free_irqs_all(gsi_ctx->dev);
-#endif
 	memset(gsi_ctx->msi.allocated, 0, size);
 
 	return result;
@@ -1612,11 +1576,7 @@ int gsi_register_device(struct gsi_per_props *props, unsigned long *dev_hdl)
 		gsi_ctx->intcntrlr_mem_size =
 		    props->emulator_intcntrlr_size;
 		gsi_ctx->intcntrlr_base =
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
 		    devm_ioremap(
-#else
-		    devm_ioremap_nocache(
-#endif
 			gsi_ctx->dev,
 			props->emulator_intcntrlr_addr,
 			props->emulator_intcntrlr_size);
@@ -1772,11 +1732,7 @@ err_free_msis:
 	if (gsi_ctx->msi.num) {
 		size_t size =
 			sizeof(unsigned long) * BITS_TO_LONGS(gsi_ctx->msi.num);
-#if (KERNEL_VERSION(6, 8, 0) > LINUX_VERSION_CODE)
-		platform_msi_domain_free_irqs(gsi_ctx->dev);
-#else
 		platform_device_msi_free_irqs_all(gsi_ctx->dev);
-#endif
 		memset(gsi_ctx->msi.allocated, 0, size);
 	}
 
@@ -1884,11 +1840,7 @@ int gsi_deregister_device(unsigned long dev_hdl, bool force)
 	__gsi_config_gen_irq(gsi_ctx->per.ee, ~0, 0);
 
 	if (gsi_ctx->msi.num)
-#if (KERNEL_VERSION(6, 8, 0) > LINUX_VERSION_CODE)
-		platform_msi_domain_free_irqs(gsi_ctx->dev);
-#else
 		platform_device_msi_free_irqs_all(gsi_ctx->dev);
-#endif
 
 	devm_free_irq(gsi_ctx->dev, gsi_ctx->per.irq, gsi_ctx);
 	gsi_ctx->per_registered = false;

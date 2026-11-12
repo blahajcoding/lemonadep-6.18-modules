@@ -24,9 +24,7 @@
 #include "ipa_qdss.h"
 #include <linux/iommu.h>
 #include <linux/version.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0))
 #include <linux/qcom-iommu-util.h>
-#endif
 #include <linux/platform_device.h>
 #include <linux/firmware.h>
 #include "ipa_qmi_service.h"
@@ -2511,11 +2509,7 @@ struct ipa3_context {
 	bool lan_rx_napi_enable;
 	bool tx_napi_enable;
 	bool tx_poll;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 13, 0))
-	struct net_device generic_ndev;
-#else
 	struct net_device *generic_ndev;
-#endif
 	struct napi_struct napi_lan_rx;
 	u32 icc_num_cases;
 	u32 icc_num_paths;

@@ -469,19 +469,11 @@ static int ipa3_aux_napi_poll_tx_complete(struct napi_struct *napi_tx,
 	if (tx_done < budget) {
 		napi_complete(napi_tx);
 		ret = ipa3_tx_switch_to_intr_mode(sys);
-#if (KERNEL_VERSION(6, 7, 0) > LINUX_VERSION_CODE)
-		/* if we got an EOT while we marked NAPI as complete */
-		if (ret == -GSI_STATUS_PENDING_IRQ && napi_reschedule(napi_tx)) {
-			/* reschedule will perform poll again, don't dec vote twice*/
-			napi_rescheduled = true;
-		}
-#else
 		/* if we got an EOT while we marked NAPI as complete */
 		if (ret == -GSI_STATUS_PENDING_IRQ && napi_schedule(napi_tx)) {
 			/* reschedule will perform poll again, don't dec vote twice*/
 			napi_rescheduled = true;
 		}
-#endif
 
 		if(!napi_rescheduled)
 			IPA_ACTIVE_CLIENTS_DEC_EP_NO_BLOCK(sys->ep->client);
@@ -526,21 +518,12 @@ poll_tx:
 	if (tx_done < budget) {
 		napi_complete(napi_tx);
 		atomic_set(&sys->in_napi_context, 0);
-#if (KERNEL_VERSION(6, 7, 0) > LINUX_VERSION_CODE)
-		/*if we got an EOT while we marked NAPI as complete*/
-		if (atomic_read(&sys->xmit_eot_cnt) > 0 &&
-		    !atomic_cmpxchg(&sys->in_napi_context, 0, 1)
-		    && napi_reschedule(napi_tx)) {
-			goto poll_tx;
-		}
-#else
 		/*if we got an EOT while we marked NAPI as complete*/
 		if (atomic_read(&sys->xmit_eot_cnt) > 0 &&
 		    !atomic_cmpxchg(&sys->in_napi_context, 0, 1)
 		    && napi_schedule(napi_tx)) {
 			goto poll_tx;
 		}
-#endif
 	}
 	IPADBG_LOW("the number of tx completions is: %d", tx_done);
 	return min(tx_done, budget);
@@ -1642,34 +1625,17 @@ int ipa_setup_sys_pipe(struct ipa_sys_connect_params *sys_in, u32 *clnt_hdl)
 	if (IPA_CLIENT_IS_PROD(sys_in->client) &&
 		ipa3_ctx->tx_napi_enable) {
 		if (sys_in->client == IPA_CLIENT_APPS_LAN_PROD) {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 13, 0))
-			dummy_ndev = &ipa3_ctx->generic_ndev;
-#else
 			dummy_ndev = ipa3_ctx->generic_ndev;
-#endif
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(6, 0, 14))
 			netif_napi_add_tx_weight(dummy_ndev,
 			&ep->sys->napi_tx, tx_completion_func,
 			NAPI_TX_WEIGHT);
-#else
-			netif_tx_napi_add(dummy_ndev,
-			&ep->sys->napi_tx, tx_completion_func,
-			NAPI_TX_WEIGHT);
-
-#endif
 			ep->sys->napi_tx_enable = ipa3_ctx->tx_napi_enable;
 			ep->sys->tx_poll = ipa3_ctx->tx_poll;
 		} else if(sys_in->client == IPA_CLIENT_APPS_WAN_PROD ||
 			sys_in->client == IPA_CLIENT_APPS_WAN_LOW_LAT_DATA_PROD) {
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(6, 0, 14))
 			netif_napi_add_tx_weight((struct net_device *)sys_in->priv,
 			&ep->sys->napi_tx, tx_completion_func,
 			NAPI_TX_WEIGHT);
-#else
-			netif_tx_napi_add((struct net_device *)sys_in->priv,
-			&ep->sys->napi_tx, tx_completion_func,
-			NAPI_TX_WEIGHT);
-#endif
 			ep->sys->napi_tx_enable = ipa3_ctx->tx_napi_enable;
 			ep->sys->tx_poll = ipa3_ctx->tx_poll;
 		} else {
@@ -1685,13 +1651,8 @@ int ipa_setup_sys_pipe(struct ipa_sys_connect_params *sys_in, u32 *clnt_hdl)
 	}
 
 	if (sys_in->client == IPA_CLIENT_APPS_WAN_LOW_LAT_DATA_CONS) {
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(6, 0, 14))
 		netif_napi_add((struct net_device *)sys_in->priv,
 			&ep->sys->napi_rx, ipa3_rmnet_ll_rx_poll);
-#else
-		netif_napi_add((struct net_device *)sys_in->priv,
-			&ep->sys->napi_rx, ipa3_rmnet_ll_rx_poll, NAPI_WEIGHT);
-#endif
 		napi_enable(&ep->sys->napi_rx);
 	}
 
@@ -7331,15 +7292,9 @@ start_poll:
 	if (cnt < weight) {
 		napi_complete(ep->sys->napi_obj);
 		ret = ipa3_rx_switch_to_intr_mode(ep->sys);
-#if (KERNEL_VERSION(6, 7, 0) > LINUX_VERSION_CODE)
-		if (ret == -GSI_STATUS_PENDING_IRQ &&
-				napi_reschedule(ep->sys->napi_obj))
-			goto start_poll;
-#else
 		if (ret == -GSI_STATUS_PENDING_IRQ &&
 				napi_schedule(ep->sys->napi_obj))
 			goto start_poll;
-#endif
 		IPA_ACTIVE_CLIENTS_DEC_EP_NO_BLOCK(ep->client);
 	}
 
@@ -7440,15 +7395,9 @@ start_poll:
 		wan_def_sys->len > IPA_DEFAULT_SYS_YELLOW_WM) {
 		napi_complete(ep->sys->napi_obj);
 		ret = ipa3_rx_switch_to_intr_mode(ep->sys);
-#if (KERNEL_VERSION(6, 7, 0) > LINUX_VERSION_CODE)
-		if (ret == -GSI_STATUS_PENDING_IRQ &&
-				napi_reschedule(ep->sys->napi_obj))
-			goto start_poll;
-#else
 		if (ret == -GSI_STATUS_PENDING_IRQ &&
 				napi_schedule(ep->sys->napi_obj))
 			goto start_poll;
-#endif
 		IPA_ACTIVE_CLIENTS_DEC_EP_NO_BLOCK(ep->client);
 	} else {
 		cnt = weight;
@@ -7675,15 +7624,9 @@ start_poll:
 	if (cnt < budget && (sys->len > IPA_DEFAULT_SYS_YELLOW_WM)) {
 		napi_complete(napi_rx);
 		ret = ipa3_rx_switch_to_intr_mode(sys);
-#if (KERNEL_VERSION(6, 7, 0) > LINUX_VERSION_CODE)
-		if (ret == -GSI_STATUS_PENDING_IRQ &&
-				napi_reschedule(napi_rx))
-			goto start_poll;
-#else
 		if (ret == -GSI_STATUS_PENDING_IRQ &&
 				napi_schedule(napi_rx))
 			goto start_poll;
-#endif
 		IPA_ACTIVE_CLIENTS_DEC_EP_NO_BLOCK(sys->ep->client);
 	} else {
 		cnt = budget;

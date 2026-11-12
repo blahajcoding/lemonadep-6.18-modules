@@ -265,12 +265,8 @@ static void rndis_ipa_packet_receive_notify
 static void rndis_ipa_tx_complete_notify
 	(void *private, enum ipa_dp_evt_type evt, unsigned long data);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
 static void rndis_ipa_tx_timeout(struct net_device *net,
 	unsigned int txqueue);
-#else /* Legacy API. */
-static void rndis_ipa_tx_timeout(struct net_device *net);
-#endif
 
 static int rndis_ipa_stop(struct net_device *net);
 static void rndis_ipa_enable_data_path(struct rndis_ipa_dev *rndis_ipa_ctx);
@@ -710,11 +706,7 @@ int rndis_ipa_init(struct ipa_usb_init_params *params)
 		rndis_ipa_ctx->netif_rx_function = netif_receive_skb;
 		RNDIS_IPA_DEBUG("LAN RX NAPI enabled = True");
 	} else {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))
-		rndis_ipa_ctx->netif_rx_function = netif_rx_ni;
-#else
 		rndis_ipa_ctx->netif_rx_function = netif_rx;
-#endif
 		RNDIS_IPA_DEBUG("LAN RX NAPI enabled = False");
 	}
 
@@ -1192,12 +1184,8 @@ out:
 	dev_kfree_skb_any(skb);
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
 static void rndis_ipa_tx_timeout(struct net_device *net,
 	unsigned int txqueue)
-#else /* Legacy API. */
-static void rndis_ipa_tx_timeout(struct net_device *net)
-#endif
 {
 	struct rndis_ipa_dev *rndis_ipa_ctx = netdev_priv(net);
 	int outstanding = atomic_read(&rndis_ipa_ctx->outstanding_pkts);
@@ -2228,12 +2216,8 @@ static int rndis_ipa_set_device_ethernet_addr(
 	if (!is_valid_ether_addr(device_ethaddr))
 		return -EINVAL;
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(5, 15, 0))
 	net->addr_len = ETH_ALEN;
 	dev_addr_set(net, device_ethaddr);
-#else
-	memcpy((u8 *)net->dev_addr, device_ethaddr, ETH_ALEN);
-#endif
 
 	return 0;
 }

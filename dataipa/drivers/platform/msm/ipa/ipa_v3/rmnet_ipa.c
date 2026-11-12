@@ -24,10 +24,6 @@
 #include <linux/workqueue.h>
 #include <linux/debugfs.h>
 #include <net/pkt_sched.h>
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0))
-#include <soc/qcom/subsystem_restart.h>
-#include <soc/qcom/subsystem_notif.h>
-#endif
 #include <linux/remoteproc/qcom_rproc.h>
 #include "ipa_qmi_service.h"
 #include <linux/rmnet_ipa_fd_ioctl.h>
@@ -37,11 +33,7 @@
 #include <uapi/linux/ip.h>
 #include <uapi/linux/msm_rmnet.h>
 #include <net/ipv6.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 #include <linux/if_rmnet.h>
-#else
-#include <net/rmnet_config.h>
-#endif
 #include "ipa_mhi_proxy.h"
 
 #include "ipa_trace.h"
@@ -1427,11 +1419,6 @@ static void apps_ipa_packet_receive_notify(void *priv,
 		} else {
 			if (dev->stats.rx_packets % IPA_WWAN_RX_SOFTIRQ_THRESH
 					== 0) {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))
-				trace_rmnet_ipa_netifni3(dev->stats.rx_packets);
-				result = netif_rx_ni(skb);
-			} else {
-#endif
 				trace_rmnet_ipa_netifrx3(dev->stats.rx_packets);
 				result = netif_rx(skb);
 			}
@@ -2499,11 +2486,7 @@ static int handle3_egress_format_v2(struct net_device *dev,
  * later
  * -EFAULT: Error while transmitting the skb
  */
-#if (LINUX_VERSION_CODE <= KERNEL_VERSION(5, 14, 14))
-static int ipa3_wwan_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
-#else
 static int ipa3_wwan_ioctl(struct net_device *dev, struct ifreq *ifr, void __user *data, int cmd)
-#endif
 {
 	int rc = 0;
 	int mru = 1000, epid = 1, mux_index, len, epid_ll = 5;
@@ -3153,12 +3136,8 @@ static netdev_tx_t ipa3_wwan_xmit(struct sk_buff *skb, struct net_device *dev)
 		return NETDEV_TX_OK;
 	}
 
-#if (KERNEL_VERSION(5, 14, 0) > LINUX_VERSION_CODE)
-	qmap_check = RMNET_MAP_GET_CD_BIT(skb);
-#else
 	qmap_check = (((struct rmnet_map_header *)(void *)(skb->data))->flags & MAP_CMD_FLAG) ?
 			true : false;
-#endif
 	spin_lock_irqsave(&wwan_ptr->lock, flags);
 	/* There can be a race between enabling the wake queue and
 	 * suspend in progress. Check if suspend is pending and
@@ -3260,12 +3239,8 @@ out:
 	return ret;
 }
 
-#if (KERNEL_VERSION(5, 6, 0) <= LINUX_VERSION_CODE)
 static void ipa3_wwan_tx_timeout(struct net_device *dev,
 	unsigned int txqueue)
-#else /* Legacy API. */
-static void ipa3_wwan_tx_timeout(struct net_device *dev)
-#endif
 {
 	struct ipa3_wwan_private *wwan_ptr = netdev_priv(dev);
 
@@ -3279,11 +3254,7 @@ static const struct net_device_ops ipa3_wwan_ops_ip = {
 	.ndo_stop = ipa3_wwan_stop,
 	.ndo_start_xmit = ipa3_wwan_xmit,
 	.ndo_tx_timeout = ipa3_wwan_tx_timeout,
-#if (LINUX_VERSION_CODE <= KERNEL_VERSION(5, 14, 14))
-	.ndo_do_ioctl = ipa3_wwan_ioctl,
-#else
 	.ndo_siocdevprivate = ipa3_wwan_ioctl,
-#endif
 	.ndo_change_mtu = ipa3_wwan_change_mtu,
 	.ndo_set_mac_address = 0,
 	.ndo_validate_addr = 0,
@@ -3784,13 +3755,8 @@ static int ipa3_wwan_probe(struct platform_device *pdev)
 	}
 
 	if (ipa3_rmnet_res.ipa_napi_enable)
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(6, 0, 14))
 		netif_napi_add(dev, &(rmnet_ipa3_ctx->wwan_priv->napi),
 		       ipa3_rmnet_poll);
-#else
-		netif_napi_add(dev, &(rmnet_ipa3_ctx->wwan_priv->napi),
-		       ipa3_rmnet_poll, NAPI_WEIGHT);
-#endif
 	ret = register_netdev(dev);
 	if (ret) {
 		IPAERR_BOOTUP("unable to register ipa_netdev %d rc=%d\n",
@@ -3858,30 +3824,15 @@ wan_ioctl_init_err:
 	return ret;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0))
 static void ipa3_wwan_remove(struct platform_device *pdev)
-#else
-static int ipa3_wwan_remove(struct platform_device *pdev)
-#endif
 {
 
 	IPAWANINFO("rmnet_ipa started deinitialization\n");
 	ipa_teardown_pipes();
 	/* Clean up netdev resources in BEFORE_SHUTDOWN for non remoteproc
 	 * targets. */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0))
-	IPAWANINFO("rmnet_ipa unregister_netdev\n");
-	if (IPA_NETDEV())
-		unregister_netdev(IPA_NETDEV());
-	ipa3_wwan_deregister_netdev_pm_client();
-#endif
 	cancel_work_sync(&ipa3_tx_wakequeue_work);
 	cancel_delayed_work(&ipa_tether_stats_poll_wakequeue_work);
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0))
-	if (IPA_NETDEV())
-		free_netdev(IPA_NETDEV());
-	rmnet_ipa3_ctx->wwan_priv = NULL;
-#endif
 	/* No need to remove wwan_ioctl during SSR */
 	if (!atomic_read(&rmnet_ipa3_ctx->is_ssr))
 		ipa3_wan_ioctl_deinit();
@@ -3906,9 +3857,6 @@ static int ipa3_wwan_remove(struct platform_device *pdev)
 	memset(egress_param, 0, sizeof(egress_param));
 	memset(ingress_param, 0, sizeof(ingress_param));
 	IPAWANINFO("rmnet_ipa completed deinitialization\n");
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0))
-	return 0;
-#endif
 }
 
 /**
@@ -4084,11 +4032,7 @@ static int ipa3_lcl_mdm_ssr_notifier_cb(struct notifier_block *this,
 	}
 
 	switch (code) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 	case QCOM_SSR_BEFORE_SHUTDOWN:
-#else
-	case SUBSYS_BEFORE_SHUTDOWN:
-#endif
 		IPAWANINFO("IPA received MPSS BEFORE_SHUTDOWN\n");
 		/* hold a proxy vote for the modem. */
 		ipa3_proxy_clk_vote(atomic_read(&rmnet_ipa3_ctx->is_ssr));
@@ -4115,16 +4059,11 @@ static int ipa3_lcl_mdm_ssr_notifier_cb(struct notifier_block *this,
 		ipa3_odl_pipe_cleanup_from_ssr();
 		IPAWANINFO("IPA BEFORE_SHUTDOWN handling is complete\n");
 		break;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 	case QCOM_SSR_AFTER_SHUTDOWN:
-#else
-	case SUBSYS_AFTER_SHUTDOWN:
-#endif
 		IPAWANINFO("IPA Received MPSS AFTER_SHUTDOWN\n");
 		ipa3_proxy_clk_unvote();
 		/* Clean up netdev resources in AFTER_SHUTDOWN for remoteproc
 		 * enabled targets. */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 		IPAWANINFO("rmnet_ipa unregister_netdev\n");
 		if (IPA_NETDEV())
 			unregister_netdev(IPA_NETDEV());
@@ -4132,7 +4071,6 @@ static int ipa3_lcl_mdm_ssr_notifier_cb(struct notifier_block *this,
 		if (IPA_NETDEV())
 			free_netdev(IPA_NETDEV());
 		rmnet_ipa3_ctx->wwan_priv = NULL;
-#endif
 		if (atomic_read(&rmnet_ipa3_ctx->is_ssr) &&
 			ipa3_ctx_get_type(IPA_HW_TYPE) < IPA_HW_v4_0)
 			ipa3_q6_post_shutdown_cleanup();
@@ -4141,11 +4079,7 @@ static int ipa3_lcl_mdm_ssr_notifier_cb(struct notifier_block *this,
 			ipa3_client_prod_post_shutdown_cleanup();
 		IPAWANINFO("IPA AFTER_SHUTDOWN handling is complete\n");
 		break;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 	case QCOM_SSR_BEFORE_POWERUP:
-#else
-	case SUBSYS_BEFORE_POWERUP:
-#endif
 		IPAWANINFO("IPA received MPSS BEFORE_POWERUP\n");
 		if (atomic_read(&rmnet_ipa3_ctx->is_ssr)) {
 			/* clean up cached QMI msg/handlers */
@@ -4157,11 +4091,7 @@ static int ipa3_lcl_mdm_ssr_notifier_cb(struct notifier_block *this,
 		ipa3_reset_freeze_vote();
 		IPAWANINFO("IPA BEFORE_POWERUP handling is complete\n");
 		break;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 	case QCOM_SSR_AFTER_POWERUP:
-#else
-	case SUBSYS_AFTER_POWERUP:
-#endif
 		IPAWANINFO("IPA received MPSS AFTER_POWERUP\n");
 		if (!atomic_read(&rmnet_ipa3_ctx->is_initialized) &&
 		       atomic_read(&rmnet_ipa3_ctx->is_ssr))
@@ -4195,32 +4125,16 @@ static int ipa3_rmt_mdm_ssr_notifier_cb(struct notifier_block *this,
 	}
 
 	switch (code) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 	case QCOM_SSR_BEFORE_SHUTDOWN:
-#else
-	case SUBSYS_BEFORE_SHUTDOWN:
-#endif
 		IPAWANINFO("IPA received RMT MPSS BEFORE_SHUTDOWN\n");
 		break;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 	case QCOM_SSR_AFTER_SHUTDOWN:
-#else
-	case SUBSYS_AFTER_SHUTDOWN:
-#endif
 		IPAWANINFO("IPA Received RMT MPSS AFTER_SHUTDOWN\n");
 		break;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 	case QCOM_SSR_BEFORE_POWERUP:
-#else
-	case SUBSYS_BEFORE_POWERUP:
-#endif
 		IPAWANINFO("IPA received RMT MPSS BEFORE_POWERUP\n");
 		break;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 	case QCOM_SSR_AFTER_POWERUP:
-#else
-	case SUBSYS_AFTER_POWERUP:
-#endif
 		IPAWANINFO("IPA received RMT MPSS AFTER_POWERUP\n");
 		break;
 	default:
@@ -6831,13 +6745,8 @@ int ipa3_wwan_init(void)
 	rmnet_ipa_debugfs_init();
 
 	/* Register for Local Modem SSR */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 	ssr_hdl = qcom_register_ssr_notifier(SUBSYS_LOCAL_MODEM,
 		&ipa3_lcl_mdm_ssr_notifier);
-#else
-	ssr_hdl = subsys_notif_register_notifier(SUBSYS_LOCAL_MODEM,
-		&ipa3_lcl_mdm_ssr_notifier);
-#endif
 	if (!IS_ERR(ssr_hdl))
 		rmnet_ipa3_ctx->lcl_mdm_subsys_notify_handle = ssr_hdl;
 	else if (!rmnet_ipa3_ctx->ipa_config_is_apq) {
@@ -6848,13 +6757,8 @@ int ipa3_wwan_init(void)
 
 	if (rmnet_ipa3_ctx->ipa_config_is_apq) {
 		/* Register for Remote Modem SSR */
-	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 		ssr_hdl = qcom_register_ssr_notifier(SUBSYS_REMOTE_MODEM,
 			&ipa3_rmt_mdm_ssr_notifier);
-	#else
-		ssr_hdl = subsys_notif_register_notifier(SUBSYS_REMOTE_MODEM,
-			&ipa3_rmt_mdm_ssr_notifier);
-	#endif
 		if (IS_ERR(ssr_hdl)) {
 			rc = PTR_ERR(ssr_hdl);
 			IPAERR_BOOTUP("remote modem ssr register fail rc=%d\n",
@@ -6870,15 +6774,9 @@ int ipa3_wwan_init(void)
 
 fail_unreg_lcl_mdm_ssr:
 	if (rmnet_ipa3_ctx->lcl_mdm_subsys_notify_handle) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 		qcom_unregister_ssr_notifier(
 			rmnet_ipa3_ctx->lcl_mdm_subsys_notify_handle,
 			&ipa3_lcl_mdm_ssr_notifier);
-#else
-		subsys_notif_unregister_notifier(
-			rmnet_ipa3_ctx->lcl_mdm_subsys_notify_handle,
-			&ipa3_lcl_mdm_ssr_notifier);
-#endif
 		rmnet_ipa3_ctx->lcl_mdm_subsys_notify_handle = NULL;
 	}
 fail_dbgfs_rm:
@@ -6892,30 +6790,18 @@ void ipa3_wwan_cleanup(void)
 
 	platform_driver_unregister(&rmnet_ipa_driver);
 	if (rmnet_ipa3_ctx->lcl_mdm_subsys_notify_handle) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 		ret = qcom_unregister_ssr_notifier(
 			rmnet_ipa3_ctx->lcl_mdm_subsys_notify_handle,
 			&ipa3_lcl_mdm_ssr_notifier);
-#else
-		ret = subsys_notif_unregister_notifier(
-			rmnet_ipa3_ctx->lcl_mdm_subsys_notify_handle,
-			&ipa3_lcl_mdm_ssr_notifier);
-#endif
 		if (ret)
 			IPAWANERR(
 			"Failed to unregister subsys %s notifier ret=%d\n",
 			SUBSYS_LOCAL_MODEM, ret);
 	}
 	if (rmnet_ipa3_ctx->rmt_mdm_subsys_notify_handle) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 		ret = qcom_unregister_ssr_notifier(
 			rmnet_ipa3_ctx->rmt_mdm_subsys_notify_handle,
 			&ipa3_rmt_mdm_ssr_notifier);
-#else
-		ret = subsys_notif_unregister_notifier(
-			rmnet_ipa3_ctx->rmt_mdm_subsys_notify_handle,
-			&ipa3_rmt_mdm_ssr_notifier);
-#endif
 		if (ret)
 			IPAWANERR(
 			"Failed to unregister subsys %s notifier ret=%d\n",

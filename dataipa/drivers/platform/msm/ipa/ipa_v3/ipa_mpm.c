@@ -10,10 +10,8 @@
 #include <linux/module.h>
 #include <linux/mhi.h>
 #include <linux/version.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 #include <linux/mhi_misc.h>
 #include <linux/pm_runtime.h>
-#endif
 #include <linux/msm_gsi.h>
 #include <linux/delay.h>
 #include <linux/log2.h>
@@ -300,13 +298,8 @@ struct ipa_mpm_dev_info {
 	bool pcie_smmu_enabled;
 	struct ipa_mpm_iova_addr ctrl;
 	struct ipa_mpm_iova_addr data;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 	phys_addr_t chdb_base;
 	phys_addr_t erdb_base;
-#else
-	u32 chdb_base;
-	u32 erdb_base;
-#endif
 
 	bool is_cache_coherent;
 };
@@ -429,11 +422,7 @@ static struct platform_device *m_pdev;
 static int ipa_mpm_mhi_probe_cb(struct mhi_device *,
 	const struct mhi_device_id *);
 static void ipa_mpm_mhi_remove_cb(struct mhi_device *);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 static void ipa_mpm_mhi_status_cb(struct mhi_device *, enum mhi_callback);
-#else
-static void ipa_mpm_mhi_status_cb(struct mhi_device *, enum MHI_CB);
-#endif
 static void ipa_mpm_change_teth_state(int probe_id,
 	enum ipa_mpm_teth_state ip_state);
 static void ipa_mpm_change_gsi_state(int probe_id,
@@ -1554,13 +1543,7 @@ static int ipa_mpm_vote_unvote_pcie_clk(enum ipa_mpm_clk_vote_type vote,
 		atomic_read(&ipa_mpm_ctx->md[probe_id].clk_cnt.pcie_clk_cnt));
 
 	if (vote == CLK_ON) {
-		#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 		pm_runtime_get_sync(ipa_mpm_ctx->mhi_parent_dev);
-		#else
-		result = mhi_device_get_sync(
-			ipa_mpm_ctx->md[probe_id].mhi_dev,
-				MHI_VOTE_BUS | MHI_VOTE_DEVICE);
-		#endif
 		if (result) {
 			IPA_MPM_ERR("mhi_sync_get failed for probe_id %d\n",
 				result, probe_id);
@@ -1580,12 +1563,7 @@ static int ipa_mpm_vote_unvote_pcie_clk(enum ipa_mpm_clk_vote_type vote,
 			*is_acted = true;
 			return 0;
 		}
-		#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 		pm_runtime_put(ipa_mpm_ctx->mhi_parent_dev);
-		#else
-		mhi_device_put(ipa_mpm_ctx->md[probe_id].mhi_dev,
-			 MHI_VOTE_BUS | MHI_VOTE_DEVICE);
-		#endif
 		IPA_MPM_DBG("probe_id %d PCIE clock off\n", probe_id);
 		atomic_dec(&ipa_mpm_ctx->md[probe_id].clk_cnt.pcie_clk_cnt);
 		atomic_dec(&ipa_mpm_ctx->pcie_clk_total_cnt);
@@ -1670,11 +1648,7 @@ static int ipa_mpm_start_stop_remote_mhip_chan(
 			IPA_MPM_DBG("Remote channel already started for %d\n",
 				probe_id);
 		} else {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 			ret = mhi_start_transfer(mhi_dev);
-#else
-			ret = mhi_resume_transfer(mhi_dev);
-#endif
 			mutex_lock(&ipa_mpm_ctx->md[probe_id].mhi_mutex);
 			if (ret)
 				ipa_mpm_ctx->md[probe_id].remote_state =
@@ -1690,11 +1664,7 @@ static int ipa_mpm_start_stop_remote_mhip_chan(
 			IPA_MPM_DBG("Remote channel already stopped for %d\n",
 					probe_id);
 		} else {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 			ret = mhi_stop_transfer(mhi_dev);
-#else
-			ret = mhi_pause_transfer(mhi_dev);
-#endif
 			mutex_lock(&ipa_mpm_ctx->md[probe_id].mhi_mutex);
 			if (ret)
 				ipa_mpm_ctx->md[probe_id].remote_state =
@@ -2211,7 +2181,6 @@ static int ipa_mpm_mhi_probe_cb(struct mhi_device *mhi_dev,
 	}
 
 	/* Read the MHI CH/ER DB address from MHI Driver. */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 	ret = mhi_get_channel_db_base(mhi_dev,
 				      &ipa_mpm_ctx->dev_info.chdb_base);
 	if (ret) {
@@ -2229,7 +2198,6 @@ static int ipa_mpm_mhi_probe_cb(struct mhi_device *mhi_dev,
 	}
 
 	IPA_MPM_DBG("erdb-base=0x%x\n", ipa_mpm_ctx->dev_info.erdb_base);
-#endif
 
 	IPA_MPM_DBG("Received probe for id=%d\n", probe_id);
 
@@ -2244,11 +2212,7 @@ static int ipa_mpm_mhi_probe_cb(struct mhi_device *mhi_dev,
 	 */
 	ipa_mpm_ctx->md[probe_id].mhi_dev = mhi_dev;
 	ipa_mpm_ctx->mhi_parent_dev =
-	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 		ipa_mpm_ctx->md[probe_id].mhi_dev->dev.parent->parent;
-	#else
-		ipa_mpm_ctx->md[probe_id].mhi_dev->dev.parent;
-	#endif
 	mutex_lock(&ipa_mpm_ctx->md[probe_id].mhi_mutex);
 	ipa_mpm_ctx->md[probe_id].remote_state = MPM_MHIP_REMOTE_STOP;
 	mutex_unlock(&ipa_mpm_ctx->md[probe_id].mhi_mutex);
@@ -2384,11 +2348,7 @@ static int ipa_mpm_mhi_probe_cb(struct mhi_device *mhi_dev,
 		}
 	}
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 	ret = mhi_prepare_for_transfer(ipa_mpm_ctx->md[probe_id].mhi_dev, 0);
-#else
-	ret = mhi_prepare_for_transfer(ipa_mpm_ctx->md[probe_id].mhi_dev);
-#endif
 	if (ret) {
 		IPA_MPM_ERR("mhi_prepare_for_transfer failed %d\n", ret);
 		/*
@@ -2759,11 +2719,7 @@ static void ipa_mpm_mhi_remove_cb(struct mhi_device *mhi_dev)
 }
 
 static void ipa_mpm_mhi_status_cb(struct mhi_device *mhi_dev,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 				enum mhi_callback mhi_cb)
-#else
-				enum MHI_CB mhi_cb)
-#endif
 {
 	int mhip_idx;
 	enum mhip_status_type status;
@@ -3238,21 +3194,6 @@ static int ipa_mpm_probe(struct platform_device *pdev)
 	ipa_mpm_init_mhip_channel_info();
 
 	/* Read the MHI CH/ER DB address from DT. */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
-	if (of_property_read_u32(pdev->dev.of_node, "qcom,mhi-chdb-base",
-		&ipa_mpm_ctx->dev_info.chdb_base)) {
-		IPA_MPM_ERR("failed to read qcom,mhi-chdb-base\n");
-		goto fail_probe;
-	}
-	IPA_MPM_DBG("chdb-base=0x%x\n", ipa_mpm_ctx->dev_info.chdb_base);
-
-	if (of_property_read_u32(pdev->dev.of_node, "qcom,mhi-erdb-base",
-		&ipa_mpm_ctx->dev_info.erdb_base)) {
-		IPA_MPM_ERR("failed to read qcom,mhi-erdb-base\n");
-		goto fail_probe;
-	}
-	IPA_MPM_DBG("erdb-base=0x%x\n", ipa_mpm_ctx->dev_info.erdb_base);
-#endif
 
 	ret = ipa_mpm_populate_smmu_info(pdev);
 

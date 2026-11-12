@@ -138,11 +138,7 @@ TRACE_EVENT(
 	),
 
 	TP_fast_assign(
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 		__assign_str(name);
-#else
-		__assign_str(name, skb->dev->name);
-#endif
 		__entry->skbaddr = skb;
 		__entry->protocol = ntohs(skb->protocol);
 		__entry->len = skb->len;
@@ -275,11 +271,7 @@ TRACE_EVENT(
 	),
 
 	TP_fast_assign(
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 		__assign_str(name);
-#else
-		__assign_str(name, skb->dev->name);
-#endif
 		__entry->skbaddr = skb;
 		__entry->protocol = ntohs(skb->protocol);
 		__entry->len = skb->len;

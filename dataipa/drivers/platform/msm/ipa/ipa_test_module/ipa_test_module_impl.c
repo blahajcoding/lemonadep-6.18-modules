@@ -693,9 +693,6 @@ static struct sk_buff *datapath_create_skb(const char *buf, size_t size)
 {
 	struct sk_buff *skb;
 	unsigned char *data;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,10,0)
-	int err = 0;
-#endif
 
 	IPATEST_DBG("allocating SKB, len=%zu", size);
 	skb = alloc_skb(size, GFP_KERNEL);
@@ -708,13 +705,8 @@ static struct sk_buff *datapath_create_skb(const char *buf, size_t size)
 		return NULL;
 	}
 	IPATEST_DBG("skb put finish, skb->len=%d", skb->len);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,10,0)
 	skb->csum = csum_and_copy_from_user(buf, data, size);
 	if (!skb->csum) {
-#else
-	skb->csum = csum_and_copy_from_user(buf, data, size, 0, &err);
-	if (err) {
-#endif
 		kfree_skb(skb);
 		return NULL;
 	}
