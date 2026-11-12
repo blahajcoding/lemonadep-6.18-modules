@@ -1292,7 +1292,23 @@ static void msm_vidc_buf_queue(struct vb2_buffer *vb2)
 	}
 }
 
+/*
+ * The driver serializes its queues with its own buf_queue locks and never
+ * gave vb2 a lock or wait hooks, which vb2 used to treat as no-ops. Since
+ * 6.13 vb2_queue_init() wants one or the other: keep the old behaviour with
+ * empty hooks.
+ */
+static void msm_vidc_wait_prepare(struct vb2_queue *q)
+{
+}
+
+static void msm_vidc_wait_finish(struct vb2_queue *q)
+{
+}
+
 static const struct vb2_ops msm_vidc_vb2q_ops = {
+	.wait_prepare = msm_vidc_wait_prepare,
+	.wait_finish = msm_vidc_wait_finish,
 	.queue_setup = msm_vidc_queue_setup,
 	.start_streaming = msm_vidc_start_streaming,
 	.buf_queue = msm_vidc_buf_queue,
