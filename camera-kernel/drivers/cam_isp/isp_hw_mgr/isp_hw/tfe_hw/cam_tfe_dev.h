@@ -31,11 +31,7 @@ int cam_tfe_probe(struct platform_device *pdev);
  * @Return:                  0: Success
  *                           Non-zero: Failure
  */
-#if KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE
-int cam_tfe_remove(struct platform_device *pdev);
-#else
 void cam_tfe_remove(struct platform_device *pdev);
-#endif
 
 int cam_tfe_init_module(void);
 void cam_tfe_exit_module(void);

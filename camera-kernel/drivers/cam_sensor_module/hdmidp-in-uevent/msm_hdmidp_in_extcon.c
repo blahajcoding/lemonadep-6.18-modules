@@ -184,11 +184,7 @@ static int msm_hdmidp_in_probe(struct platform_device *pdev)
 	return 0;
 }
 
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 static void msm_hdmidp_in_remove(struct platform_device *pdev)
-#else
-static int msm_hdmidp_in_remove(struct platform_device *pdev)
-#endif
 {
 	struct extcon_dev *edev;
 
@@ -210,9 +206,6 @@ static int msm_hdmidp_in_remove(struct platform_device *pdev)
 	spin_unlock_bh(&g_edev_lock);
 	pr_info("removed\n");
 
-#if (KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE)
-	return 0;
-#endif
 }
 
 static const struct of_device_id msm_hdmidp_in_dt_match[] = {

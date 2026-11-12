@@ -26,9 +26,7 @@
 
 #include <linux/interconnect.h>
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
 MODULE_IMPORT_NS("DMA_BUF");
-#endif
 
 #ifdef CONFIG_DOMAIN_ID_SECURE_CAMERA
 #include <linux/IClientEnv.h>
@@ -36,11 +34,7 @@ MODULE_IMPORT_NS("DMA_BUF");
 #include <linux/CTrustedCameraDriver.h>
 #endif
 
-#if (KERNEL_VERSION(6, 7, 0) <= LINUX_VERSION_CODE)
 #define CAM_SUBDEV_NAME_SIZE 32
-#else
-#define CAM_SUBDEV_NAME_SIZE V4L2_SUBDEV_NAME_SIZE
-#endif
 
 #define IS_CSF25(x, y) ((((x) == 2) && ((y) == 5)) ? 1 : 0)
 
@@ -107,47 +101,19 @@ int cam_ois_i2c_driver_remove_common(struct i2c_client *client);
 int cam_sensor_i2c_driver_remove_common(struct i2c_client *client);
 int cam_eeprom_spi_driver_remove_common(struct spi_device *sdev);
 
-#if KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE
 void cam_i3c_driver_remove(struct i3c_device *client);
-#else
-int cam_i3c_driver_remove(struct i3c_device *client);
-#endif
 
-#if KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE
 void cam_actuator_i2c_driver_remove(struct i2c_client *client);
-#else
-static int32_t cam_actuator_i2c_driver_remove(struct i2c_client *client);
-#endif
 
-#if KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE
 void cam_eeprom_i2c_driver_remove(struct i2c_client *client);
-#else
-static int32_t cam_eeprom_i2c_driver_remove(struct i2c_client *client);
-#endif
 
-#if KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE
 void cam_flash_i2c_driver_remove(struct i2c_client *client);
-#else
-static int32_t cam_flash_i2c_driver_remove(struct i2c_client *client);
-#endif
 
-#if KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE
 void cam_ois_i2c_driver_remove(struct i2c_client *client);
-#else
-static int32_t cam_ois_i2c_driver_remove(struct i2c_client *client);
-#endif
 
-#if KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE
 void cam_sensor_i2c_driver_remove(struct i2c_client *client);
-#else
-static int32_t cam_sensor_i2c_driver_remove(struct i2c_client *client);
-#endif
 
-#if KERNEL_VERSION(5, 18, 0) <= LINUX_VERSION_CODE
 void cam_eeprom_spi_driver_remove(struct spi_device *sdev);
-#else
-static int32_t cam_eeprom_spi_driver_remove(struct spi_device *sdev);
-#endif
 
 bool cam_secure_get_vfe_fd_port_config(void);
 unsigned long cam_update_dma_map_attributes(unsigned long attr);
