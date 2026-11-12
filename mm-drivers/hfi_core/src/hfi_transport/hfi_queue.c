@@ -14,9 +14,6 @@
 #include <linux/dma-map-ops.h>
 #include <linux/version.h>
 #include "hfi_queue.h"
-#if (KERNEL_VERSION(6, 19, 0) <= LINUX_VERSION_CODE)
-#include <linux/dma-mapping.h>
-#endif
 
 #define HFI_Q_ERR(fmt, ...) \
 	pr_err("[hfi_q_error:%s:%d][%pS] "fmt, __func__, __LINE__, \
@@ -146,9 +143,6 @@ static bool virtq_notify(struct virtqueue *vq)
 	return true;
 }
 
-#if ((KERNEL_VERSION(6, 3, 0) > LINUX_VERSION_CODE) || \
-		(KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE && \
-		LINUX_VERSION_CODE < KERNEL_VERSION(6, 19, 0)))
 
 static dma_addr_t hfi_dma_map_page(struct device *dev, struct page *page,
 		unsigned long offset, size_t size, enum dma_data_direction dir,
@@ -168,26 +162,6 @@ static const struct dma_map_ops hfi_dma_ops = {
 	.unmap_page = hfi_dma_unmap_page,
 };
 
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 19, 0))
-
-/* New kernels: use map_phys */
-static dma_addr_t hfi_dma_map_phys(struct device *dev, phys_addr_t phys,
-		size_t size, enum dma_data_direction dir, unsigned long attrs)
-{
-	return dma_map_resource(dev, phys, size, dir, attrs);
-}
-
-static void hfi_dma_unmap_phys(struct device *dev, dma_addr_t dma_addr,
-		size_t size, enum dma_data_direction dir, unsigned long attrs)
-{
-	dma_unmap_resource(dev, dma_addr, size, dir, attrs);
-}
-
-static const struct dma_map_ops hfi_dma_ops = {
-	.map_phys   = hfi_dma_map_phys,
-	.unmap_phys = hfi_dma_unmap_phys,
-};
-#endif
 
 void *create_hfi_queue(struct hfi_queue_create *qinfo)
 {
@@ -223,10 +197,7 @@ void *create_hfi_queue(struct hfi_queue_create *qinfo)
 	spin_lock_init(&qhandle->vdev.vqs_list_lock);
 	mutex_init(&qhandle->q_lock);
 
-#if ((KERNEL_VERSION(6, 3, 0) > LINUX_VERSION_CODE) || \
-		(KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE))
 	set_dma_ops(qhandle->vdev.dev.parent, &hfi_dma_ops);
-#endif
 
 	qhandle->vq = vring_new_virtqueue(0, qinfo->q_depth, qinfo->align, &qhandle->vdev,
 					false, false, qinfo->va, virtq_notify, NULL, qinfo->qname);
@@ -234,13 +205,6 @@ void *create_hfi_queue(struct hfi_queue_create *qinfo)
 		HFI_Q_ERR("failed to create virtqueue\n");
 		goto error;
 	}
-#if ((KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE) && \
-	(KERNEL_VERSION(6, 13, 0) > LINUX_VERSION_CODE))
-	if (virtqueue_set_dma_premapped(qhandle->vq)) {
-		HFI_Q_ERR("failed to change virtq as permapped\n");
-		goto error;
-	}
-#endif
 	if (create_buffer_pool_wrappers(qhandle, qinfo->q_depth)) {
 		HFI_Q_ERR("failed to create buffer pool wrapper\n");
 		goto error;
@@ -398,19 +362,12 @@ static int set_hfi_buffer_queue(struct virtqueuehfi *handle, void *payload, u32 
 	sglist.dma_address = (dma_addr_t)pbuffer->buf->dva;
 	sglist.dma_length = pbuffer->buf->buf_len;
 
-#if (KERNEL_VERSION(6, 13, 0) > LINUX_VERSION_CODE)
-	if (pbuffer->dir == hfi_queue_rx)
-		ret = virtqueue_add_inbuf(handle->vq, &sglist, 1, token, GFP_KERNEL);
-	else
-		ret = virtqueue_add_outbuf(handle->vq, &sglist, 1, token, GFP_KERNEL);
-#else
 	if (pbuffer->dir == hfi_queue_rx)
 		ret = virtqueue_add_inbuf_premapped(handle->vq, &sglist, 1, token, NULL,
 			GFP_KERNEL);
 	else
 		ret = virtqueue_add_outbuf_premapped(handle->vq, &sglist, 1, token,
 			GFP_KERNEL);
-#endif
 	if (ret) {
 		HFI_Q_ERR("failed: kva 0x%llx ret: %d\n",
 			pbuffer->buf->kva, ret);

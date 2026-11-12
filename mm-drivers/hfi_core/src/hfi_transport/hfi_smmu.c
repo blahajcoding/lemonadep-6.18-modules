@@ -12,9 +12,7 @@
 #include <linux/vmalloc.h>
 #include <linux/scatterlist.h>
 #include <linux/mm.h>
-#if (KERNEL_VERSION(6, 5, 0) <= LINUX_VERSION_CODE)
 #include <linux/remoteproc/qcom_rproc.h>
-#endif
 #include <linux/remoteproc.h>
 #include "hfi_interface.h"
 #include "hfi_core_debug.h"
@@ -263,14 +261,9 @@ static int smmu_mmap_debug_mem_for_fw(struct hfi_core_drv_data *drv_data,
 	map_iova = res_info->dcp_map_addr + iova_offset;
 
 	/* ← replace iommu_map with iommu_map_sg */
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 	mapped = iommu_map_sg(smmu->domain, map_iova, sgt->sgl,
 			      sgt->orig_nents, IOMMU_READ | IOMMU_WRITE,
 			      GFP_KERNEL);
-#else
-	mapped = iommu_map_sg(smmu->domain, map_iova, sgt->sgl,
-			      sgt->orig_nents, IOMMU_READ | IOMMU_WRITE);
-#endif
 
 	if (mapped < 0) {
 		HFI_CORE_ERR("%s map_sg failed: iova=0x%lx ret=%zd\n",
@@ -538,11 +531,7 @@ int smmu_mmap_for_fw(struct hfi_core_drv_data *drv_data, phys_addr_t addr,
 	mapping->size = PAGE_ALIGN(size);
 
 	/* Perform IOMMU mapping */
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 	ret = iommu_map(smmu->domain, allocated_iova, addr, size, iommu_flags, GFP_KERNEL);
-#else
-	ret = iommu_map(smmu->domain, allocated_iova, addr, size, iommu_flags);
-#endif
 
 	if (ret) {
 		HFI_CORE_ERR("failed: phys=0x%llx sz=%zu iova=0x%lx flags: 0x%x ret=%d\n",
@@ -624,12 +613,8 @@ int smmu_mmap_sgt_for_fw(struct hfi_core_drv_data *drv_data, struct sg_table *sg
 
 	/* Perform IOMMU mapping */
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 	mapped = iommu_map_sg(smmu->domain, allocated_iova, sgt->sgl,
 		sgt->orig_nents, iommu_flags, GFP_ATOMIC);
-#else
-	mapped = iommu_map_sg(smmu->domain, allocated_iova, sgt->sgl, sgt->orig_nents, iommu_flags);
-#endif
 
 	if (mapped < 0) {
 		HFI_CORE_ERR("iommu_map_sg failed: iova=0x%lx flags: 0x%x ret=%zd\n",
@@ -693,13 +678,8 @@ int smmu_remap_sgt_for_fw(struct hfi_core_drv_data *drv_data, struct sg_table *s
 	if (flags & HFI_CORE_MMAP_CACHE)
 		iommu_flags |= IOMMU_CACHE;
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 	mapped = iommu_map_sg(smmu->domain, target_iova, sgt->sgl, sgt->orig_nents,
 		iommu_flags, GFP_ATOMIC);
-#else
-	mapped = iommu_map_sg(smmu->domain, target_iova, sgt->sgl, sgt->orig_nents,
-		iommu_flags);
-#endif
 
 	if (mapped < 0) {
 		HFI_CORE_ERR("iommu remap failed for sgt to addr: 0x%lx ret: %zd\n",

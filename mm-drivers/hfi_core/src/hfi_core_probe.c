@@ -96,11 +96,7 @@ err_exit:
 	return rc;
 }
 
-#if (KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE)
-static int msm_hfi_core_remove(struct platform_device *pdev)
-#else
 static void msm_hfi_core_remove(struct platform_device *pdev)
-#endif
 {
 	int rc = 0;
 	struct hfi_core_drv_data *drv_data;
@@ -133,9 +129,6 @@ static void msm_hfi_core_remove(struct platform_device *pdev)
 
 exit:
 	HFI_CORE_DBG_H("-\n");
-#if (KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE)
-	return rc;
-#endif
 }
 
 static const struct hfi_core_internal_data msmxxxx_tvm_data = {

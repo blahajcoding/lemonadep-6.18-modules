@@ -5,9 +5,7 @@
 #include <linux/habmm.h>
 #include <linux/kthread.h>
 #include <linux/version.h>
-#if (KERNEL_VERSION(6, 1, 25) <= LINUX_VERSION_CODE)
 #include <linux/remoteproc/qcom_rproc.h>
-#endif
 
 #include "hw_fence_drv_priv.h"
 #include "hw_fence_drv_virtio.h"

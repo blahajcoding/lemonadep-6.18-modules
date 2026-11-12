@@ -9,9 +9,7 @@
 #include <linux/of_address.h>
 #include <linux/platform_device.h>
 #include <linux/version.h>
-#if (KERNEL_VERSION(6, 1, 25) <= LINUX_VERSION_CODE)
 #include <linux/remoteproc/qcom_rproc.h>
-#endif
 #include <linux/kthread.h>
 
 #include "hw_fence_drv_priv.h"
@@ -915,11 +913,7 @@ err_exit:
 	return rc;
 }
 
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 static void msm_hw_fence_remove(struct platform_device *pdev)
-#else
-static int msm_hw_fence_remove(struct platform_device *pdev)
-#endif
 {
 	int ret = 0;
 
@@ -942,11 +936,7 @@ static int msm_hw_fence_remove(struct platform_device *pdev)
 	HWFNC_DBG_H("-\n");
 
 end:
-#if (KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE)
-	return ret;
-#else
 	return;
-#endif
 }
 
 static const struct of_device_id msm_hw_fence_dt_match[] = {

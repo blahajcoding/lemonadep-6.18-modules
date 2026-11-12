@@ -499,11 +499,7 @@ static int spec_sync_register_device(void)
 	struct dummy_spec_fence *dummy_fence_p = NULL;
 	int ret;
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 	sync_dev.dev_class = class_create(CLASS_NAME);
-#else
-	sync_dev.dev_class = class_create(THIS_MODULE, CLASS_NAME);
-#endif
 	if (sync_dev.dev_class == NULL) {
 		pr_err("%s: class_create fail.\n", __func__);
 		goto res_err;

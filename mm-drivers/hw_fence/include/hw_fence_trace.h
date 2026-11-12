@@ -45,11 +45,7 @@ TRACE_EVENT(hw_fence_update,
 			__field(u64, arg)
 	),
 	TP_fast_assign(
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 			__assign_str(dump_tag);
-#else
-			__assign_str(dump_tag, tag);
-#endif
 			__entry->tag_id = tag_id;
 			__entry->client_id = client_id;
 			__entry->hash = hash;
@@ -75,11 +71,7 @@ TRACE_EVENT(hw_fence_update,
 				__entry->h_synx = hw_fence->h_synx;
 				__entry->client_data = hw_fence->client_data;
 			}
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 			__assign_str(name);
-#else
-			__assign_str(name, arg_name);
-#endif
 			__entry->arg = arg;
 	),
 	TP_printk("[%s:%d] client:%d %s:%llu hfence[%u] v:%d err:%u ctx:%llu seq:%llu wait:0x%llx alloc:%d f:0x%llx child_cnt:%d parents[%u]:%lld|%lld|%lld ct:%llu tt:%llu wt:%llu ref:0x%x h_synx:%u data:%llu",
@@ -110,18 +102,10 @@ TRACE_EVENT(hw_fence_update_queue,
 			__field(u32, rd_wr_idx_factor)
 	),
 	TP_fast_assign(
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 			__assign_str(dump_tag);
-#else
-			__assign_str(dump_tag, tag);
-#endif
 			__entry->tag_id = tag_id;
 			__entry->client_id = client_id;
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 			__assign_str(queue_type_name);
-#else
-			__assign_str(queue_type_name, queue_type);
-#endif
 			__entry->q_size_bytes = queue->q_size_bytes;
 			__entry->rd_idx = rd_idx;
 			__entry->wr_idx = wr_idx;
@@ -217,11 +201,7 @@ TRACE_EVENT(hw_fence_set_power_vote,
 			__field(u32, usage_cnt)
 	),
 	TP_fast_assign(
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 			__assign_str(dump_tag);
-#else
-			__assign_str(dump_tag, tag);
-#endif
 			__entry->tag_id = tag_id;
 			__entry->client_id = client_id;
 			__entry->req_state = req_state;

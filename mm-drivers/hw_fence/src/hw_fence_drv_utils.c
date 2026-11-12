@@ -12,20 +12,12 @@
 #include <linux/gunyah/gh_rm_drv.h>
 #include <linux/gunyah/gh_dbl.h>
 #include <linux/version.h>
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 #include <linux/firmware/qcom/qcom_scm.h>
-#else
-#include <linux/qcom_scm.h>
-#endif
-#if (KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE)
 #include <linux/gh_cpusys_vm_mem_access.h>
-#endif
 #include <soc/qcom/secure_buffer.h>
 #include <linux/kthread.h>
 #include <uapi/linux/sched/types.h>
-#if (KERNEL_VERSION(6, 1, 25) <= LINUX_VERSION_CODE)
 #include <linux/remoteproc/qcom_rproc.h>
-#endif
 #include <linux/remoteproc.h>
 #include <linux/platform_device.h>
 #include <linux/suspend.h>
@@ -778,7 +770,6 @@ void hw_fence_utils_update_power_payload(struct hw_fence_driver_data *drv_data,
 		payload->enable_power ? "true" : "false", timestamp);
 }
 
-#if (KERNEL_VERSION(6, 1, 25) <= LINUX_VERSION_CODE)
 static int _set_soccp_fw_state_v1(struct hw_fence_driver_data *drv_data, u32 client_id, bool enable)
 {
 	struct hw_fence_soccp *soccp_props;
@@ -950,13 +941,6 @@ static int _init_soccp_props_ops(struct hw_fence_driver_data *drv_data)
 
 	return 0;
 }
-#else
-static int _init_soccp_props_ops(struct hw_fence_driver_data *drv_data)
-{
-	HWFNC_ERR("kernel version does not support soccp\n");
-	return -EINVAL;
-}
-#endif /* KERNEL_VERSION(6, 1, 25) <= LINUX_VERSION_CODE */
 
 static int _set_soccp_fw_state(struct hw_fence_driver_data *drv_data, u32 client_id, bool enable)
 {
@@ -1250,11 +1234,7 @@ static int hw_fence_gunyah_share_mem(struct hw_fence_driver_data *drv_data,
 	struct qcom_scm_vmperm src_vmlist[] = {{self, PERM_READ | PERM_WRITE | PERM_EXEC}};
 	struct qcom_scm_vmperm dst_vmlist[] = {{self, PERM_READ | PERM_WRITE},
 					       {peer, PERM_READ | PERM_WRITE}};
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0))
 	u64 srcvmids, dstvmids;
-#else
-	unsigned int srcvmids, dstvmids;
-#endif
 	struct gh_acl_desc *acl;
 	struct gh_sgl_desc *sgl;
 	int ret;
@@ -1287,13 +1267,8 @@ static int hw_fence_gunyah_share_mem(struct hw_fence_driver_data *drv_data,
 	sgl->sgl_entries[0].ipa_base = drv_data->res.start;
 	sgl->sgl_entries[0].size = resource_size(&drv_data->res);
 
-#if (KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE)
 	ret = ghd_rm_mem_share(GH_RM_MEM_TYPE_NORMAL, 0, drv_data->label,
 			acl, sgl, NULL, &drv_data->memparcel);
-#else
-	ret = gh_rm_mem_share(GH_RM_MEM_TYPE_NORMAL, 0, drv_data->label,
-			acl, sgl, NULL, &drv_data->memparcel);
-#endif
 	if (ret) {
 		HWFNC_ERR("%s: gh_rm_mem_share failed addr=%llx size=%lu err=%d\n",
 			__func__, drv_data->res.start, drv_data->size, ret);
@@ -1311,11 +1286,7 @@ static int hw_fence_gunyah_share_mem(struct hw_fence_driver_data *drv_data,
 
 static int _is_mem_shared(struct resource *res)
 {
-#if (KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE)
 	return gh_cpusys_vm_get_share_mem_info(res);
-#else
-	return -EINVAL;
-#endif
 }
 
 static int hw_fence_rm_cb(struct notifier_block *nb, unsigned long cmd, void *data)
@@ -1339,19 +1310,11 @@ static int hw_fence_rm_cb(struct notifier_block *nb, unsigned long cmd, void *da
 	    vm_status_payload->vm_status != GH_RM_VM_STATUS_RESET)
 		goto end;
 
-#if (KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE)
 	if (ghd_rm_get_vmid(drv_data->peer_name, &peer_vmid))
 		goto end;
 
 	if (ghd_rm_get_vmid(GH_PRIMARY_VM, &self_vmid))
 		goto end;
-#else
-	if (gh_rm_get_vmid(drv_data->peer_name, &peer_vmid))
-		goto end;
-
-	if (gh_rm_get_vmid(GH_PRIMARY_VM, &self_vmid))
-		goto end;
-#endif
 
 	if (peer_vmid != vm_status_payload->vmid)
 		goto end;
@@ -1456,13 +1419,8 @@ static int _init_soccp_mem(struct hw_fence_driver_data *drv_data)
 	}
 
 map_mem:
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 	ret = iommu_map(drv_data->domain, drv_data->shbuf_soccp_va, drv_data->res.start,
 			drv_data->size, IOMMU_READ | IOMMU_WRITE | IOMMU_CACHE, GFP_KERNEL);
-#else
-	ret = iommu_map(drv_data->domain, drv_data->shbuf_soccp_va, drv_data->res.start,
-			drv_data->size, IOMMU_READ | IOMMU_WRITE | IOMMU_CACHE);
-#endif
 	if (ret)
 		HWFNC_ERR("failed to map for soccp smmu phys_addr:0x%llx va:0x%x sz:%lx ret:%d\n",
 			drv_data->res.start, drv_data->shbuf_soccp_va, drv_data->size, ret);
