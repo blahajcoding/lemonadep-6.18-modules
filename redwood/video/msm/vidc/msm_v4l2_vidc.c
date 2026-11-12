@@ -254,7 +254,7 @@ static int msm_v4l2_open(struct file *filp)
 		}
 	}
 #endif
-	clear_bit(V4L2_FL_USES_V4L2_FH, &vdev->flags);
+	/* event_handler is a v4l2_fh set up in msm_vidc_open(); 6.18 refuses opens without one */
 	filp->private_data = &(vidc_inst->event_handler);
 	trace_msm_v4l2_vidc_open_end("msm v4l2_open end");
 	return 0;

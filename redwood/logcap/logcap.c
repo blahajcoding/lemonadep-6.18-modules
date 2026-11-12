@@ -62,6 +62,10 @@ static bool proc_may_log(pid_t tgid)
 
 static const char *const tags[] = {
 	"zygote", "Zygote", "AndroidRuntime", "libc", "DEBUG", "crash_dump",
+	/* boot progress, to see where a boot that never finishes stops */
+	"SystemServerTiming", "SystemServer", "SystemServiceManager",
+	"ActivityManager", "ActivityTaskManager", "WindowManager",
+	"PackageManager", "BootAnimation", "SurfaceFlinger",
 };
 
 static bool to_logd(struct sock *sk)

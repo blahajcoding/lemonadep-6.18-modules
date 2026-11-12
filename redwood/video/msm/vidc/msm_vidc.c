@@ -1634,6 +1634,11 @@ void *msm_vidc_open(int core_id, int session_type)
 	}
 
 	setup_event_queue(inst, &core->vdev[session_type].vdev);
+	/*
+	 * 6.18 has no vidioc_s_ctrl/g_ctrl: control ioctls only reach a
+	 * driver through the file handle's control handler.
+	 */
+	inst->event_handler.ctrl_handler = &inst->ctrl_handler;
 
 	mutex_lock(&core->lock);
 	list_add_tail(&inst->list, &core->instances);
