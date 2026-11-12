@@ -1300,21 +1300,13 @@ static int apr_probe(struct platform_device *pdev)
 	return apr_debug_init();
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void apr_remove(struct platform_device *pdev)
-#else
-static int apr_remove(struct platform_device *pdev)
-#endif
 {
 	snd_event_client_deregister(&pdev->dev);
 	apr_cleanup();
 	apr_tal_exit();
 	apr_priv = NULL;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 	return;
-#else
-	return 0;
-#endif
 }
 
 static const struct of_device_id apr_machine_of_match[]  = {

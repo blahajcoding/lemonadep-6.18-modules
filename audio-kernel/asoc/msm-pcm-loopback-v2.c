@@ -2411,11 +2411,7 @@ static int msm_pcm_probe(struct platform_device *pdev)
 				NULL, 0);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_pcm_remove(struct platform_device *pdev)
-#else
-static int msm_pcm_remove(struct platform_device *pdev)
-#endif
 {
 	struct msm_pcm_pdata *pdata;
 	int i = 0;
@@ -2431,9 +2427,6 @@ static int msm_pcm_remove(struct platform_device *pdev)
 	kfree(pdata);
 	snd_soc_unregister_component(&pdev->dev);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-	return 0;
-#endif
 }
 
 static const struct of_device_id msm_pcm_loopback_dt_match[] = {

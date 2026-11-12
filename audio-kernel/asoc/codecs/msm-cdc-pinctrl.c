@@ -348,11 +348,7 @@ err_pctrl_get:
 	return ret;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_cdc_pinctrl_remove(struct platform_device *pdev)
-#else
-static int msm_cdc_pinctrl_remove(struct platform_device *pdev)
-#endif
 {
 	struct msm_cdc_pinctrl_info *gpio_data;
 
@@ -369,9 +365,6 @@ static int msm_cdc_pinctrl_remove(struct platform_device *pdev)
 
 	devm_kfree(&pdev->dev, gpio_data);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-	return 0;
-#endif
 }
 
 static const struct of_device_id msm_cdc_pinctrl_match[] = {

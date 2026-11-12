@@ -378,15 +378,9 @@ static int rx_macro_core_vote(void *handle, bool enable);
 static int rx_macro_hw_params(struct snd_pcm_substream *substream,
 			       struct snd_pcm_hw_params *params,
 			       struct snd_soc_dai *dai);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static int rx_macro_get_channel_map( const struct snd_soc_dai *dai,
 				unsigned int *tx_num, unsigned int *tx_slot,
 				unsigned int *rx_num, unsigned int *rx_slot);
-#else
-static int rx_macro_get_channel_map( struct snd_soc_dai *dai,
-				unsigned int *tx_num, unsigned int *tx_slot,
-				unsigned int *rx_num, unsigned int *rx_slot);
-#endif
 static int rx_macro_mute_stream(struct snd_soc_dai *dai, int mute, int stream);
 static int rx_macro_int_dem_inp_mux_put(struct snd_kcontrol *kcontrol,
 				     struct snd_ctl_elem_value *ucontrol);
@@ -1201,15 +1195,9 @@ static int rx_macro_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static int rx_macro_get_channel_map( const struct snd_soc_dai *dai,
                                 unsigned int *tx_num, unsigned int *tx_slot,
                                 unsigned int *rx_num, unsigned int *rx_slot)
-#else
-static int rx_macro_get_channel_map( struct snd_soc_dai *dai,
-                                unsigned int *tx_num, unsigned int *tx_slot,
-                                unsigned int *rx_num, unsigned int *rx_slot)
-#endif
 {
 	struct snd_soc_component *component = dai->component;
 	struct device *rx_dev = NULL;
@@ -4341,11 +4329,7 @@ err_reg_macro:
 	return ret;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void rx_macro_remove(struct platform_device *pdev)
-#else
-static int rx_macro_remove(struct platform_device *pdev)
-#endif
 {
 	int rc = 0;
 	struct rx_macro_priv *rx_priv = NULL;
@@ -4369,11 +4353,7 @@ static int rx_macro_remove(struct platform_device *pdev)
 	mutex_destroy(&rx_priv->swr_clk_lock);
 	kfree(rx_priv->swr_ctrl_data);
 exit:
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 	return;
-#else
-	return rc;
-#endif
 }
 
 static const struct of_device_id rx_macro_dt_match[] = {

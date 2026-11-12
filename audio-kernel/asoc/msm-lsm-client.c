@@ -5318,11 +5318,7 @@ static int msm_lsm_probe(struct platform_device *pdev)
 					  NULL, 0);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_lsm_remove(struct platform_device *pdev)
-#else
-static int msm_lsm_remove(struct platform_device *pdev)
-#endif
 {
 #ifdef ENABLE_SVA_MIXER_CTL
 	struct lsm_char_dev *lsm_dev;
@@ -5333,9 +5329,6 @@ static int msm_lsm_remove(struct platform_device *pdev)
 #endif
 	snd_soc_unregister_component(&pdev->dev);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-	return 0;
-#endif
 }
 
 static const struct of_device_id msm_lsm_client_dt_match[] = {

@@ -3624,18 +3624,11 @@ static int wcd937x_probe(struct platform_device *pdev)
 					&wcd937x_comp_ops, match);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void wcd937x_remove(struct platform_device *pdev)
-#else
-static int wcd937x_remove(struct platform_device *pdev)
-#endif
 {
 	component_master_del(&pdev->dev, &wcd937x_comp_ops);
 	dev_set_drvdata(&pdev->dev, NULL);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-	return 0;
-#endif
 }
 
 #ifdef CONFIG_PM_SLEEP

@@ -2174,17 +2174,10 @@ err:
 	return rc;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void q6core_remove(struct platform_device *pdev)
-#else
-static int q6core_remove(struct platform_device *pdev)
-#endif
 {
 	snd_event_client_deregister(&pdev->dev);
 	of_platform_depopulate(&pdev->dev);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-        return 0;
-#endif
 }
 
 static const struct of_device_id q6core_of_match[]  = {

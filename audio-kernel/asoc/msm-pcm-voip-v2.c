@@ -1700,19 +1700,11 @@ done:
 	return rc;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_pcm_remove(struct platform_device *pdev)
-#else
-static int msm_pcm_remove(struct platform_device *pdev)
-#endif
 {
 	snd_soc_unregister_component(&pdev->dev);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 	return;
-#else
-	return 0;
-#endif
 }
 
 static const struct of_device_id msm_voip_dt_match[] = {

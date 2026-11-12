@@ -1473,11 +1473,7 @@ static int bolero_probe(struct platform_device *pdev)
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void bolero_remove(struct platform_device *pdev)
-#else
-static int bolero_remove(struct platform_device *pdev)
-#endif
 {
 	int rc = 0;
 	struct bolero_priv *priv = dev_get_drvdata(&pdev->dev);
@@ -1493,11 +1489,7 @@ static int bolero_remove(struct platform_device *pdev)
 	mutex_destroy(&priv->clk_lock);
 	mutex_destroy(&priv->vote_lock);
 exit:
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 	return;
-#else
-	return rc;
-#endif
 }
 
 #ifdef CONFIG_PM

@@ -725,11 +725,7 @@ err:
 	return ret;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void bolero_clk_rsc_remove(struct platform_device *pdev)
-#else
-static int bolero_clk_rsc_remove(struct platform_device *pdev)
-#endif
 {
 	int rc = 0;
 	struct bolero_clk_rsc *priv = dev_get_drvdata(&pdev->dev);
@@ -743,11 +739,7 @@ static int bolero_clk_rsc_remove(struct platform_device *pdev)
 	mutex_destroy(&priv->rsc_clk_lock);
 	mutex_destroy(&priv->fs_gen_lock);
 exit:
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 	return;
-#else
-	return rc;
-#endif
 }
 
 static const struct of_device_id bolero_clk_rsc_dt_match[] = {

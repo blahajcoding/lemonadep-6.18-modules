@@ -3740,11 +3740,7 @@ err_memory_fail:
 	return ret;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void swrm_remove(struct platform_device *pdev)
-#else
-static int swrm_remove(struct platform_device *pdev)
-#endif
 {
 	struct swr_mstr_ctrl *swrm = platform_get_drvdata(pdev);
 
@@ -3783,11 +3779,7 @@ static int swrm_remove(struct platform_device *pdev)
 	cpu_latency_qos_remove_request(&swrm->pm_qos_req);
 	devm_kfree(&pdev->dev, swrm);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 	return;
-#else
-	return 0;
-#endif
 }
 
 static int swrm_clk_pause(struct swr_mstr_ctrl *swrm)

@@ -908,18 +908,11 @@ static int msm_afe_probe(struct platform_device *pdev)
 				   &msm_soc_component, NULL, 0);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_afe_remove(struct platform_device *pdev)
-#else
-static int msm_afe_remove(struct platform_device *pdev)
-#endif
 {
 	pr_debug("%s\n", __func__);
 	snd_soc_unregister_component(&pdev->dev);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-	return 0;
-#endif
 }
 static const struct of_device_id msm_pcm_afe_dt_match[] = {
 	{.compatible = "qcom,msm-pcm-afe"},

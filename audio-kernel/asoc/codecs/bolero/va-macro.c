@@ -189,15 +189,9 @@ struct va_macro_priv {
 	bool dev_up;
 };
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static int va_macro_get_channel_map( const struct snd_soc_dai *dai,
 				unsigned int *tx_num, unsigned int *tx_slot,
 				unsigned int *rx_num, unsigned int *rx_slot);
-#else
-static int va_macro_get_channel_map( struct snd_soc_dai *dai,
-				unsigned int *tx_num, unsigned int *tx_slot,
-				unsigned int *rx_num, unsigned int *rx_slot);
-#endif
 
 static bool va_macro_get_data(struct snd_soc_component *component,
 			      struct device **va_dev,
@@ -1629,15 +1623,9 @@ static int va_macro_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static int va_macro_get_channel_map( const struct snd_soc_dai *dai,
 				unsigned int *tx_num, unsigned int *tx_slot,
 				unsigned int *rx_num, unsigned int *rx_slot)
-#else
-static int va_macro_get_channel_map( struct snd_soc_dai *dai,
-				unsigned int *tx_num, unsigned int *tx_slot,
-				unsigned int *rx_num, unsigned int *rx_slot)
-#endif
 {
 	struct snd_soc_component *component = dai->component;
 	struct device *va_dev = NULL;
@@ -3248,11 +3236,7 @@ reg_macro_fail:
 	return ret;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void va_macro_remove(struct platform_device *pdev)
-#else
-static int va_macro_remove(struct platform_device *pdev)
-#endif
 {
 	int rc = 0;
 	struct va_macro_priv *va_priv;
@@ -3280,11 +3264,7 @@ static int va_macro_remove(struct platform_device *pdev)
 	if (va_priv->is_used_va_swr_gpio)
 		mutex_destroy(&va_priv->swr_clk_lock);
 exit:
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 	return;
-#else
-	return rc;
-#endif
 }
 
 

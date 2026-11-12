@@ -4667,11 +4667,7 @@ err:
 }
 
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void wcd938x_remove(struct platform_device *pdev)
-#else
-static int wcd938x_remove(struct platform_device *pdev)
-#endif
 {
 	struct wcd938x_priv *wcd938x = NULL;
 
@@ -4681,9 +4677,6 @@ static int wcd938x_remove(struct platform_device *pdev)
 	mutex_destroy(&wcd938x->wakeup_lock);
 	dev_set_drvdata(&pdev->dev, NULL);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-	return 0;
-#endif
 }
 
 #ifdef CONFIG_PM_SLEEP

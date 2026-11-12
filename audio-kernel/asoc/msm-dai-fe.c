@@ -3072,17 +3072,10 @@ static int msm_fe_dai_dev_probe(struct platform_device *pdev)
 		msm_fe_dais, ARRAY_SIZE(msm_fe_dais));
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_fe_dai_dev_remove(struct platform_device *pdev)
-#else
-static int msm_fe_dai_dev_remove(struct platform_device *pdev)
-#endif
 {
 	snd_soc_unregister_component(&pdev->dev);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-        return 0;
-#endif
 }
 
 static const struct of_device_id msm_dai_fe_dt_match[] = {

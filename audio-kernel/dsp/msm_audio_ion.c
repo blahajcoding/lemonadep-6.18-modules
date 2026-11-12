@@ -170,13 +170,8 @@ static int msm_audio_ion_dma_buf_map(struct dma_buf *dma_buf,
 	 * read buffer, hence the request is bi-directional
 	 * to accommodate both read and write mappings.
 	 */
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 	alloc_data->table = dma_buf_map_attachment_unlocked(alloc_data->attach,
 				DMA_BIDIRECTIONAL);
-#else
-	alloc_data->table = dma_buf_map_attachment(alloc_data->attach,
-				DMA_BIDIRECTIONAL);
-#endif
 	if (IS_ERR(alloc_data->table)) {
 		rc = PTR_ERR(alloc_data->table);
 		dev_err(cb_dev,
@@ -220,11 +215,7 @@ static int msm_audio_ion_unmap_kernel(struct iosys_map *vmap, void *handle,
 		goto err;
 	}
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 	dma_buf_vunmap_unlocked((struct dma_buf *)handle, vmap);
-#else
-	dma_buf_vunmap((struct dma_buf *)handle, vmap);
-#endif
 
 	rc = dma_buf_end_cpu_access((struct dma_buf *)handle, DMA_BIDIRECTIONAL);
 	if (rc) {
@@ -277,16 +268,10 @@ static int msm_audio_dma_buf_unmap(void *handle, bool cma_mem)
 				}
 
 				found = true;
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 				dma_buf_unmap_attachment_unlocked(
 							 alloc_data->attach,
 							 alloc_data->table,
 							 DMA_BIDIRECTIONAL);
-#else
-				dma_buf_unmap_attachment(alloc_data->attach,
-							 alloc_data->table,
-							 DMA_BIDIRECTIONAL);
-#endif
 
 				dma_buf_detach((struct dma_buf *)
 						alloc_data->handle,
@@ -386,11 +371,7 @@ static int msm_audio_ion_map_kernel(void *handle,
 		goto exit;
 	}
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 	rc = dma_buf_vmap_unlocked((struct dma_buf *)handle, iosys_vmap);
-#else
-	rc = dma_buf_vmap((struct dma_buf *)handle, iosys_vmap);
-#endif
 	if (rc) {
 		pr_err("%s: kernel mapping of dma_buf failed\n",
 		       __func__);
@@ -1049,11 +1030,7 @@ exit:
 	return rc;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_audio_ion_remove(struct platform_device *pdev)
-#else
-static int msm_audio_ion_remove(struct platform_device *pdev)
-#endif
 {
 	struct device *audio_cb_dev;
 
@@ -1062,9 +1039,6 @@ static int msm_audio_ion_remove(struct platform_device *pdev)
 	msm_audio_ion_data.smmu_enabled = 0;
 	msm_audio_ion_data.device_status = 0;
 	mutex_destroy(&(msm_audio_ion_data.list_mutex));
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-	return 0;
-#endif
 }
 
 static struct platform_driver msm_audio_ion_driver = {

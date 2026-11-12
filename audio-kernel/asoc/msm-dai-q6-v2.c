@@ -3585,15 +3585,9 @@ static int msm_dai_q6_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 	return rc;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static int msm_dai_q6_set_channel_map(struct snd_soc_dai *dai,
 				unsigned int tx_num, const unsigned int *tx_slot,
 				unsigned int rx_num, const unsigned int *rx_slot)
-#else
-static int msm_dai_q6_set_channel_map(struct snd_soc_dai *dai,
-				unsigned int tx_num, unsigned int *tx_slot,
-				unsigned int rx_num, unsigned int *rx_slot)
-#endif
 {
 	int rc = 0;
 	struct msm_dai_q6_dai_data *dai_data = dev_get_drvdata(dai->dev);
@@ -5709,11 +5703,7 @@ fail_pdata_nomem:
 	return rc;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_auxpcm_dev_remove(struct platform_device *pdev)
-#else
-static int msm_auxpcm_dev_remove(struct platform_device *pdev)
-#endif
 {
 	struct msm_dai_q6_auxpcm_dai_data *dai_data;
 
@@ -5725,9 +5715,6 @@ static int msm_auxpcm_dev_remove(struct platform_device *pdev)
 	kfree(dai_data);
 	kfree(pdev->dev.platform_data);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-        return 0;
-#endif
 }
 
 static const struct of_device_id msm_auxpcm_dev_dt_match[] = {
@@ -7473,17 +7460,10 @@ rtn:
 	return rc;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_dai_q6_mi2s_dev_remove(struct platform_device *pdev)
-#else
-static int msm_dai_q6_mi2s_dev_remove(struct platform_device *pdev)
-#endif
 {
 	snd_soc_unregister_component(&pdev->dev);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-	return 0;
-#endif
 }
 
 static int msm_dai_q6_dai_meta_mi2s_probe(struct snd_soc_dai *dai)
@@ -8131,17 +8111,10 @@ rtn:
 	return rc;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_dai_q6_meta_mi2s_dev_remove(struct platform_device *pdev)
-#else
-static int msm_dai_q6_meta_mi2s_dev_remove(struct platform_device *pdev)
-#endif
 {
 	snd_soc_unregister_component(&pdev->dev);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-	return 0;
-#endif
 }
 
 static const struct snd_soc_component_driver msm_dai_q6_component = {
@@ -8404,17 +8377,10 @@ register_uplink_capture:
 	return rc;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_dai_q6_dev_remove(struct platform_device *pdev)
-#else
-static int msm_dai_q6_dev_remove(struct platform_device *pdev)
-#endif
 {
 	snd_soc_unregister_component(&pdev->dev);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-	return 0;
-#endif
 }
 
 static const struct of_device_id msm_dai_q6_dev_dt_match[] = {
@@ -8450,16 +8416,9 @@ static int msm_dai_q6_probe(struct platform_device *pdev)
 	return rc;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_dai_q6_remove(struct platform_device *pdev)
-#else
-static int msm_dai_q6_remove(struct platform_device *pdev)
-#endif
 {
 	of_platform_depopulate(&pdev->dev);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-	return 0;
-#endif
 }
 
 static const struct of_device_id msm_dai_q6_dt_match[] = {
@@ -8491,15 +8450,8 @@ static int msm_dai_mi2s_q6_probe(struct platform_device *pdev)
 	return rc;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_dai_mi2s_q6_remove(struct platform_device *pdev)
-#else
-static int msm_dai_mi2s_q6_remove(struct platform_device *pdev)
-#endif
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-	return 0;
-#endif
 }
 
 static const struct of_device_id msm_dai_mi2s_dt_match[] = {
@@ -8603,16 +8555,9 @@ static int msm_dai_q6_spdif_dev_probe(struct platform_device *pdev)
 	return rc;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_dai_q6_spdif_dev_remove(struct platform_device *pdev)
-#else
-static int msm_dai_q6_spdif_dev_remove(struct platform_device *pdev)
-#endif
 {
 	snd_soc_unregister_component(&pdev->dev);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-	return 0;
-#endif
 }
 
 static const struct of_device_id msm_dai_q6_spdif_dt_match[] = {
@@ -8869,15 +8814,8 @@ rtn:
 	return rc;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_dai_tdm_q6_remove(struct platform_device *pdev)
-#else
-static int msm_dai_tdm_q6_remove(struct platform_device *pdev)
-#endif
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-        return 0;
-#endif
 }
 
 static const struct of_device_id msm_dai_tdm_dt_match[] = {
@@ -11378,15 +11316,9 @@ static int msm_dai_q6_tdm_set_sysclk(struct snd_soc_dai *dai,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static int msm_dai_q6_tdm_set_channel_map(struct snd_soc_dai *dai,
 				unsigned int tx_num, const unsigned int *tx_slot,
 				unsigned int rx_num, const unsigned int *rx_slot)
-#else
-static int msm_dai_q6_tdm_set_channel_map(struct snd_soc_dai *dai,
-				unsigned int tx_num, unsigned int *tx_slot,
-				unsigned int rx_num, unsigned int *rx_slot)
-#endif
 {
 	int rc = 0;
 	struct msm_dai_q6_tdm_dai_data *dai_data =
@@ -15212,11 +15144,7 @@ rtn:
 	return rc;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_dai_q6_tdm_dev_remove(struct platform_device *pdev)
-#else
-static int msm_dai_q6_tdm_dev_remove(struct platform_device *pdev)
-#endif
 {
 	struct msm_dai_q6_tdm_dai_data *dai_data =
 		dev_get_drvdata(&pdev->dev);
@@ -15226,9 +15154,6 @@ static int msm_dai_q6_tdm_dev_remove(struct platform_device *pdev)
 	kfree(dai_data);
 
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-	return 0;
-#endif
 }
 
 static const struct of_device_id msm_dai_q6_tdm_dev_dt_match[] = {
@@ -15353,15 +15278,9 @@ static int msm_dai_q6_dai_cdc_dma_remove(struct snd_soc_dai *dai)
 	return rc;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static int msm_dai_q6_cdc_dma_set_channel_map(struct snd_soc_dai *dai,
 				unsigned int tx_num_ch, const unsigned int *tx_ch_mask,
 				unsigned int rx_num_ch, const unsigned int *rx_ch_mask)
-#else
-static int msm_dai_q6_cdc_dma_set_channel_map(struct snd_soc_dai *dai,
-				unsigned int tx_num_ch, unsigned int *tx_ch_mask,
-				unsigned int rx_num_ch, unsigned int *rx_ch_mask)
-#endif
 {
 	int rc = 0;
 	struct msm_dai_q6_cdc_dma_dai_data *dai_data =
@@ -16136,17 +16055,10 @@ static int msm_dai_q6_cdc_dma_dev_probe(struct platform_device *pdev)
 	return -ENODEV;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_dai_q6_cdc_dma_dev_remove(struct platform_device *pdev)
-#else
-static int msm_dai_q6_cdc_dma_dev_remove(struct platform_device *pdev)
-#endif
 {
 	snd_soc_unregister_component(&pdev->dev);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-	return 0;
-#endif
 }
 
 static const struct of_device_id msm_dai_q6_cdc_dma_dev_dt_match[] = {
@@ -16181,17 +16093,10 @@ static int msm_dai_cdc_dma_q6_probe(struct platform_device *pdev)
 	return rc;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_dai_cdc_dma_q6_remove(struct platform_device *pdev)
-#else
-static int msm_dai_cdc_dma_q6_remove(struct platform_device *pdev)
-#endif
 {
 	of_platform_depopulate(&pdev->dev);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-	return 0;
-#endif
 }
 
 static const struct of_device_id msm_dai_cdc_dma_dt_match[] = {

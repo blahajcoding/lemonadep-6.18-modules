@@ -312,11 +312,7 @@ struct swr_driver {
 	const struct swr_device_id	*id_table;
 };
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static inline struct swr_driver *to_swr_driver(const struct device_driver *drv)
-#else
-static inline struct swr_driver *to_swr_driver(struct device_driver *drv)
-#endif
 {
 	return drv ? container_of(drv, struct swr_driver, driver) : NULL;
 }

@@ -148,15 +148,9 @@ static int wsa_macro_core_vote(void *handle, bool enable);
 static int wsa_macro_hw_params(struct snd_pcm_substream *substream,
 			       struct snd_pcm_hw_params *params,
 			       struct snd_soc_dai *dai);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static int wsa_macro_get_channel_map( const struct snd_soc_dai *dai,
 				unsigned int *tx_num, unsigned int *tx_slot,
 				unsigned int *rx_num, unsigned int *rx_slot);
-#else
-static int wsa_macro_get_channel_map(struct snd_soc_dai *dai,
-				unsigned int *tx_num, unsigned int *tx_slot,
-				unsigned int *rx_num, unsigned int *rx_slot);
-#endif
 
 static int wsa_macro_mute_stream(struct snd_soc_dai *dai, int mute, int stream);
 /* Hold instance to soundwire platform device */
@@ -799,15 +793,9 @@ static int wsa_macro_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static int wsa_macro_get_channel_map( const struct snd_soc_dai *dai,
 				unsigned int *tx_num, unsigned int *tx_slot,
 				unsigned int *rx_num, unsigned int *rx_slot)
-#else
-static int wsa_macro_get_channel_map(struct snd_soc_dai *dai,
-				unsigned int *tx_num, unsigned int *tx_slot,
-				unsigned int *rx_num, unsigned int *rx_slot)
-#endif
 
 {
 	struct snd_soc_component *component = dai->component;
@@ -3331,11 +3319,7 @@ reg_macro_fail:
 	return ret;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void wsa_macro_remove(struct platform_device *pdev)
-#else
-static int wsa_macro_remove(struct platform_device *pdev)
-#endif
 {
 	int rc = 0;
 	struct wsa_macro_priv *wsa_priv;
@@ -3359,11 +3343,7 @@ static int wsa_macro_remove(struct platform_device *pdev)
 	mutex_destroy(&wsa_priv->swr_clk_lock);
 
 exit:
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
         return;
-#else
-        return rc;
-#endif
 }
 
 static const struct of_device_id wsa_macro_dt_match[] = {

@@ -400,21 +400,13 @@ err_priv_alloc:
 	return ret;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void wcd_pinctrl_remove(struct platform_device *pdev)
-#else
-static int wcd_pinctrl_remove(struct platform_device *pdev)
-#endif
 {
 	struct wcd_gpio_priv *priv_data = platform_get_drvdata(pdev);
 
 	gpiochip_remove(&priv_data->chip);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 	return;
-#else
-	return 0;
-#endif
 }
 
 static const struct of_device_id wcd_pinctrl_of_match[] = {

@@ -8524,11 +8524,7 @@ err:
 	return ret;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 static void msm_asoc_machine_remove(struct platform_device *pdev)
-#else
-static int msm_asoc_machine_remove(struct platform_device *pdev)
-#endif
 {
 	struct snd_soc_card *card = platform_get_drvdata(pdev);
 	struct msm_asoc_mach_data *pdata = NULL;
@@ -8546,9 +8542,6 @@ static int msm_asoc_machine_remove(struct platform_device *pdev)
 	snd_soc_unregister_card(card);
 	unregister_trace_android_vh_snd_pcm_check_no_buffer(qcom_check_hostless, NULL);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
-	return 0;
-#endif
 }
 
 static struct platform_driver lahaina_asoc_machine_driver = {
