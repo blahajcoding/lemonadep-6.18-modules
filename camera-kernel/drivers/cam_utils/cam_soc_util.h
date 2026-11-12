@@ -22,6 +22,13 @@
 #include "cam_io_util.h"
 #include <media/cam_defs.h>
 
+/* One GPIO of a camera GPIO table, requested with gpio_request_one() */
+struct cam_gpio_entry {
+	unsigned int gpio;
+	unsigned long flags;
+	const char *label;
+};
+
 #define NO_SET_RATE  -1
 #define INIT_RATE    -2
 
@@ -112,9 +119,9 @@ struct cam_soc_pinctrl_info {
  * @cam_gpio_req_tbl_size:      It is size of requested gpios
  **/
 struct cam_soc_gpio_data {
-	struct gpio *cam_gpio_common_tbl;
+	struct cam_gpio_entry *cam_gpio_common_tbl;
 	uint8_t cam_gpio_common_tbl_size;
-	struct gpio *cam_gpio_req_tbl;
+	struct cam_gpio_entry *cam_gpio_req_tbl;
 	uint8_t cam_gpio_req_tbl_size;
 };
 

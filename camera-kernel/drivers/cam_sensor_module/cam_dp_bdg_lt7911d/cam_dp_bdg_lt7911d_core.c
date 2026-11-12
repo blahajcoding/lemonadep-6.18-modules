@@ -21,7 +21,7 @@ void lt7911d_chip_reset(void)
 {
 	struct cam_hw_soc_info *soc_info = NULL;
 	struct cam_soc_gpio_data *gpio_conf = NULL;
-	struct gpio *gpio_tbl = NULL;
+	struct cam_gpio_entry *gpio_tbl = NULL;
 
 	if (!cam_dp_bdg_cam_ctrl) {
 		CAM_INFO(CAM_SENSOR,"LT7911 cam_dp_bdg_cam_ctrl not ready!");
