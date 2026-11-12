@@ -333,9 +333,6 @@ ssize_t nfc_i2c_dev_write(struct file *filp, const char __user *buf,
 
 static const struct file_operations nfc_i2c_dev_fops = {
 	.owner = THIS_MODULE,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0))
-	.llseek = no_llseek,
-#endif
 	.read = nfc_i2c_dev_read,
 	.write = nfc_i2c_dev_write,
 	.open = nfc_dev_open,
@@ -347,11 +344,7 @@ static const struct file_operations nfc_i2c_dev_fops = {
 #endif
 };
 
-#if  (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 int nfc_i2c_dev_probe(struct i2c_client *client)
-#else
-int nfc_i2c_dev_probe(struct i2c_client *client, const struct i2c_device_id *id)
-#endif
 {
 	int ret = 0;
 	struct nfc_dev *nfc_dev = NULL;
@@ -503,11 +496,7 @@ err:
 	return ret;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0))
 void nfc_i2c_dev_remove(struct i2c_client *client)
-#else
-int nfc_i2c_dev_remove(struct i2c_client *client)
-#endif
 {
 	struct nfc_dev *nfc_dev = NULL;
 
@@ -517,9 +506,6 @@ int nfc_i2c_dev_remove(struct i2c_client *client)
 		return;
 	if (nfc_dev->dev_ref_count > 0) {
 		pr_err("NxpDrv: %s: device already in use\n", __func__);
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0))
-		return -EBUSY;
-#endif
 	}
 
 	gpio_set_value(nfc_dev->configs.gpio.ven, 0);
@@ -540,9 +526,6 @@ int nfc_i2c_dev_remove(struct i2c_client *client)
 	kfree(nfc_dev->read_kbuf);
 	kfree(nfc_dev->write_kbuf);
 	kfree(nfc_dev);
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0))
-	return 0;
-#endif
 }
 
 int nfc_i2c_dev_suspend(struct device *device)
