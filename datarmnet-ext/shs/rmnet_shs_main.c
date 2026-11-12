@@ -36,12 +36,8 @@
 #include <linux/icmp.h>
 #include <linux/inet.h>
 #include <linux/version.h>
-#if (KERNEL_VERSION(6, 5, 0) <= LINUX_VERSION_CODE)
 #include <net/gso.h>
-#endif
-#if (KERNEL_VERSION(6, 6, 0) <= LINUX_VERSION_CODE)
 #include <net/netdev_rx_queue.h>
-#endif
 
 /* Insert newest first, last 4 bytes of the change id */
 static char *verinfo[] = {
@@ -1590,13 +1586,8 @@ static int rmnet_shs_drop_backlog(struct sk_buff_head *list, int cpu)
 			rmnet_shs_crit_err[RMNET_SHS_OUT_OF_MEM_ERR]++;
 			/* Increment sd and netdev drop stats*/
 			dev_core_stats_rx_dropped_inc(skb->dev);
-#if (KERNEL_VERSION(6, 9, 0) <= LINUX_VERSION_CODE)
 			rps_input_queue_head_incr(sd);
 			atomic_inc(&sd->dropped);
-#else
-			input_queue_head_incr(sd);
-			sd->dropped++;
-#endif
 			kfree_skb(skb);
 		}
 	}

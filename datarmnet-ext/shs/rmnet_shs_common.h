@@ -11,9 +11,7 @@
 #include <trace/hooks/sched.h>
 #include <linux/tracepoint.h>
 #include <trace/hooks/vendor_hooks.h>
-#if (KERNEL_VERSION(6, 9, 0) <= LINUX_VERSION_CODE)
 #include <net/rps.h>
-#endif
 
 #define VH_MAGIC_HASH 0x77777
 #define SHSUSR_IPV4 1

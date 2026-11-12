@@ -20,9 +20,7 @@
 #include "rmnet_shs_modules.h"
 #include "rmnet_module.h"
 
-#if (KERNEL_VERSION(6, 6, 0) <= LINUX_VERSION_CODE)
 #include <net/netdev_rx_queue.h>
-#endif
 
 static int rmnet_shs_dev_notify_cb(struct notifier_block *nb,
 				    unsigned long event, void *data);
