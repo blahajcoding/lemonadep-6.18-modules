@@ -107,7 +107,7 @@ static void _gen7_preemption_done(struct adreno_device *adreno_dev)
 
 	adreno_dev->preempt.count++;
 
-	kgsl_delete_timer_sync(&adreno_dev->preempt.timer);
+	timer_delete_sync(&adreno_dev->preempt.timer);
 
 	kgsl_regread(device, GEN7_CP_CONTEXT_SWITCH_LEVEL_STATUS, &status);
 
@@ -243,7 +243,7 @@ void gen7_preemption_trigger(struct adreno_device *adreno_dev, bool atomic)
 	}
 
 	/* Turn off the dispatcher timer */
-	kgsl_delete_timer(&adreno_dev->dispatcher.timer);
+	timer_delete(&adreno_dev->dispatcher.timer);
 
 	/*
 	 * This is the most critical section - we need to take care not to race
@@ -371,7 +371,7 @@ void gen7_preemption_trigger(struct adreno_device *adreno_dev, bool atomic)
 	if (gen7_fenced_write(adreno_dev, GEN7_CP_CONTEXT_SWITCH_CNTL, cntl,
 					FENCE_STATUS_WRITEDROPPED1_MASK)) {
 		adreno_dev->next_rb = NULL;
-		kgsl_delete_timer(&adreno_dev->preempt.timer);
+		timer_delete(&adreno_dev->preempt.timer);
 		goto err;
 	}
 
@@ -426,7 +426,7 @@ void gen7_preemption_callback(struct adreno_device *adreno_dev, int bit)
 	 */
 	_power_collapse_set(adreno_dev, false);
 
-	kgsl_delete_timer(&adreno_dev->preempt.timer);
+	timer_delete(&adreno_dev->preempt.timer);
 
 	kgsl_regread(device, GEN7_CP_CONTEXT_SWITCH_LEVEL_STATUS, &status);
 

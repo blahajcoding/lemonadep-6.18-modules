@@ -1964,14 +1964,14 @@ static int dispatcher_do_fault(struct adreno_device *adreno_dev)
 	}
 
 	/* Turn off all the timers */
-	kgsl_delete_timer_sync(&dispatcher->timer);
+	timer_delete_sync(&dispatcher->timer);
 
 	/*
 	 * Deleting uninitialized timer will block for ever on kernel debug
 	 * disable build. Hence skip del timer if it is not initialized.
 	 */
 	if (adreno_is_preemption_enabled(adreno_dev))
-		kgsl_delete_timer_sync(&adreno_dev->preempt.timer);
+		timer_delete_sync(&adreno_dev->preempt.timer);
 
 	if (gx_on)
 		adreno_readreg64(adreno_dev, ADRENO_REG_CP_RB_BASE,
@@ -2397,7 +2397,7 @@ static void adreno_dispatcher_queue_context(struct adreno_device *adreno_dev,
  */
 static void adreno_dispatcher_timer(struct timer_list *t)
 {
-	struct adreno_dispatcher *dispatcher = kgsl_timer_container_of(dispatcher, t, timer);
+	struct adreno_dispatcher *dispatcher = timer_container_of(dispatcher, t, timer);
 	struct adreno_device *adreno_dev = container_of(dispatcher,
 					struct adreno_device, dispatcher);
 
@@ -2427,7 +2427,7 @@ void adreno_dispatcher_stop(struct adreno_device *adreno_dev)
 {
 	struct adreno_dispatcher *dispatcher = &adreno_dev->dispatcher;
 
-	kgsl_delete_timer_sync(&dispatcher->timer);
+	timer_delete_sync(&dispatcher->timer);
 }
 
 /* Return the ringbuffer that matches the draw context priority */
@@ -2546,7 +2546,7 @@ static void adreno_dispatcher_close(struct adreno_device *adreno_dev)
 	struct adreno_ringbuffer *rb;
 
 	mutex_lock(&dispatcher->mutex);
-	kgsl_delete_timer_sync(&dispatcher->timer);
+	timer_delete_sync(&dispatcher->timer);
 
 	FOR_EACH_RINGBUFFER(adreno_dev, rb, i) {
 		struct adreno_dispatcher_drawqueue *dispatch_q =

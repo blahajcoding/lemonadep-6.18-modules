@@ -259,8 +259,4 @@ static inline void kgsl_qcom_va_md_unregister(struct kgsl_device *device)
  */
 void isdb_write(void __iomem *base, u32 offset);
 
-#define kgsl_delete_timer(timer) timer_delete(timer)
-#define kgsl_delete_timer_sync(timer) timer_delete_sync(timer)
-
-#define kgsl_timer_container_of timer_container_of
 #endif

@@ -74,7 +74,7 @@ static void _a5xx_preemption_done(struct adreno_device *adreno_dev)
 		return;
 	}
 
-	kgsl_delete_timer_sync(&adreno_dev->preempt.timer);
+	timer_delete_sync(&adreno_dev->preempt.timer);
 
 	trace_adreno_preempt_done(adreno_dev->cur_rb->id, adreno_dev->next_rb->id, 0, 0);
 
@@ -205,7 +205,7 @@ void a5xx_preemption_trigger(struct adreno_device *adreno_dev)
 	}
 
 	/* Turn off the dispatcher timer */
-	kgsl_delete_timer(&adreno_dev->dispatcher.timer);
+	timer_delete(&adreno_dev->dispatcher.timer);
 
 	/*
 	 * This is the most critical section - we need to take care not to race
@@ -280,7 +280,7 @@ void a5xx_preempt_callback(struct adreno_device *adreno_dev, int bit)
 		return;
 	}
 
-	kgsl_delete_timer(&adreno_dev->preempt.timer);
+	timer_delete(&adreno_dev->preempt.timer);
 
 	trace_adreno_preempt_done(adreno_dev->cur_rb->id, adreno_dev->next_rb->id, 0, 0);
 

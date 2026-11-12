@@ -220,13 +220,6 @@ static const char *timeline_get_timeline_name(struct dma_fence *fence)
 	return f->timeline->name;
 }
 
-static void timeline_get_value_str(struct dma_fence *fence,
-		char *str, int size)
-{
-	struct kgsl_timeline_fence *f = to_timeline_fence(fence);
-
-	snprintf(str, size, "%lld", f->timeline->value);
-}
 
 static const struct dma_fence_ops timeline_fence_ops = {
 	.get_driver_name = timeline_get_driver_name,
