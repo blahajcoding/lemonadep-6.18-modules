@@ -19,7 +19,7 @@ $G $W/dataipa $W/dataipa/define_modules.bzl 'define_modules("lahaina", "perf")' 
 $MK M=$W/dataipa KBUILD_EXTRA_SYMBOLS=$W/rmnet_mem/Module.symvers modules > $W/dataipa.log 2>&1; echo "dataipa rc=$?"
 
 rsync -a --delete $V/datarmnet/ $W/datarmnet/
-$G $W/datarmnet $W/datarmnet/define_modules.bzl 'define_rmnet_core_module("lahaina", "perf"); define_rmnet_ctl_module("lahaina", "perf")' $LAH --set CONFIG_RMNET_CORE=m --set CONFIG_RMNET_CTL=m --set CONFIG_RMNET_LA_PLATFORM=y \
+$G $W/datarmnet $W/datarmnet/define_modules.bzl 'define_rmnet_core_module("lahaina", "perf"); define_rmnet_ctl_module("lahaina", "perf")' $LAH --set CONFIG_RMNET_CORE=m --set CONFIG_RMNET_CTL=m --set CONFIG_RMNET_LA_PLATFORM=y --set CONFIG_IPA3=y \
 	--cflags "-I\$(src)/core -I$V/dataipa/drivers/platform/msm/include -I$V/dataipa/drivers/platform/msm/include/uapi -I$V/datarmnet-ext/mem"
 $MK M=$W/datarmnet KBUILD_EXTRA_SYMBOLS="$W/rmnet_mem/Module.symvers $W/dataipa/Module.symvers" modules > $W/datarmnet.log 2>&1
 echo "datarmnet rc=$?"
