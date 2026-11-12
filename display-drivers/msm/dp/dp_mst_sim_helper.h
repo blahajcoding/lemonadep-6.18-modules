@@ -39,11 +39,7 @@
 #define _DP_MST_SIM_HELPER_H_
 
 #include <linux/types.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0))
 #include <drm/display/drm_dp_helper.h>
-#else
-#include <drm/drm_dp_helper.h>
-#endif
 
 /**
  * struct dp_mst_sim_port - MST port configuration
@@ -68,11 +64,7 @@ struct dp_mst_sim_port {
 	u8 pdt;
 	bool ldps;
 	u8 dpcd_rev;
-#if (KERNEL_VERSION(6, 12, 0) > LINUX_VERSION_CODE)
-	u8 peer_guid[16];
-#else
 	guid_t peer_guid;
-#endif
 	u8 num_sdp_streams;
 	u8 num_sdp_stream_sinks;
 	u16 full_pbn;
@@ -88,11 +80,7 @@ struct dp_mst_sim_port {
  */
 struct dp_mst_sim_cfg {
 	void *host_dev;
-#if (KERNEL_VERSION(6, 12, 0) > LINUX_VERSION_CODE)
-	u8 guid[16];
-#else
 	guid_t guid;
-#endif
 
 	/**
 	 * @host_hpd_irq:

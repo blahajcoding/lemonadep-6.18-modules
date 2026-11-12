@@ -187,13 +187,8 @@ static void dsi_convert_to_msm_mode(const struct dsi_display_mode *dsi_mode,
 		msm_mode->private_flags |= MSM_MODE_FLAG_SEAMLESS_DMS_VID;
 }
 
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
-static int dsi_bridge_attach(struct drm_bridge *bridge,
-			enum drm_bridge_attach_flags flags)
-#else
 static int dsi_bridge_attach(struct drm_bridge *bridge,
 		struct drm_encoder *encoder, enum drm_bridge_attach_flags flags)
-#endif
 {
 	struct dsi_bridge *c_bridge = to_dsi_bridge(bridge);
 
@@ -1621,15 +1616,6 @@ struct dsi_bridge *dsi_drm_bridge_init(struct dsi_display *display,
 	int rc = 0;
 	struct dsi_bridge *bridge;
 
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
-	bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
-	if (!bridge) {
-		rc = -ENOMEM;
-		goto error;
-	}
-	bridge->base.encoder = encoder;
-	bridge->base.funcs = &dsi_bridge_ops;
-#else
 	bridge = __devm_drm_bridge_alloc(dev->dev,
 				sizeof(*bridge),
 				offsetof(struct dsi_bridge, base),
@@ -1639,7 +1625,6 @@ struct dsi_bridge *dsi_drm_bridge_init(struct dsi_display *display,
 		DSI_ERR("failed to alloc bridge, rc=%d\n", rc);
 		goto error;
 	}
-#endif
 	bridge->display = display;
 
 	rc = drm_bridge_attach(encoder, &bridge->base, NULL,
@@ -1652,18 +1637,12 @@ struct dsi_bridge *dsi_drm_bridge_init(struct dsi_display *display,
 	return bridge;
 
 error_free_bridge:
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
-	kfree(bridge);
-#endif
 error:
 	return ERR_PTR(rc);
 }
 
 void dsi_drm_bridge_cleanup(struct dsi_bridge *bridge)
 {
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
-	kfree(bridge);
-#endif
 }
 
 static bool is_valid_poms_switch(struct dsi_display_mode *mode_a,

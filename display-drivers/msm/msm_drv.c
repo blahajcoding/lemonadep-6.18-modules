@@ -50,9 +50,6 @@
 #include <drm/drm_probe_helper.h>
 #include <linux/version.h>
 #include <linux/pm_wakeup.h>
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0))
-#include <drm/drm_irq.h>
-#endif
 
 #include "msm_drv.h"
 #include "msm_gem.h"
@@ -80,9 +77,7 @@
 
 #define LASTCLOSE_TIMEOUT_MS	500
 
-#if (KERNEL_VERSION(6, 8, 0) <= LINUX_VERSION_CODE)
 #define DRM_UNLOCKED 0
-#endif
 
 #define msm_wait_event_timeout(waitq, cond, timeout_ms, ret)		\
 	do {								\
@@ -100,23 +95,6 @@
 	} while (0)
 
 static DEFINE_MUTEX(msm_release_lock);
-
-#if (KERNEL_VERSION(6, 12, 0) > LINUX_VERSION_CODE)
-static void msm_fb_output_poll_changed(struct drm_device *dev)
-{
-	struct msm_drm_private *priv = NULL;
-
-	if (!dev) {
-		DRM_ERROR("output_poll_changed failed, invalid input\n");
-		return;
-	}
-
-	priv = dev->dev_private;
-
-	if (priv->fbdev)
-		drm_fb_helper_hotplug_event(priv->fbdev);
-}
-#endif
 
 static void msm_drm_display_thread_priority_worker(struct kthread_work *work)
 {
@@ -167,9 +145,6 @@ static int msm_atomic_check(struct drm_device *dev,
 
 static const struct drm_mode_config_funcs mode_config_funcs = {
 	.fb_create = msm_framebuffer_create,
-#if (KERNEL_VERSION(6, 12, 0) > LINUX_VERSION_CODE)
-	.output_poll_changed = msm_fb_output_poll_changed,
-#endif
 	.atomic_check = msm_atomic_check,
 	.atomic_commit = msm_atomic_commit,
 	.atomic_state_alloc = msm_atomic_state_alloc,
@@ -411,7 +386,6 @@ static int msm_irq_postinstall(struct drm_device *dev)
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 static int msm_irq_install(struct drm_device *dev, unsigned int irq)
 {
 	int ret;
@@ -442,21 +416,6 @@ static void msm_irq_uninstall(struct drm_device *dev)
 	kms->funcs->irq_uninstall(kms);
 	free_irq(kms->irq, dev);
 }
-#else
-static void msm_irq_uninstall(struct drm_device *dev)
-{
-	struct msm_drm_private *priv = dev->dev_private;
-	struct msm_kms *kms = priv->kms;
-	BUG_ON(!kms);
-	kms->funcs->irq_uninstall(kms);
-}
-
-static const struct vm_operations_struct vm_ops = {
-	.fault = msm_gem_fault,
-	.open = drm_gem_vm_open,
-	.close = drm_gem_vm_close,
-};
-#endif
 
 int msm_get_src_bpc(int chroma_format,
 	int bpc)
@@ -529,11 +488,7 @@ static int msm_drm_uninit(struct device *dev)
 
 	drm_mode_config_cleanup(ddev);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 	msm_irq_uninstall(ddev);
-#else
-	drm_irq_uninstall(ddev);
-#endif
 
 	if (kms && kms->funcs) {
 		kms->funcs->destroy(kms);
@@ -604,7 +559,6 @@ static int get_mdp_ver(struct platform_device *pdev)
 	return KMS_MDP4;
 }
 
-#if (KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE)
 /**
  * msm_check_device_iommu_mapped - Check if a device is mapped to an IOMMU
  * @dev: Pointer to the device to check
@@ -642,11 +596,9 @@ bool msm_iommu_present_on_bus(const struct bus_type *bus)
 	bus_for_each_dev(bus, NULL, &iommu_present, msm_check_device_iommu_mapped);
 	return iommu_present;
 }
-#endif /* KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE */
 
 bool mdss_iommu_present(struct drm_device *dev)
 {
-#if (KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE)
 	struct msm_drm_private *priv = dev->dev_private;
 
 	if (!priv)
@@ -657,9 +609,6 @@ bool mdss_iommu_present(struct drm_device *dev)
 			MSM_IOMMU_PRESENT : MSM_IOMMU_NOT_PRESENT;
 
 	return (priv->iommu_status == MSM_IOMMU_PRESENT);
-#else
-	return(iommu_present(&platform_bus_type));
-#endif /* KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE */
 }
 
 static int msm_init_vram(struct drm_device *dev)
@@ -1075,11 +1024,7 @@ static int msm_drm_component_init(struct device *dev)
 		}
 
 	if (IS_DISP_OP_HWIO(priv->disp_op)) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 		ret = msm_irq_install(ddev, platform_get_irq(pdev, 0));
-#else
-		ret = drm_irq_install(ddev, platform_get_irq(pdev, 0));
-#endif
 		msm_sde_qtimer_install(dev);
 	}
 
@@ -1110,19 +1055,6 @@ static int msm_drm_component_init(struct device *dev)
 		priv->fbdev = msm_fbdev_init(ddev);
 #endif /* CONFIG_DRM_FBDEV_EMULATION */
 
-#if (KERNEL_VERSION(6, 13, 0) > LINUX_VERSION_CODE)
-	/* create drm client only when fbdev is not supported */
-	if (!priv->fbdev) {
-		ret = drm_client_init(ddev, &kms->client, "kms_client", NULL);
-		if (ret) {
-			DRM_ERROR("failed to init kms_client: %d\n", ret);
-			kms->client.dev = NULL;
-			goto fail;
-		}
-
-		drm_client_register(&kms->client);
-	}
-#endif /* (KERNEL_VERSION(6, 13, 0) > LINUX_VERSION_CODE) */
 	ret = sde_dbg_debugfs_register(dev);
 	if (ret) {
 		DISP_DEV_ERR(dev, "failed to reg sde dbg debugfs: %d\n", ret);
@@ -1280,13 +1212,8 @@ static void msm_lastclose(struct drm_device *dev)
 		struct drm_vblank_crtc *vblank = &dev->vblank[i];
 		struct timer_list *disable_timer = &vblank->disable_timer;
 
-#if (KERNEL_VERSION(6, 15, 0) > LINUX_VERSION_CODE)
 		if (timer_delete_sync(disable_timer))
 			disable_timer->function(disable_timer);
-#else
-		if (timer_delete_sync(disable_timer))
-			disable_timer->function(disable_timer);
-#endif
 	}
 
 	/* wait for pending vblank requests to be executed by worker thread */
@@ -1308,12 +1235,6 @@ static void msm_lastclose(struct drm_device *dev)
 		rc = drm_fb_helper_restore_fbdev_mode_unlocked(priv->fbdev);
 		if (rc)
 			DRM_ERROR("restore FBDEV mode failed: %d\n", rc);
-#if (KERNEL_VERSION(6, 13, 0) > LINUX_VERSION_CODE)
-	} else if (kms && kms->client.dev) {
-		rc = drm_client_modeset_commit_locked(&kms->client);
-		if (rc)
-			DRM_ERROR("client modeset commit failed: %d\n", rc);
-#endif /* (KERNEL_VERSION(6, 13, 0) > LINUX_VERSION_CODE) */
 	}
 
 	/* wait again, before kms driver does it's lastclose commit */
@@ -1342,14 +1263,8 @@ static void msm_postclose(struct drm_device *dev, struct drm_file *file)
 
 	if (kms->funcs && kms->funcs->postclose)
 		kms->funcs->postclose(kms, file);
-#if KERNEL_VERSION(6, 18, 0) > LINUX_VERSION_CODE
-	mutex_lock(&dev->struct_mutex);
-#endif
 	if (ctx == priv->lastctx)
 		priv->lastctx = NULL;
-#if KERNEL_VERSION(6, 18, 0) > LINUX_VERSION_CODE
-	mutex_unlock(&dev->struct_mutex);
-#endif
 	mutex_lock(&ctx->power_lock);
 	if (ctx->enable_refcnt) {
 		SDE_EVT32(ctx->enable_refcnt);
@@ -1359,10 +1274,8 @@ static void msm_postclose(struct drm_device *dev, struct drm_file *file)
 
 	context_close(ctx);
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE)
 	if (atomic_read(&dev->open_count) == 1)
 		msm_lastclose(dev);
-#endif
 
 }
 
@@ -1445,11 +1358,6 @@ static int msm_ioctl_gem_madvise(struct drm_device *dev, void *data,
 	default:
 		return -EINVAL;
 	}
-#if KERNEL_VERSION(6, 18, 0) > LINUX_VERSION_CODE
-	ret = mutex_lock_interruptible(&dev->struct_mutex);
-	if (ret)
-		return ret;
-#endif
 	obj = drm_gem_object_lookup(file, args->handle);
 	if (!obj) {
 		ret = -ENOENT;
@@ -1465,9 +1373,6 @@ static int msm_ioctl_gem_madvise(struct drm_device *dev, void *data,
 	drm_gem_object_put(obj);
 
 unlock:
-#if KERNEL_VERSION(6, 18, 0) > LINUX_VERSION_CODE
-	mutex_unlock(&dev->struct_mutex);
-#endif
 	return ret;
 }
 
@@ -2037,16 +1942,11 @@ static const struct file_operations fops = {
 	.owner              = THIS_MODULE,
 	.open               = drm_open,
 	.release            = msm_release,
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 	.fop_flags          = FOP_UNSIGNED_OFFSET,
-#endif
 	.unlocked_ioctl     = drm_ioctl,
 	.compat_ioctl       = drm_compat_ioctl,
 	.poll               = drm_poll,
 	.read               = drm_read,
-#if (KERNEL_VERSION(6, 12, 0) > LINUX_VERSION_CODE)
-	.llseek             = no_llseek,
-#endif
 	.mmap               = msm_gem_mmap,
 };
 
@@ -2057,31 +1957,9 @@ static struct drm_driver msm_driver = {
 				DRIVER_MODESET,
 	.open               = msm_open,
 	.postclose          = msm_postclose,
-#if (KERNEL_VERSION(6, 12, 0) > LINUX_VERSION_CODE)
-	.lastclose          = msm_lastclose,
-#endif
 	.release	    = msm_drm_release,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0))
-	.irq_handler        = msm_irq,
-	.irq_preinstall     = msm_irq_preinstall,
-	.irq_postinstall    = msm_irq_postinstall,
-	.irq_uninstall      = msm_irq_uninstall,
-	.gem_free_object_unlocked    = msm_gem_free_object,
-	.gem_vm_ops         = &vm_ops,
-	.gem_prime_export   = drm_gem_prime_export,
-	.gem_prime_pin      = msm_gem_prime_pin,
-	.gem_prime_unpin    = msm_gem_prime_unpin,
-	.gem_prime_get_sg_table = msm_gem_prime_get_sg_table,
-	.gem_prime_vmap     = msm_gem_prime_vmap,
-	.gem_prime_vunmap   = msm_gem_prime_vunmap,
-#endif
 	.dumb_create        = msm_gem_dumb_create,
 	.dumb_map_offset    = msm_gem_dumb_map_offset,
-#if (KERNEL_VERSION(6, 6, 0) > LINUX_VERSION_CODE)
-	.prime_handle_to_fd = drm_gem_prime_handle_to_fd,
-	.prime_fd_to_handle = drm_gem_prime_fd_to_handle,
-	.gem_prime_mmap     = msm_gem_prime_mmap,
-#endif
 	.gem_prime_import   = msm_gem_prime_import,
 	.gem_prime_import_sg_table = msm_gem_prime_import_sg_table,
 	.ioctls             = msm_ioctls,
@@ -2089,9 +1967,6 @@ static struct drm_driver msm_driver = {
 	.fops               = &fops,
 	.name               = "msm_drm",
 	.desc               = "MSM Snapdragon DRM",
-#if (KERNEL_VERSION(6, 13, 0) > LINUX_VERSION_CODE)
-	.date               = "20130625",
-#endif
 	.major              = MSM_VERSION_MAJOR,
 	.minor              = MSM_VERSION_MINOR,
 	.patchlevel         = MSM_VERSION_PATCHLEVEL,
@@ -2321,17 +2196,10 @@ static int add_components_mdp(struct device *mdp_dev,
 	return 0;
 }
 
-#if (KERNEL_VERSION(6, 14, 0) > LINUX_VERSION_CODE)
-static int compare_name_mdp(struct device *dev, void *data)
-{
-	return (strnstr(dev_name(dev), "mdp", strlen("mdp")) != NULL);
-}
-#else
 static int compare_name_mdp(struct device *dev, const void *data)
 {
 	return (strnstr(dev_name(dev), "mdp", strlen("mdp")) != NULL);
 }
-#endif
 
 static int add_display_components(struct device *dev,
 				  struct component_match **matchptr)
@@ -2622,18 +2490,11 @@ static int msm_pdev_probe(struct platform_device *pdev)
 	return component_master_add_with_match(&pdev->dev, &msm_drm_ops, match);
 }
 
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 static void msm_pdev_remove(struct platform_device *pdev)
-#else
-static int msm_pdev_remove(struct platform_device *pdev)
-#endif
 {
 	component_master_del(&pdev->dev, &msm_drm_ops);
 	of_platform_depopulate(&pdev->dev);
 
-#if (KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE)
-	return 0;
-#endif
 }
 
 static void msm_pdev_shutdown(struct platform_device *pdev)

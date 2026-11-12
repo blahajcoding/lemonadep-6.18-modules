@@ -19,25 +19,15 @@
 #include "msm_lsr_res_parse.h"
 #include "lsr_core.h"
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 #define DMA_ATTR_IOMMU_USE_UPSTREAM_HINT 1
-#endif
 
 static void *__lsr_dma_buf_vmap(struct dma_buf *dbuf)
 {
-#if (KERNEL_VERSION(5, 16, 0) > LINUX_VERSION_CODE)
-	struct dma_buf_map map;
-#else
 	struct iosys_map map;
-#endif
 	void *dma_map;
 	int err;
 
-#if (KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE)
-	err = dma_buf_vmap(dbuf, &map);
-#else
 	err = dma_buf_vmap_unlocked(dbuf, &map);
-#endif
 	dma_map = err ? NULL : map.vaddr;
 	if (!dma_map)
 		dprintk(LSR_ERR, "map to kvaddr failed\n");
@@ -47,40 +37,21 @@ static void *__lsr_dma_buf_vmap(struct dma_buf *dbuf)
 
 static void __lsr_dma_buf_vunmap(struct dma_buf *dbuf, void *vaddr)
 {
-#if (KERNEL_VERSION(5, 16, 0) > LINUX_VERSION_CODE)
-	struct dma_buf_map map = {
-			.vaddr = vaddr,
-			.is_iomem = false,
-	};
-#else
 	struct iosys_map map = { .vaddr = vaddr, .is_iomem = false, };
-#endif
 	if (vaddr)
-#if (KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE)
-		dma_buf_vunmap(dbuf, &map);
-#else
 		dma_buf_vunmap_unlocked(dbuf, &map);
-#endif
 }
 
 static struct sg_table *__lsr_dma_buf_map_attachment(struct dma_buf_attachment *attach,
 	enum dma_data_direction direction)
 {
-#if (KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE)
-	return dma_buf_map_attachment(attach, direction);
-#else
 	return dma_buf_map_attachment_unlocked(attach, direction);
-#endif
 }
 
 static void __lsr_dma_buf_unmap_attachment(struct dma_buf_attachment *attach,
 	struct sg_table *sg_table, enum dma_data_direction direction)
 {
-#if (KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE)
-	return dma_buf_unmap_attachment(attach, sg_table, direction);
-#else
 	return dma_buf_unmap_attachment_unlocked(attach, sg_table, direction);
-#endif
 }
 
 static int msm_dma_get_device_address(struct dma_buf *dbuf, u32 align,

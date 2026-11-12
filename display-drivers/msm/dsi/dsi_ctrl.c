@@ -2106,13 +2106,7 @@ static int dsi_ctrl_buffer_deinit(struct dsi_ctrl *dsi_ctrl)
 		}
 
 		msm_gem_put_iova(dsi_ctrl->tx_cmd_buf, aspace);
-#if KERNEL_VERSION(6, 18, 0) > LINUX_VERSION_CODE
-		mutex_lock(&dsi_ctrl->drm_dev->struct_mutex);
-#endif
 		msm_gem_free_object(dsi_ctrl->tx_cmd_buf);
-#if KERNEL_VERSION(6, 18, 0) > LINUX_VERSION_CODE
-		mutex_unlock(&dsi_ctrl->drm_dev->struct_mutex);
-#endif
 		dsi_ctrl->tx_cmd_buf = NULL;
 	}
 
@@ -2340,11 +2334,7 @@ fail:
 	return rc;
 }
 
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 static void dsi_ctrl_dev_remove(struct platform_device *pdev)
-#else
-static int dsi_ctrl_dev_remove(struct platform_device *pdev)
-#endif
 {
 	int rc = 0;
 	struct dsi_ctrl *dsi_ctrl;
@@ -2386,9 +2376,6 @@ static int dsi_ctrl_dev_remove(struct platform_device *pdev)
 	devm_kfree(&pdev->dev, dsi_ctrl);
 
 	platform_set_drvdata(pdev, NULL);
-#if (KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE)
-	return 0;
-#endif
 }
 
 static struct platform_driver dsi_ctrl_driver = {

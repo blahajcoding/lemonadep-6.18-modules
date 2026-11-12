@@ -12,9 +12,7 @@
 #include <linux/device.h>
 #include <linux/gpio/consumer.h>
 #include <linux/version.h>
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 #include <linux/pinctrl/consumer.h>
-#endif
 #include <linux/sde_io_util.h>
 #include <linux/of_gpio.h>
 #include "dp_gpio_hpd.h"

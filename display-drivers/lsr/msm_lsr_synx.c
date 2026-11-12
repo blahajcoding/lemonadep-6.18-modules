@@ -9,11 +9,7 @@
 #include <linux/file.h>
 #include <linux/version.h>
 #if IS_ENABLED(CONFIG_QTI_HW_FENCE)
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 #include <msm_hw_fence.h>
-#else
-#include <linux/soc/qcom/msm_hw_fence.h>
-#endif
 #endif
 #include "msm_lsr_debug.h"
 #include "msm_lsr_core.h"

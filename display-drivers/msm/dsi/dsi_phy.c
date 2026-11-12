@@ -550,11 +550,7 @@ fail:
 	return rc;
 }
 
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 static void dsi_phy_driver_remove(struct platform_device *pdev)
-#else
-static int dsi_phy_driver_remove(struct platform_device *pdev)
-#endif
 {
 	int rc = 0;
 	struct msm_dsi_phy *phy = platform_get_drvdata(pdev);
@@ -601,11 +597,7 @@ static int dsi_phy_driver_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 
 end:
-#if (KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE)
-	return rc;
-#else
 	return;
-#endif
 }
 
 static struct platform_driver dsi_phy_platform_driver = {

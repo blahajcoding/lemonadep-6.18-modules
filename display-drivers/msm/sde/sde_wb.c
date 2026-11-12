@@ -1229,11 +1229,7 @@ static int sde_wb_probe(struct platform_device *pdev)
  * sde_wb_remove - unload writeback module
  * @pdev:	Pointer to platform device
  */
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 static void sde_wb_remove(struct platform_device *pdev)
-#else
-static int sde_wb_remove(struct platform_device *pdev)
-#endif
 {
 	int rc = 0;
 	struct sde_wb_device *wb_dev;
@@ -1265,11 +1261,7 @@ static int sde_wb_remove(struct platform_device *pdev)
 	devm_kfree(&pdev->dev, wb_dev);
 
 end:
-#if (KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE)
-	return rc;
-#else
 	return;
-#endif
 }
 
 static const struct of_device_id dt_match[] = {

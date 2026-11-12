@@ -11,11 +11,7 @@
 #include <linux/file.h>
 #include <linux/version.h>
 #if IS_ENABLED(CONFIG_QTI_HW_FENCE)
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 #include <msm_hw_fence.h>
-#else
-#include <linux/soc/qcom/msm_hw_fence.h>
-#endif
 #endif
 #include "msm_drv.h"
 #include "sde_kms.h"
@@ -770,9 +766,7 @@ exit:
 
 static void _sde_hw_fence_release(struct sde_fence *f)
 {
-#if (KERNEL_VERSION(6, 16, 0) <= LINUX_VERSION_CODE)
 	struct synx_signal_n_params signal_params;
-#endif /* KERNEL_VERSION(6, 16, 0) >= LINUX_VERSION_CODE */
 	void *hw_fence_handle;
 	struct sde_hw_ctl *hw_ctl = f->hwfence_out_ctl;
 	struct dma_fence *fence = &f->base;
@@ -793,7 +787,6 @@ static void _sde_hw_fence_release(struct sde_fence *f)
 	SDE_DEBUG("destroy hw fence ctl_id:%d ctx:%llu seqno:%llu name:%s txq_updated:%d\n",
 		ctl_id, f->base.context, f->base.seqno, f->name, f->txq_updated_fence);
 
-#if (KERNEL_VERSION(6, 16, 0) <= LINUX_VERSION_CODE)
 	/* clean up signal refcount on fence */
 	if (!f->txq_updated_fence) {
 		signal_params.type = SYNX_SIGNAL_INDV_PARAMS;
@@ -805,7 +798,6 @@ static void _sde_hw_fence_release(struct sde_fence *f)
 			SDE_ERROR("failed to signal ctl_id:%d ctx:%llu seqno:%llu hash:0x%llx\n",
 				ctl_id, f->base.context, f->base.seqno, f->hwfence_index);
 	}
-#endif /* KERNEL_VERSION(6, 16, 0) >= LINUX_VERSION_CODE */
 
 	/* Delete the HW fence */
 	ret = synx_release(hw_fence_handle, f->hwfence_index);
@@ -1011,10 +1003,6 @@ void sde_fence_dump(struct dma_fence *fence)
 	char timeline_str[TIMELINE_VAL_LENGTH];
 	uint32_t i;
 
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
-	if (fence->ops->timeline_value_str)
-		fence->ops->timeline_value_str(fence, timeline_str, TIMELINE_VAL_LENGTH);
-#endif
 	SDE_ERROR(
 		"fence drv name:%s timeline name:%s seqno:0x%llx timeline:%s signaled:0x%x status:%d flags:0x%lx\n",
 		fence->ops->get_driver_name(fence),
@@ -1171,27 +1159,6 @@ static void sde_fence_release(struct dma_fence *fence)
 	}
 }
 
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
-static void sde_fence_value_str(struct dma_fence *fence, char *str, int size)
-{
-	if (!fence || !str)
-		return;
-
-	snprintf(str, size, "%llu", fence->seqno);
-}
-
-static void sde_fence_timeline_value_str(struct dma_fence *fence, char *str,
-		int size)
-{
-	struct sde_fence *f = to_sde_fence(fence);
-
-	if (!fence || !f->ctx || !str)
-		return;
-
-	snprintf(str, size, "%d", f->ctx->done_count);
-}
-#endif
-
 struct dma_fence_ops sde_fence_ops = {
 	.get_driver_name = sde_fence_get_driver_name,
 	.get_timeline_name = sde_fence_get_timeline_name,
@@ -1199,10 +1166,6 @@ struct dma_fence_ops sde_fence_ops = {
 	.signaled = sde_fence_signaled,
 	.wait = dma_fence_default_wait,
 	.release = sde_fence_release,
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
-	.fence_value_str = sde_fence_value_str,
-	.timeline_value_str = sde_fence_timeline_value_str,
-#endif
 };
 
 /**
@@ -1517,11 +1480,6 @@ void sde_fence_list_dump(struct dma_fence *fence, struct seq_file **s)
 {
 	char timeline_str[TIMELINE_VAL_LENGTH] = {0};
 
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
-	if (fence->ops->timeline_value_str)
-		fence->ops->timeline_value_str(fence,
-		timeline_str, TIMELINE_VAL_LENGTH);
-#endif
 	seq_printf(*s, "fence name:%s timeline name:%s seqno:0x%llx timeline:%s signaled:0x%x\n",
 		fence->ops->get_driver_name(fence),
 		fence->ops->get_timeline_name(fence),
@@ -1566,7 +1524,6 @@ void sde_debugfs_timeline_dump(struct sde_fence_context *ctx,
 	spin_unlock(&ctx->list_lock);
 }
 
-#if (KERNEL_VERSION(6, 11, 0) <= LINUX_VERSION_CODE)
 void sde_fence_set_input_deadline(struct dma_fence *fence, ktime_t deadline)
 {
 	if (!fence || !deadline || test_bit(DMA_FENCE_SET_DEADLINE, &fence->flags) ||
@@ -1577,9 +1534,3 @@ void sde_fence_set_input_deadline(struct dma_fence *fence, ktime_t deadline)
 	dma_fence_set_deadline(fence, deadline);
 	set_bit(DMA_FENCE_SET_DEADLINE, &fence->flags);
 }
-#else
-void sde_fence_set_input_deadline(struct dma_fence *fence, ktime_t deadline)
-{
-	/* do nothing */
-}
-#endif /* (KERNEL_VERSION(6, 11, 0) <= LINUX_VERSION_CODE) */

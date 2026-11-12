@@ -1168,11 +1168,7 @@ static int msm_lsr_populate_context_bank(struct device *dev,
 		goto err_setup_cb;
 	}
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0))
 	qcom_iommu_set_fault_handler(cb->domain, msm_lsr_smmu_fault_handler, (void *)core);
-#else
-	iommu_set_fault_handler(cb->domain,	msm_lsr_smmu_fault_handler, (void *)core);
-#endif
 
 	return 0;
 err_setup_cb:

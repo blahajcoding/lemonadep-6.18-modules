@@ -5,11 +5,7 @@
 
 #include <linux/slab.h>
 #include <linux/version.h>
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE)
 #include <linux/firmware/qcom/qcom_scm.h>
-#else
-#include <linux/qcom_scm.h>
-#endif
 #include <linux/of_address.h>
 #include <linux/firmware.h>
 #include <linux/soc/qcom/mdt_loader.h>

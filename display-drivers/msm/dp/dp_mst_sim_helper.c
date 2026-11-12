@@ -41,11 +41,7 @@
 #include <linux/version.h>
 #include <drm/drm_fixed.h>
 #include <drm/drm_edid.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0))
 #include <drm/display/drm_dp_mst_helper.h>
-#else
-#include <drm/drm_dp_mst_helper.h>
-#endif
 #include "dp_mst_sim_helper.h"
 #include "dp_debug.h"
 
@@ -54,13 +50,8 @@
 #define DP_MST_DEBUG_V(fmt, ...) DP_DEBUG_V(fmt, ##__VA_ARGS__)
 #define DP_MST_INFO_V(fmt, ...) DP_INFO_V(fmt, ##__VA_ARGS__)
 
-#if (KERNEL_VERSION(6, 12, 0) > LINUX_VERSION_CODE)
-#define DP_EXPORT_GUID(a, b) memcpy(a, b, 16)
-#define DP_GUID_COPY(a, b) memcpy(a, b, 16)
-#else
 #define DP_EXPORT_GUID(a, b) export_guid(a, &b)
 #define DP_GUID_COPY(a, b) guid_copy(&a, &b)
-#endif
 
 #define DDC_SEGMENT_ADDR 0x30
 
@@ -82,11 +73,7 @@ struct dp_mst_sim_context {
 	int reset_cnt;
 
 	u8 esi[16];
-#if (KERNEL_VERSION(6, 12, 0) > LINUX_VERSION_CODE)
-	u8 guid[16];
-#else
 	guid_t guid;
-#endif
 	u8 dpcd[1024];
 };
 

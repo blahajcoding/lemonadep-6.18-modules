@@ -804,11 +804,7 @@ int sde_power_enable_power_domain(struct sde_power_handle *phandle,
 		(phandle->rsc_pd && power_domain_id == SDE_POWER_PD_ID_GDSC))
 			&& !hw_mode) {
 		hw_mode = true;
-#if (KERNEL_VERSION(6, 11, 0) <= LINUX_VERSION_CODE)
 		ret = dev_pm_genpd_set_hwmode(pd_handle->dev, true);
-#else
-		ret = 0;
-#endif
 		if (ret) {
 			pr_err("failed to set hw mode: %d\n", ret);
 			return ret;

@@ -3261,7 +3261,6 @@ exit:
 }
 
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 static int sde_plane_atomic_check(struct drm_plane *plane,
 		struct drm_atomic_state *atomic_state)
 {
@@ -3275,19 +3274,6 @@ static int sde_plane_atomic_check(struct drm_plane *plane,
 	state = drm_atomic_get_new_plane_state(atomic_state, plane);
 	return _sde_plane_atomic_check(plane, state);
 }
-#else
-static int sde_plane_atomic_check(struct drm_plane *plane,
-		struct drm_plane_state *state)
-{
-	if (!plane || !state) {
-		SDE_ERROR("invalid arg(s), plane %d state %d\n",
-				!plane, !state);
-		return -EINVAL;
-	}
-
-	return _sde_plane_atomic_check(plane, state);
-}
-#endif
 
 void sde_plane_flush(struct drm_plane *plane)
 {
@@ -4225,13 +4211,8 @@ static void _sde_plane_atomic_disable(struct drm_plane *plane,
 	}
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 static void _sde_plane_atomic_update(struct drm_plane *plane,
 				struct drm_plane_state *old_state)
-#else
-static void sde_plane_atomic_update(struct drm_plane *plane,
-				struct drm_plane_state *old_state)
-#endif
 {
 	struct sde_plane *psde;
 	struct drm_plane_state *state;
@@ -4268,7 +4249,6 @@ static void sde_plane_atomic_update(struct drm_plane *plane,
 	}
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 static void sde_plane_atomic_update(struct drm_plane *plane,
 				struct drm_atomic_state *atomic_state)
 {
@@ -4276,7 +4256,6 @@ static void sde_plane_atomic_update(struct drm_plane *plane,
 
 	_sde_plane_atomic_update(plane, old_state);
 }
-#endif
 
 void sde_plane_restore(struct drm_plane *plane)
 {
@@ -4299,11 +4278,7 @@ void sde_plane_restore(struct drm_plane *plane)
 	SDE_DEBUG_PLANE(psde, "\n");
 
 	/* last plane state is same as current state */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 	_sde_plane_atomic_update(plane, plane->state);
-#else
-	sde_plane_atomic_update(plane, plane->state);
-#endif
 }
 
 bool sde_plane_is_cache_required(struct drm_plane *plane,
@@ -6111,13 +6086,11 @@ static void sde_plane_early_unregister(struct drm_plane *plane)
 	_sde_plane_destroy_debugfs(plane);
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0))
 static bool sde_plane_format_mod_supported(struct drm_plane *plane,
 		uint32_t format, uint64_t modifier)
 {
 	return (sde_get_sde_format_ext(format, modifier) != NULL);
 }
-#endif
 
 static const struct drm_plane_funcs sde_plane_funcs = {
 		.update_plane = drm_atomic_helper_update_plane,
@@ -6130,9 +6103,7 @@ static const struct drm_plane_funcs sde_plane_funcs = {
 		.atomic_destroy_state = sde_plane_destroy_state,
 		.late_register = sde_plane_late_register,
 		.early_unregister = sde_plane_early_unregister,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0))
 		.format_mod_supported = sde_plane_format_mod_supported,
-#endif
 };
 
 static const struct drm_plane_helper_funcs sde_plane_helper_funcs = {

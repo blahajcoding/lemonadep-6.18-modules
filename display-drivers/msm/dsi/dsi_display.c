@@ -628,13 +628,7 @@ free_aspace_cb:
 	msm_gem_address_space_unregister_cb(display->aspace,
 			dsi_display_aspace_cb_locked, display);
 free_gem:
-#if KERNEL_VERSION(6, 18, 0) > LINUX_VERSION_CODE
-	mutex_lock(&display->drm_dev->struct_mutex);
-#endif
 	msm_gem_free_object(display->tx_cmd_buf);
-#if KERNEL_VERSION(6, 18, 0) > LINUX_VERSION_CODE
-	mutex_unlock(&display->drm_dev->struct_mutex);
-#endif
 error:
 	return rc;
 }
@@ -7107,11 +7101,7 @@ end:
 	return rc;
 }
 
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 void dsi_display_dev_remove(struct platform_device *pdev)
-#else
-int dsi_display_dev_remove(struct platform_device *pdev)
-#endif
 {
 	int rc = 0, i = 0;
 	struct dsi_display *display;
@@ -7157,11 +7147,7 @@ int dsi_display_dev_remove(struct platform_device *pdev)
 	devm_kfree(&pdev->dev, display);
 
 end:
-#if (KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE)
-	return rc;
-#else
 	return;
-#endif
 }
 
 int dsi_display_get_num_of_displays(struct drm_device *dev)
@@ -7590,21 +7576,12 @@ static int dsi_host_ext_attach(struct mipi_dsi_host *host,
 			panel->video_config.traffic_mode =
 					DSI_VIDEO_TRAFFIC_SYNC_START_EVENTS;
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 		panel->video_config.hsa_lp11_en =
 			dsi->mode_flags & MIPI_DSI_MODE_VIDEO_NO_HSA;
 		panel->video_config.hbp_lp11_en =
 			dsi->mode_flags & MIPI_DSI_MODE_VIDEO_NO_HBP;
 		panel->video_config.hfp_lp11_en =
 			dsi->mode_flags & MIPI_DSI_MODE_VIDEO_NO_HFP;
-#else
-		panel->video_config.hsa_lp11_en =
-			dsi->mode_flags & MIPI_DSI_MODE_VIDEO_HSA;
-		panel->video_config.hbp_lp11_en =
-			dsi->mode_flags & MIPI_DSI_MODE_VIDEO_HBP;
-		panel->video_config.hfp_lp11_en =
-			dsi->mode_flags & MIPI_DSI_MODE_VIDEO_HFP;
-#endif
 		panel->video_config.pulse_mode_hsa_he =
 			dsi->mode_flags & MIPI_DSI_MODE_VIDEO_HSE;
 	} else {
@@ -10483,16 +10460,12 @@ static void dsi_display_handle_poms_te(struct work_struct *work)
 
 	dsi = &panel->mipi_device;
 
-#if (KERNEL_VERSION(6, 15, 0) > LINUX_VERSION_CODE)
-	rc = mipi_dsi_dcs_set_tear_off(dsi);
-#else
 	struct mipi_dsi_multi_context ctx;
 
 	ctx.dsi = dsi;
 	ctx.accum_err = 0;
 	mipi_dsi_dcs_set_tear_off_multi(&ctx);
 	rc = ctx.accum_err;
-#endif
 
 error:
 	mutex_unlock(&panel->panel_lock);

@@ -10,11 +10,7 @@
 #include <linux/version.h>
 #include <linux/platform_device.h>
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 #include <msm_ext_display.h>
-#else
-#include <linux/soc/qcom/msm_ext_display.h>
-#endif
 
 #include "dp_client.h"
 #include "dp_mgr_hfi.h"

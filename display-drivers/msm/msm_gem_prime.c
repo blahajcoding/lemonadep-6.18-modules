@@ -29,12 +29,7 @@
 #include <linux/version.h>
 #include <linux/mem-buf.h>
 #include <soc/qcom/secure_buffer.h>
-#if (KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE)
 #include <linux/qti-smmu-proxy-callbacks.h>
-#elif (KERNEL_VERSION(5, 15, 0) > LINUX_VERSION_CODE)
-#include <linux/ion.h>
-#include <linux/msm_ion.h>
-#endif
 
 struct msm_gem_prime_vmid_flags {
 	bool is_tvm;
@@ -54,32 +49,13 @@ struct sg_table *msm_gem_prime_get_sg_table(struct drm_gem_object *obj)
 	return drm_prime_pages_to_sg(obj->dev, msm_obj->pages, npages);
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0))
 int msm_gem_prime_vmap(struct drm_gem_object *obj, struct iosys_map *map)
 {
 	map->vaddr = msm_gem_get_vaddr(obj);
 	return IS_ERR_OR_NULL(map->vaddr);
 }
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
-int msm_gem_prime_vmap(struct drm_gem_object *obj, struct dma_buf_map *map)
-{
-	map->vaddr = msm_gem_get_vaddr(obj);
-	return IS_ERR_OR_NULL(map->vaddr);
-}
-#else
-void *msm_gem_prime_vmap(struct drm_gem_object *obj)
-{
-	return msm_gem_get_vaddr(obj);
-}
-#endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0))
 void msm_gem_prime_vunmap(struct drm_gem_object *obj, struct iosys_map *map)
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
-void msm_gem_prime_vunmap(struct drm_gem_object *obj, struct dma_buf_map *map)
-#else
-void msm_gem_prime_vunmap(struct drm_gem_object *obj, void *vaddr)
-#endif
 {
 	msm_gem_put_vaddr(obj);
 }
@@ -128,14 +104,12 @@ static int msm_gem_prime_get_vmid_flags(struct dma_buf *dma_buf, struct msm_kms 
 	}
 
 	for (i = 0; i < nelems; i++) {
-#if (KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE)
 		/* avoid VMID checks in trusted-vm, set flag in HLOS when only VMID_TVM is set */
 		if ((vmid_list[i] == VMID_TVM) &&
 				(!kms->funcs->in_trusted_vm || !kms->funcs->in_trusted_vm(kms))) {
 			vmid_flags->is_tvm = true;
 			*dma_map_attrs = DMA_ATTR_QTI_SMMU_PROXY_MAP;
 		}
-#endif
 		if (vmid_list[i] == VMID_CP_PIXEL) {
 			vmid_flags->is_cp_pixel = true;
 			vmid_flags->is_tvm = false;
@@ -265,11 +239,7 @@ struct drm_gem_object *msm_gem_prime_import(struct drm_device *dev,
 	 */
 	if (!vmid_flags.is_tvm && !vmid_flags.is_cam_preview && !vmid_flags.is_sec_display) {
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 		sgt = dma_buf_map_attachment_unlocked(attach, DMA_BIDIRECTIONAL);
-#else
-		sgt = dma_buf_map_attachment(attach, DMA_BIDIRECTIONAL);
-#endif
 		if (IS_ERR(sgt)) {
 			ret = PTR_ERR(sgt);
 			DRM_ERROR("dma_buf_map_attachment failure, err=%d\n", ret);
@@ -297,11 +267,7 @@ struct drm_gem_object *msm_gem_prime_import(struct drm_device *dev,
 
 fail_unmap:
 	if (sgt)
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 		dma_buf_unmap_attachment_unlocked(attach, sgt, DMA_BIDIRECTIONAL);
-#else
-		dma_buf_unmap_attachment(attach, sgt, DMA_BIDIRECTIONAL);
-#endif
 
 fail_detach:
 	dma_buf_detach(dma_buf, attach);
@@ -311,8 +277,4 @@ fail_put:
 	return ERR_PTR(ret);
 }
 
-#if (KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE)
 MODULE_IMPORT_NS("DMA_BUF");
-#elif (KERNEL_VERSION(5, 19, 0) <= LINUX_VERSION_CODE)
-MODULE_IMPORT_NS("DMA_BUF");
-#endif

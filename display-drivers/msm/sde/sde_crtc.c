@@ -30,11 +30,7 @@
 #include <soc/qcom/of_common.h>
 #include <linux/version.h>
 #ifdef CONFIG_QCOM_SPEC_SYNC
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 #include <qcom_sync_file.h>
-#else
-#include <linux/soc/qcom/qcom_sync_file.h>
-#endif
 #endif
 #include <linux/file.h>
 #include <drm/msm_drm_aiqe.h>
@@ -412,13 +408,8 @@ static void _sde_crtc_check_loopback_pstates(struct drm_crtc_state *crtc_state)
 	 * pipes staged on that LM.
 	 */
 	drm_atomic_crtc_state_for_each_plane(plane, crtc_state) {
-#if (KERNEL_VERSION(6, 19, 0) <= LINUX_VERSION_CODE)
-		plane_state = drm_atomic_get_old_plane_state(
-				crtc_state->state, plane);
-#else
 		plane_state = drm_atomic_get_existing_plane_state(
 				crtc_state->state, plane);
-#endif
 
 		if (!plane_state)
 			continue;
@@ -590,13 +581,8 @@ static int sde_crtc_get_lb_layout_split(struct drm_crtc *crtc, struct drm_crtc_s
 
 	cstate = to_sde_crtc_state(crtc_state);
 	drm_atomic_crtc_state_for_each_plane(plane, crtc_state) {
-#if (KERNEL_VERSION(6, 19, 0) <= LINUX_VERSION_CODE)
-		plane_state = drm_atomic_get_new_plane_state(
-				crtc_state->state, plane);
-#else
 		plane_state = drm_atomic_get_existing_plane_state(
 				crtc_state->state, plane);
-#endif
 
 		if (!plane_state)
 			continue;
@@ -5004,7 +4990,6 @@ static void _crtc_check_hw_fence_is_waiting(struct drm_crtc *crtc, struct dma_fe
 	}
 }
 
-#if (KERNEL_VERSION(6, 11, 0) <= LINUX_VERSION_CODE)
 static int _sde_crtc_fences_set_deadline(struct drm_crtc *crtc, ktime_t ept)
 {
 	struct drm_plane *plane = NULL;
@@ -5019,7 +5004,6 @@ static int _sde_crtc_fences_set_deadline(struct drm_crtc *crtc, ktime_t ept)
 
 	return 0;
 }
-#endif /* KERNEL_VERSION(6, 11, 0) <= LINUX_VERSION_CODE */
 
 /**
  * _sde_crtc_fences_wait_list - wait for input sw-fences and return any hw-fences
@@ -5200,10 +5184,8 @@ static int _sde_crtc_prepare_wait_for_fences(struct drm_crtc *crtc, struct sde_c
 	bool video_psr_support = false;
 
 	drm_for_each_encoder_mask(encoder, crtc->dev, crtc->state->encoder_mask) {
-#if (KERNEL_VERSION(6, 11, 0) <= LINUX_VERSION_CODE)
 		if (!*ept)
 			*ept = sde_encoder_get_ept(encoder);
-#endif /* (KERNEL_VERSION(6, 11, 0) <= LINUX_VERSION_CODE) */
 
 		if (sde_encoder_in_clone_mode(encoder))
 			continue;
@@ -5214,10 +5196,8 @@ static int _sde_crtc_prepare_wait_for_fences(struct drm_crtc *crtc, struct sde_c
 		}
 	}
 
-#if (KERNEL_VERSION(6, 11, 0) <= LINUX_VERSION_CODE)
 	if (*ept)
 		_sde_crtc_fences_set_deadline(crtc, *ept);
-#endif /* (KERNEL_VERSION(6, 11, 0) <= LINUX_VERSION_CODE) */
 
 	/* if this is the last frame on vm transition, disable hw fences */
 	if (!video_psr_support) {
@@ -5765,7 +5745,6 @@ end:
 	SDE_ATRACE_END("crtc_atomic_begin");
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 static void sde_crtc_atomic_begin(struct drm_crtc *crtc,
 		struct drm_atomic_state *state)
 {
@@ -5779,17 +5758,6 @@ static void sde_crtc_atomic_begin(struct drm_crtc *crtc,
 	old_state = drm_atomic_get_old_crtc_state(state, crtc);
 	_sde_crtc_atomic_begin(crtc, old_state);
 }
-#else
-static void sde_crtc_atomic_begin(struct drm_crtc *crtc,
-		struct drm_crtc_state *old_state)
-{
-	if (!crtc) {
-		SDE_ERROR("invalid crtc\n");
-		return;
-	}
-	_sde_crtc_atomic_begin(crtc, old_state);
-}
-#endif
 
 static void sde_crtc_atomic_flush_common(struct drm_crtc *crtc,
 		struct drm_atomic_state *state)
@@ -5911,19 +5879,11 @@ static void sde_crtc_atomic_flush_common(struct drm_crtc *crtc,
 	SDE_ATRACE_END("sde_crtc_atomic_flush");
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 static void sde_crtc_atomic_flush(struct drm_crtc *crtc,
 		struct drm_atomic_state *state)
 {
 	return sde_crtc_atomic_flush_common(crtc, state);
 }
-#else
-static void sde_crtc_atomic_flush(struct drm_crtc *crtc,
-		struct drm_crtc_state *old_crtc_state)
-{
-	return sde_crtc_atomic_flush_common(crtc, old_crtc_state->state);
-}
-#endif
 
 /**
  * sde_crtc_destroy_state - state destroy hook
@@ -7102,13 +7062,8 @@ void _sde_crtc_register_event_callback(struct sde_crtc *sde_crtc,
 	sde_crtc->crtc_event_cb = event_cb;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 static void sde_crtc_enable(struct drm_crtc *crtc,
 		struct drm_atomic_state *old_state)
-#else
-static void sde_crtc_enable(struct drm_crtc *crtc,
-		struct drm_crtc_state *old_crtc_state)
-#endif
 {
 	struct sde_crtc *sde_crtc;
 	struct drm_encoder *encoder;
@@ -7864,13 +7819,8 @@ static int _sde_crtc_check_plane_layout(struct drm_crtc *crtc,
 		const struct msm_format *msm_fmt;
 		const struct sde_format *fmt;
 
-		#if (KERNEL_VERSION(6, 19, 0) <= LINUX_VERSION_CODE)
-			plane_state = drm_atomic_get_new_plane_state(
-				crtc_state->state, plane);
-		#else
 			plane_state = drm_atomic_get_existing_plane_state(
 				crtc_state->state, plane);
-		#endif
 
 		if (!plane_state)
 			continue;
@@ -8088,7 +8038,6 @@ end:
 	return rc;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 static int sde_crtc_atomic_check(struct drm_crtc *crtc,
 		struct drm_atomic_state *atomic_state)
 {
@@ -8102,17 +8051,6 @@ static int sde_crtc_atomic_check(struct drm_crtc *crtc,
 	state = drm_atomic_get_new_crtc_state(atomic_state, crtc);
 	return _sde_crtc_atomic_check(crtc, state);
 }
-#else
-static int sde_crtc_atomic_check(struct drm_crtc *crtc,
-		struct drm_crtc_state *state)
-{
-	if (!crtc) {
-		SDE_ERROR("invalid crtc\n");
-		return -EINVAL;
-	}
-	return _sde_crtc_atomic_check(crtc, state);
-}
-#endif
 
 /**
  * sde_crtc_get_num_datapath - get the number of layermixers active

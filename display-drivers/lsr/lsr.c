@@ -143,11 +143,7 @@ static int msm_probe_lsr_device(struct platform_device *pdev)
 		goto err_alloc_chrdev;
 	}
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE)
 	core->class = class_create(CLASS_NAME);
-#else
-	core->class = class_create(THIS_MODULE, CLASS_NAME);
-#endif
 	if (IS_ERR(core->class)) {
 		rc = PTR_ERR(core->class);
 		dprintk(LSR_ERR, "class_create failed: %d\n",
@@ -257,11 +253,7 @@ static int msm_lsr_probe(struct platform_device *pdev)
 	return -EINVAL;
 }
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE)
 static void msm_lsr_remove(struct platform_device *pdev)
-#else
-static int msm_lsr_remove(struct platform_device *pdev)
-#endif
 {
 	int rc = 0;
 	struct msm_lsr_core *core;
@@ -296,11 +288,7 @@ static int msm_lsr_remove(struct platform_device *pdev)
 	mutex_destroy(&core->clk_lock);
 	kfree(core);
 exit:
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE)
 	return;
-#else
-	return rc;
-#endif
 }
 
 MODULE_DEVICE_TABLE(of, msm_lsr_plat_match);

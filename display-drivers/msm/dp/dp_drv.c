@@ -266,11 +266,7 @@ struct dp_intf_info *dp_drv_get_info(void *drv)
 	return dp->client->get_intf_info(dp->client);
 }
 
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 static void dp_drv_remove(struct platform_device *pdev)
-#else
-static int dp_drv_remove(struct platform_device *pdev)
-#endif
 {
 	int rc = 0;
 	struct dp_drv *dp;
@@ -282,11 +278,7 @@ static int dp_drv_remove(struct platform_device *pdev)
 
 	dp = platform_get_drvdata(pdev);
 end:
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 	return;
-#else
-	return rc;
-#endif
 }
 
 static int dp_pm_prepare(struct device *dev)

@@ -13,11 +13,7 @@
 #include <drm/drm_mode.h>
 #include <drm/sde_drm.h>
 
-#if (KERNEL_VERSION(5, 19, 0) <= LINUX_VERSION_CODE)
 #include <drm/display/drm_dp_helper.h>
-#else
-#include <drm/drm_dp_helper.h>
-#endif
 
 #define MAX_DP_ACTIVE_DISPLAY 8
 #define DP_STREAMS_MAX 2

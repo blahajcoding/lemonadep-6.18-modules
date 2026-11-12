@@ -267,11 +267,7 @@ static int msm_hdcp_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 	hdcp->class = class_create(CLASS_NAME);
-#else
-	hdcp->class = class_create(THIS_MODULE, CLASS_NAME);
-#endif
 
 	if (IS_ERR(hdcp->class)) {
 		ret = PTR_ERR(hdcp->class);
@@ -310,11 +306,7 @@ error_class_create:
 	return ret;
 }
 
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 static void msm_hdcp_remove(struct platform_device *pdev)
-#else
-static int msm_hdcp_remove(struct platform_device *pdev)
-#endif
 {
 	int rc = 0;
 	struct msm_hdcp *hdcp;
@@ -333,11 +325,7 @@ static int msm_hdcp_remove(struct platform_device *pdev)
 	unregister_chrdev_region(hdcp->dev_num, 1);
 
 end:
-#if (KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE)
-	return rc;
-#else
 	return;
-#endif
 }
 
 static struct platform_driver msm_hdcp_driver = {

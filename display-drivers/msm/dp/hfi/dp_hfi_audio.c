@@ -7,11 +7,7 @@
 #include <linux/extcon.h>
 #include <linux/version.h>
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 #include <msm_ext_display.h>
-#else
-#include <linux/soc/qcom/msm_ext_display.h>
-#endif
 
 #include "dp_hfi_audio.h"
 #include "dp_debug.h"

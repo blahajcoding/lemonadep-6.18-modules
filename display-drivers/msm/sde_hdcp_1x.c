@@ -14,11 +14,7 @@
 #include <linux/iopoll.h>
 #include <linux/version.h>
 #include <linux/msm_hdcp.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0))
 #include <drm/display/drm_dp_helper.h>
-#else
-#include <drm/drm_dp_helper.h>
-#endif
 #include "sde_hdcp.h"
 #include "hdcp/msm_hdmi_hdcp_mgr.h"
 #include "dp/dp_reg.h"

@@ -2939,11 +2939,7 @@ static int _sde_encoder_phys_wb_init_internal_fb(struct sde_encoder_phys_wb *wb_
 	}
 
 	/* allocate gem tracking object */
-#if (KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE)
 	info = drm_get_format_info(dev, mode_cmd.pixel_format, mode_cmd.modifier[0]);
-#else
-	info = drm_get_format_info(dev, &mode_cmd);
-#endif
 	nplanes = info->num_planes;
 	if (nplanes >= SDE_MAX_PLANES) {
 		SDE_ERROR("[enc:%d wb:%d] requested format has too many planes:%d\n",

@@ -4354,21 +4354,12 @@ static int sde_cache_parse_dt(struct device_node *np,
 	struct llcc_slice_desc *slice;
 	struct device_node *llcc_node;
 	int i;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 	const u32 sde_sys_cache_usecase_id[SDE_SYS_CACHE_MAX] = {
 		[SDE_SYS_CACHE_DISP] = LLCC_DISP,
 		[SDE_SYS_CACHE_DISP_1] = LLCC_DISP_1,
 		[SDE_SYS_CACHE_DISP_WB] = LLCC_DISP_WB,
 		[SDE_SYS_CACHE_LSR_MODE] = LLCC_DCP,
 	};
-#else
-	const u32 sde_sys_cache_usecase_id[SDE_SYS_CACHE_MAX] = {
-		[SDE_SYS_CACHE_DISP] = LLCC_DISP,
-		[SDE_SYS_CACHE_DISP_1] = 0,
-		[SDE_SYS_CACHE_DISP_WB] = 0,
-		[SDE_SYS_CACHE_LSR_MODE] = 0,
-	};
-#endif
 
 	if (!sde_cfg) {
 		SDE_ERROR("invalid argument\n");

@@ -20,11 +20,7 @@
 #include <linux/soc/qcom/llcc-qcom.h>
 #include <linux/version.h>
 #include <linux/tracepoint.h>
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 #include <linux/firmware/qcom/qcom_scm.h>
-#else
-#include <linux/qcom_scm.h>
-#endif
 #include <linux/soc/qcom/smem.h>
 #include <linux/dma-mapping.h>
 #include <linux/reset.h>
@@ -100,18 +96,11 @@ int lsr_iommu_map(struct iommu_domain *domain, unsigned long iova, phys_addr_t p
 		int prot)
 {
 	int rc = 0;
-#if (KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE)
-	rc = iommu_map(domain, iova,
-		paddr,
-		size,
-		prot);
-#else
 	rc = iommu_map(domain, iova,
 		paddr,
 		size,
 		prot,
 		0);
-#endif
 	return rc;
 }
 
@@ -2407,7 +2396,6 @@ static int __acquire_power_domain(struct power_domain_info *pd_info,
 {
 	int rc = 0;
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE)
 	if (pd_info->has_hw_power_collapse) {
 		rc = dev_pm_genpd_set_hwmode(pd_info->pd_dev, false);
 		if (rc)
@@ -2417,10 +2405,6 @@ static int __acquire_power_domain(struct power_domain_info *pd_info,
 			dprintk(LSR_PWR, "Acquired power domain control from HW: %s\n",
 				pd_info->name);
 	}
-#else
-	dprintk(LSR_ERR, "%s: not supported", __func__);
-	rc = -EOPNOTSUPP;
-#endif
 
 	return rc;
 }
@@ -2429,7 +2413,6 @@ static int __hand_off_power_domain(struct power_domain_info *pd_info)
 {
 	int rc = 0;
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE)
 	if (pd_info->has_hw_power_collapse) {
 		rc = dev_pm_genpd_set_hwmode(pd_info->pd_dev, true);
 		if (rc)
@@ -2439,10 +2422,6 @@ static int __hand_off_power_domain(struct power_domain_info *pd_info)
 			dprintk(LSR_PWR, "Hand off power domain control to HW: %s\n",
 				pd_info->name);
 	}
-#else
-	dprintk(LSR_ERR, "%s: not supported", __func__);
-	rc = -EOPNOTSUPP;
-#endif
 
 	return rc;
 }

@@ -61,13 +61,8 @@ void convert_to_drm_mode(const struct dp_display_mode *dp_mode,
 	drm_mode_set_name(drm_mode);
 }
 
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
-static int dp_bridge_attach(struct drm_bridge *dp_bridge,
-				enum drm_bridge_attach_flags flags)
-#else
 static int dp_bridge_attach(struct drm_bridge *dp_bridge,
 		struct drm_encoder *encoder, enum drm_bridge_attach_flags flags)
-#endif
 {
 	struct dp_bridge *bridge = to_dp_bridge(dp_bridge);
 
@@ -822,15 +817,6 @@ int dp_drm_bridge_init(void *data, struct drm_encoder *encoder,
 
 	dev = drv->drm_dev;
 	priv = dev->dev_private;
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
-	bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
-	if (!bridge) {
-		rc = -ENOMEM;
-		goto error;
-	}
-	bridge->base.funcs = &dp_bridge_ops;
-	bridge->base.encoder = encoder;
-#else
 	bridge = __devm_drm_bridge_alloc(dev->dev,
 				sizeof(*bridge),
 				offsetof(struct dp_bridge, base),
@@ -840,7 +826,6 @@ int dp_drm_bridge_init(void *data, struct drm_encoder *encoder,
 		DP_ERR("failed to alloc bridge, rc=%d\n", rc);
 		goto error;
 	}
-#endif
 	bridge->drv = drv;
 
 	rc = drm_bridge_attach(encoder, &bridge->base, NULL, 0);
@@ -867,21 +852,12 @@ int dp_drm_bridge_init(void *data, struct drm_encoder *encoder,
 	return 0;
 
 error_free_bridge:
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
-	kfree(bridge);
-#endif
 error:
 	return rc;
 }
 
 void dp_drm_bridge_deinit(void *data)
 {
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
-	struct dp_drv *drv = data;
-	struct dp_bridge *bridge = drv->client->bridge;
-
-	kfree(bridge);
-#endif
 }
 
 enum drm_mode_status dp_connector_mode_valid(struct drm_connector *connector,
@@ -970,11 +946,7 @@ int dp_connector_install_properties(void *display, struct drm_connector *conn)
 	 */
 	if (!base_conn->colorspace_property) {
 		/* This is the base connector. create the drm property */
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 		rc = drm_mode_create_dp_colorspace_property(base_conn, 0);
-#else
-		rc = drm_mode_create_dp_colorspace_property(base_conn);
-#endif
 		if (rc)
 			return rc;
 	} else {

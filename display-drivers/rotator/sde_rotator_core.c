@@ -18,11 +18,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/dma-direction.h>
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 #include <linux/firmware/qcom/qcom_scm.h>
-#else
-#include <linux/qcom_scm.h>
-#endif
 
 #if IS_ENABLED(CONFIG_SMMU_PROXY)
 #include <smmu-proxy/include/uapi/linux/qti-smmu-proxy.h>

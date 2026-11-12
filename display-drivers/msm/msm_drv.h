@@ -49,11 +49,7 @@
 #include <drm/sde_drm.h>
 #include <drm/drm_file.h>
 #include <drm/drm_gem.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0))
 #include <drm/display/drm_dsc.h>
-#else
-#include <drm/drm_dsc.h>
-#endif
 #include <drm/drm_bridge.h>
 #include <drm/drm_framebuffer.h>
 #include <drm/drm_print.h>
@@ -1642,17 +1638,8 @@ int msm_gem_dumb_create(struct drm_file *file, struct drm_device *dev,
 int msm_gem_dumb_map_offset(struct drm_file *file, struct drm_device *dev,
 		uint32_t handle, uint64_t *offset);
 struct sg_table *msm_gem_prime_get_sg_table(struct drm_gem_object *obj);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0))
 int msm_gem_prime_vmap(struct drm_gem_object *obj, struct iosys_map *map);
 void msm_gem_prime_vunmap(struct drm_gem_object *obj, struct iosys_map *map);
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
-int msm_gem_prime_vmap(struct drm_gem_object *obj, struct dma_buf_map *map);
-void msm_gem_prime_vunmap(struct drm_gem_object *obj, struct dma_buf_map *map);
-#else
-void *msm_gem_prime_vmap(struct drm_gem_object *obj);
-void msm_gem_prime_vunmap(struct drm_gem_object *obj, void *vaddr);
-vm_fault_t msm_gem_fault(struct vm_fault *vmf);
-#endif
 int msm_gem_prime_mmap(struct drm_gem_object *obj, struct vm_area_struct *vma);
 struct drm_gem_object *msm_gem_prime_import_sg_table(struct drm_device *dev,
 		struct dma_buf_attachment *attach, struct sg_table *sg);
@@ -1694,14 +1681,9 @@ const struct msm_format *msm_framebuffer_format(struct drm_framebuffer *fb);
 struct drm_framebuffer *msm_framebuffer_init(struct drm_device *dev,
 		const struct drm_mode_fb_cmd2 *mode_cmd,
 		struct drm_gem_object **bos);
-#if (KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE)
 struct drm_framebuffer *msm_framebuffer_create(struct drm_device *dev,
 		struct drm_file *file, const struct drm_format_info *info,
 		const struct drm_mode_fb_cmd2 *mode_cmd);
-#else
-struct drm_framebuffer *msm_framebuffer_create(struct drm_device *dev,
-		struct drm_file *file, const struct drm_mode_fb_cmd2 *mode_cmd);
-#endif
 int msm_framebuffer_set_cache_hint(struct drm_framebuffer *fb,
 		u32 flags, u32 rd_type, u32 wr_type);
 int msm_framebuffer_get_cache_hint(struct drm_framebuffer *fb,
@@ -2023,7 +2005,6 @@ int msm_drm_unregister_component(struct drm_device *dev, struct notifier_block *
  */
 int msm_drm_notify_components(struct drm_device *dev, enum msm_component_event event);
 
-#if (KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE)
 /**
  * msm_iommu_present_on_bus - Check if any device on a bus is mapped to an IOMMU
  * @bus: Pointer to the bus to check
@@ -2035,7 +2016,6 @@ int msm_drm_notify_components(struct drm_device *dev, enum msm_component_event e
  * Return: true if any device on the bus is mapped to an IOMMU, false otherwise.
  */
 bool msm_iommu_present_on_bus(const struct bus_type *bus);
-#endif /* KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE */
 
 /**
  * mdss_iommu_present - Check if IOMMU is present for a DRM device

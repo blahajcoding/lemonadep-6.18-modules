@@ -155,10 +155,6 @@ static inline int dsi_parser_read_string_index(const struct device_node *np,
 	return -ENODEV;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
-#else
-#endif
-
 #endif /* CONFIG_DSI_PARSER */
 
 #define dsi_for_each_child_node(parent, child) \
@@ -199,9 +195,6 @@ struct dsi_parser_utils {
 		const char *propname);
 	int (*count_strings)(const struct device_node *np,
 					const char *propname);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
-#else
-#endif
 	int (*get_available_child_count)(const struct device_node *np);
 };
 

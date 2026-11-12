@@ -177,10 +177,6 @@ int msm_dss_get_pmic_io_mem(struct platform_device *pdev,
 	struct list_head temp_head;
 	struct msm_io_mem_entry *io_mem;
 	struct resource *res = NULL;
-#if (KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE)
-	struct property *prop;
-	const __be32 *cur;
-#endif
 	int rc = 0;
 	u32 val;
 
@@ -190,11 +186,7 @@ int msm_dss_get_pmic_io_mem(struct platform_device *pdev,
 	if (!res)
 		return -ENOMEM;
 
-#if (KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE)
-	of_property_for_each_u32(pdev->dev.of_node, "qcom,pmic-arb-address", prop, cur, val)
-#else
 	of_property_for_each_u32(pdev->dev.of_node, "qcom,pmic-arb-address", val)
-#endif
 	{
 		rc = spmi_pmic_arb_map_address(&pdev->dev, val, res);
 		if (rc < 0) {

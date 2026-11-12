@@ -3342,28 +3342,6 @@ struct sde_encoder_phys *sde_encoder_phys_vid_init(
 skip_irq_init:
 	phys_enc->enable_state = SDE_ENC_DISABLED;
 
-#if (KERNEL_VERSION(6, 15, 0) > LINUX_VERSION_CODE)
-	hrtimer_setup(&phys_enc->sde_vrr_cfg.freq_step_timer, sde_encoder_phys_vid_freq_step_callback, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-	
-	hrtimer_init(&phys_enc->sde_vrr_cfg.arp_transition_timer,
-		CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-	phys_enc->sde_vrr_cfg.arp_transition_timer.function =
-		sde_encoder_phys_vid_arp_transition_timer_cb;
-	hrtimer_init(&phys_enc->sde_vrr_cfg.self_refresh_timer,
-		CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-	phys_enc->sde_vrr_cfg.self_refresh_timer.function =
-		sde_encoder_phys_phys_self_refresh_helper;
-
-	hrtimer_init(&phys_enc->sde_vrr_cfg.backlight_timer,
-		CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-	phys_enc->sde_vrr_cfg.backlight_timer.function =
-		sde_encoder_phys_backlight_timer_cb;
-
-	hrtimer_init(&phys_enc->empulse_backup_timer,
-		CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-	phys_enc->empulse_backup_timer.function =
-		sde_encoder_phys_vid_esync_backup_sim;
-#else
 	hrtimer_setup(&phys_enc->sde_vrr_cfg.freq_step_timer,
 		sde_encoder_phys_vid_freq_step_callback, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	hrtimer_setup(&phys_enc->sde_vrr_cfg.arp_transition_timer,
@@ -3378,7 +3356,6 @@ skip_irq_init:
 
 	hrtimer_setup(&phys_enc->empulse_backup_timer,
 		sde_encoder_phys_vid_esync_backup_sim, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-#endif
 
 	SDE_DEBUG_VIDENC(vid_enc, "created intf idx:%d\n", p->intf_idx);
 

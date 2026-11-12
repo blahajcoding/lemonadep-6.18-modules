@@ -366,7 +366,6 @@ static inline enum sde_crtc_client_type _get_sde_client_type(
 		return RT_CLIENT;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0))
 void sde_core_perf_llcc_stale_configure(struct sde_mdss_cfg *sde_cfg, struct llcc_slice_desc *slice)
 {
 	struct llcc_staling_mode_params params = {0};
@@ -398,14 +397,6 @@ void sde_core_perf_llcc_stale_frame(struct drm_crtc *crtc, enum sde_sys_cache_ty
 
 	llcc_notif_staling_inc_counter(kms->catalog->sc_cfg[type].slice);
 }
-#else
-void sde_core_perf_llcc_stale_configure(struct sde_mdss_cfg *sde_cfg, struct llcc_slice_desc *slice)
-{
-}
-void sde_core_perf_llcc_stale_frame(struct drm_crtc *crtc, enum sde_sys_cache_type type)
-{
-}
-#endif
 
 /**
  * @_sde_core_perf_activate_llcc() - Activates/deactivates the system llcc

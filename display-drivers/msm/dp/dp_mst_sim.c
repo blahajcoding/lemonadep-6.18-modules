@@ -20,11 +20,7 @@
 #include <linux/version.h>
 #include <linux/platform_device.h>
 #include <drm/drm_edid.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0))
 #include <drm/display/drm_dp_helper.h>
-#else
-#include <drm/drm_dp_helper.h>
-#endif
 #include "dp_debug.h"
 #include "dp_mst_sim.h"
 
@@ -371,11 +367,7 @@ int dp_sim_update_port_num(struct dp_aux_bridge *bridge, u32 port_num)
 
 		for (i = sim_dev->port_num; i < port_num; i++) {
 			memcpy(&ports[i], &output_port, sizeof(*ports));
-#if (KERNEL_VERSION(6, 12, 0) > LINUX_VERSION_CODE)
-			ports[i].peer_guid[0] = i;
-#else
 			ports[i].peer_guid.b[0] = i;
-#endif
 		}
 	}
 
@@ -673,11 +665,7 @@ static int dp_sim_parse_edid_from_node(struct dp_sim_device *sim_dev,
 
 	port = &sim_dev->ports[index];
 	memcpy(port, &output_port, sizeof(*port));
-#if (KERNEL_VERSION(6, 12, 0) > LINUX_VERSION_CODE)
-	port->peer_guid[0] = index;
-#else
 	port->peer_guid.b[0] = index;
-#endif
 
 	if (port->edid)
 		devm_kfree(sim_dev->dev, (u8 *)port->edid);
@@ -703,11 +691,7 @@ static int dp_sim_parse_edid_from_data(struct dp_sim_device *sim_dev,
 
 	port = &sim_dev->ports[index];
 	memcpy(port, &output_port, sizeof(*port));
-#if (KERNEL_VERSION(6, 12, 0) > LINUX_VERSION_CODE)
-	port->peer_guid[0] = index;
-#else
 	port->peer_guid.b[0] = index;
-#endif
 
 	if (port->edid)
 		devm_kfree(sim_dev->dev, (u8 *)port->edid);

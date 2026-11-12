@@ -401,14 +401,9 @@ int hdmi_connector_install_properties(void *display, struct drm_connector *conn)
 	return 0;
 }
 
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
-static int hdmi_bridge_attach(struct drm_bridge *hdmi_bridge,
-				enum drm_bridge_attach_flags flags)
-#else
 static int hdmi_bridge_attach(struct drm_bridge *hdmi_bridge,
 				struct drm_encoder *encoder,
 				enum drm_bridge_attach_flags flags)
-#endif
 {
 	struct hdmi_bridge *bridge = to_hdmi_bridge(hdmi_bridge);
 
@@ -661,15 +656,6 @@ int hdmi_drm_bridge_init(void *data, struct drm_encoder *encoder,
 
 	dev = display->drm_dev;
 	priv = dev->dev_private;
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
-	bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
-	if (!bridge) {
-		rc = -ENOMEM;
-		goto error;
-	}
-	bridge->base.funcs = &hdmi_bridge_ops;
-	bridge->base.encoder = encoder;
-#else
 	bridge = __devm_drm_bridge_alloc(dev->dev,
 				sizeof(*bridge),
 				offsetof(struct hdmi_bridge, base),
@@ -679,7 +665,6 @@ int hdmi_drm_bridge_init(void *data, struct drm_encoder *encoder,
 		HDMI_ERR("failed to alloc bridge, rc=%d\n", rc);
 		goto error;
 	}
-#endif
 	bridge->display = display;
 
 	rc = drm_bridge_attach(encoder, &bridge->base, NULL, 0);
@@ -704,19 +689,10 @@ int hdmi_drm_bridge_init(void *data, struct drm_encoder *encoder,
 	return 0;
 
 error_free_bridge:
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
-	kfree(bridge);
-#endif
 error:
 	return rc;
 }
 
 void hdmi_drm_bridge_deinit(void *data)
 {
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
-	struct hdmi_display *display = data;
-	struct hdmi_bridge *bridge = display->bridge;
-
-	kfree(bridge);
-#endif
 }

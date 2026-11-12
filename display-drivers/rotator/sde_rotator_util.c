@@ -807,13 +807,8 @@ static int sde_mdp_put_img(struct sde_mdp_img_data *data, bool rotator,
 		if (!data->skip_detach) {
 			data->srcp_attachment->dma_map_attrs |=
 				DMA_ATTR_DELAYED_UNMAP;
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 			dma_buf_unmap_attachment_unlocked(data->srcp_attachment,
 					data->srcp_table, dir);
-#else
-			dma_buf_unmap_attachment(data->srcp_attachment, data->srcp_table,
-					dir);
-#endif
 			dma_buf_detach(data->srcp_dma_buf,
 					data->srcp_attachment);
 			if (!(data->flags & SDE_ROT_EXT_DMA_BUF)) {
@@ -955,11 +950,7 @@ static int sde_mdp_map_buffer(struct sde_mdp_img_data *data, bool rotator,
 				}
 			}
 		}
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 		sgt = dma_buf_map_attachment_unlocked(data->srcp_attachment, dir);
-#else
-		sgt = dma_buf_map_attachment(data->srcp_attachment, dir);
-#endif
 
 		if (IS_ERR_OR_NULL(sgt) ||
 				IS_ERR_OR_NULL(sgt->sgl)) {
@@ -1025,13 +1016,8 @@ static int sde_mdp_map_buffer(struct sde_mdp_img_data *data, bool rotator,
 	return ret;
 
 err_unmap:
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 	dma_buf_unmap_attachment_unlocked(data->srcp_attachment,
 			data->srcp_table, dir);
-#else
-	dma_buf_unmap_attachment(data->srcp_attachment, data->srcp_table,
-			dir);
-#endif
 err_detach:
 	dma_buf_detach(data->srcp_dma_buf, data->srcp_attachment);
 	if (!(data->flags & SDE_ROT_EXT_DMA_BUF)) {
@@ -1262,8 +1248,4 @@ struct dma_buf *sde_rot_get_dmabuf(struct sde_mdp_img_data *data)
 	return dma_buf_export(&exp_info);
 }
 
-#if (KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE)
 MODULE_IMPORT_NS("DMA_BUF");
-#elif (KERNEL_VERSION(5, 19, 0) <= LINUX_VERSION_CODE)
-MODULE_IMPORT_NS("DMA_BUF");
-#endif

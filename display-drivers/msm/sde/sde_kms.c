@@ -64,11 +64,7 @@
 #include "sde_kms.h"
 #include "hfi_kms.h"
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 #include <linux/firmware/qcom/qcom_scm.h>
-#else
-#include <linux/qcom_scm.h>
-#endif
 #include <linux/qcom-iommu-util.h>
 #include "soc/qcom/secure_buffer.h"
 #include <linux/qtee_shmbridge.h>
@@ -851,18 +847,6 @@ static int _sde_kms_release_shared_buffer(unsigned long mem_addr,
 	pfn_start = mem_addr >> PAGE_SHIFT;
 	pfn_end = (mem_addr + splash_buffer_size) >> PAGE_SHIFT;
 
-#if (KERNEL_VERSION(6, 3, 0) > LINUX_VERSION_CODE)
-	#if (KERNEL_VERSION(5, 19, 0) <= LINUX_VERSION_CODE)
-		memblock_free((unsigned int *)mem_addr, splash_buffer_size);
-	#else
-		ret = memblock_free(mem_addr, splash_buffer_size);
-		if (ret) {
-			SDE_ERROR("continuous splash memory free failed:%d\n", ret);
-			return ret;
-		}
-	#endif
-#endif
-
 	for (pfn_idx = pfn_start; pfn_idx < pfn_end; pfn_idx++)
 		free_reserved_page(pfn_to_page(pfn_idx));
 
@@ -1094,13 +1078,8 @@ static void _sde_kms_drm_check_dpms(struct drm_atomic_state *old_state,
 		new_mode = _sde_kms_get_blank(crtc->state, connector->state);
 
 		if (old_conn_state->crtc) {
-#if (KERNEL_VERSION(6, 19, 0) <= LINUX_VERSION_CODE)
-			old_crtc_state = drm_atomic_get_old_crtc_state(
-					old_state, old_conn_state->crtc);
-#else
 			old_crtc_state = drm_atomic_get_existing_crtc_state(
 				old_state, old_conn_state->crtc);
-#endif
 
 			old_fps = drm_mode_vrefresh(&old_crtc_state->mode);
 			old_mode = _sde_kms_get_blank(old_crtc_state,
@@ -3700,7 +3679,6 @@ static int _sde_kms_helper_reset_custom_properties(struct sde_kms *sde_kms,
 	return ret;
 }
 
-#if (KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE)
 static int _sde_kms_helper_disable_plane(struct drm_plane *plane,
 				      struct drm_plane_state *plane_state)
 {
@@ -3825,7 +3803,6 @@ static int _sde_kms_helper_set_config(struct drm_mode_set *set,
 
 	return 0;
 }
-#endif /* (KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE) */
 
 static void sde_kms_lastclose(struct msm_kms *kms)
 {
@@ -3835,10 +3812,8 @@ static void sde_kms_lastclose(struct msm_kms *kms)
 	struct drm_modeset_acquire_ctx ctx;
 	struct hfi_kms *hfi_kms;
 	struct hfi_client_t *hfi_client;
-#if (KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE)
 	struct drm_plane *plane;
 	struct drm_crtc *crtc;
-#endif /* (KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE) */
 	int ret;
 
 	if (!kms) {
@@ -3866,7 +3841,6 @@ retry:
 	ret = drm_modeset_lock_all_ctx(dev, &ctx);
 	if (ret)
 		goto out_state;
-#if (KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE)
 	drm_for_each_plane(plane, dev) {
 		struct drm_plane_state *plane_state;
 
@@ -3896,7 +3870,6 @@ retry:
 		if (ret != 0)
 			goto out_state;
 	}
-#endif /* (KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE) */
 
 	ret = _sde_kms_helper_reset_custom_properties(sde_kms, state);
 	if (ret)
@@ -6098,10 +6071,6 @@ static int _sde_kms_mmu_init(struct sde_kms *sde_kms)
 	struct device *iommu_dev;
 	int i, ret;
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0))
-	int early_map = 0;
-#endif
-
 	if (!sde_kms || !sde_kms->dev || !sde_kms->dev->dev)
 		return -EINVAL;
 
@@ -6169,21 +6138,11 @@ static int _sde_kms_mmu_init(struct sde_kms *sde_kms)
 
 		if (iommu_dev && iommu_dev->of_node &&
 			of_property_read_bool(iommu_dev->of_node, "qcom,iommu-earlymap")) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 			ret = mmu->funcs->enable_smmu_translations(mmu);
 			if (ret) {
 				SDE_ERROR("failed to enable_s1_translations ret:%d\n", ret);
 				goto enable_trans_fail;
 			}
-#else
-			ret = mmu->funcs->set_attribute(mmu, DOMAIN_ATTR_EARLY_MAP,
-					 &early_map);
-			if (ret) {
-				SDE_ERROR("failed to set_att ret:%d, early_map:%d\n",
-						ret, early_map);
-				goto enable_trans_fail;
-			}
-#endif
 		}
 	}
 
@@ -7054,9 +7013,6 @@ static int sde_kms_hw_init(struct msm_kms *kms)
 	/*
 	 * Support format modifiers for compression etc.
 	 */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0))
-	dev->mode_config.allow_fb_modifiers = true;
-#endif
 
 	if (IS_DISP_OP_HWIO(priv->disp_op)) {
 		sde_kms->affinity_notify.notify = sde_kms_irq_affinity_notify;

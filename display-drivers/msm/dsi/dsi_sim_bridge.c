@@ -21,13 +21,8 @@ struct dsi_sim_bridge {
 	struct mipi_dsi_device *dsi;
 };
 
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
-static int dsi_sim_bridge_attach(struct drm_bridge *bridge,
-		enum drm_bridge_attach_flags flags)
-#else
 static int dsi_sim_bridge_attach(struct drm_bridge *bridge,
 		struct drm_encoder *encoder, enum drm_bridge_attach_flags flags)
-#endif
 {
 	struct dsi_sim_bridge *pdata;
 	struct mipi_dsi_host *host;
@@ -156,11 +151,7 @@ static const struct drm_bridge_funcs dsi_sim_bridge_funcs = {
 	.post_disable = dsi_sim_bridge_post_disable,
 };
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 static int dsi_sim_bridge_probe(struct i2c_client *client)
-#else
-static int dsi_sim_bridge_probe(struct i2c_client *client, const struct i2c_device_id *id)
-#endif
 {
 	struct dsi_sim_bridge *pdata;
 	struct device_node *end_node;

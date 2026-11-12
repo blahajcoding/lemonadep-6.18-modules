@@ -1633,11 +1633,7 @@ error:
  * sde_shd_remove - unload shared display module
  * @pdev:	Pointer to platform device
  */
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 static void sde_shd_remove(struct platform_device *pdev)
-#else
-static int sde_shd_remove(struct platform_device *pdev)
-#endif
 {
 	int rc = 0;
 	struct shd_display *shd_dev;
@@ -1655,9 +1651,6 @@ static int sde_shd_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 
 end:
-#if (KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE)
-	return rc;
-#endif
 }
 
 static const struct of_device_id dt_match[] = {

@@ -131,7 +131,6 @@ static void msm_smmu_detach(struct msm_mmu *mmu, const char * const *names,
 	dev_dbg(client->dev, "iommu domain detached\n");
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 static int msm_enable_smmu_translations(struct msm_mmu *mmu)
 {
 	struct msm_smmu *smmu = to_msm_smmu(mmu);
@@ -147,24 +146,6 @@ static int msm_enable_smmu_translations(struct msm_mmu *mmu)
 
 	return ret;
 }
-#else
-static int msm_smmu_set_attribute(struct msm_mmu *mmu,
-		enum iommu_attr attr, void *data)
-{
-	struct msm_smmu *smmu = to_msm_smmu(mmu);
-	struct msm_smmu_client *client = msm_smmu_to_client(smmu);
-	int ret = 0;
-
-	if (!client || !client->domain)
-		return -ENODEV;
-
-	ret = iommu_domain_set_attr(client->domain, attr, data);
-	if (ret)
-		DRM_ERROR("set domain attribute failed:%d\n", ret);
-
-	return ret;
-}
-#endif
 
 static int msm_smmu_one_to_one_unmap(struct msm_mmu *mmu,
 				uint64_t dest_address, uint32_t size)
@@ -193,13 +174,8 @@ static int msm_smmu_one_to_one_map(struct msm_mmu *mmu, uint64_t iova,
 	if (!client || !client->domain)
 		return -ENODEV;
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 	ret = iommu_map(client->domain, iova, dest_address,
 			size, prot, GFP_ATOMIC);
-#else
-	ret = iommu_map(client->domain, iova, dest_address,
-			size, prot);
-#endif
 
 	if (ret)
 		pr_err("smmu map failed\n");
@@ -216,13 +192,8 @@ static int msm_smmu_map(struct msm_mmu *mmu, uint64_t iova,
 
 	if (sgt && sgt->sgl) {
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 		ret = iommu_map_sg(client->domain, iova, sgt->sgl,
 				sgt->orig_nents, prot, GFP_ATOMIC);
-#else
-		ret = iommu_map_sg(client->domain, iova, sgt->sgl,
-				sgt->orig_nents, prot);
-#endif
 
 		WARN_ON((int)ret < 0);
 		DRM_DEBUG("%pad/0x%x/0x%x/\n", &sgt->sgl->dma_address,
@@ -256,11 +227,7 @@ static void msm_smmu_destroy(struct msm_mmu *mmu)
 		domain = iommu_get_domain_for_dev(smmu->client_dev);
 
 		if (domain) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0))
 			iommu_set_fault_handler(domain, NULL, NULL);
-#else
-			iommu_set_fault_handler(domain, NULL, NULL);
-#endif
 		}
 
 		platform_device_unregister(pdev);
@@ -353,11 +320,7 @@ static const struct msm_mmu_funcs funcs = {
 	.unmap_dma_buf = msm_smmu_unmap_dma_buf,
 	.destroy = msm_smmu_destroy,
 	.is_domain_secure = msm_smmu_is_domain_secure,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 	.enable_smmu_translations = msm_enable_smmu_translations,
-#else
-	.set_attribute = msm_smmu_set_attribute,
-#endif
 	.one_to_one_map = msm_smmu_one_to_one_map,
 	.one_to_one_unmap = msm_smmu_one_to_one_unmap,
 	.get_dev = msm_smmu_get_dev,
@@ -596,13 +559,8 @@ static int msm_smmu_probe(struct platform_device *pdev)
 	dma_set_max_seg_size(client->dev, (unsigned int)DMA_BIT_MASK(32));
 	dma_set_seg_boundary(client->dev, (unsigned long)DMA_BIT_MASK(64));
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0))
 	iommu_set_fault_handler(client->domain,
 			msm_smmu_fault_handler, (void *)client);
-#else
-	iommu_set_fault_handler(client->domain,
-			msm_smmu_fault_handler, (void *)client);
-#endif
 
 	DRM_INFO("Created domain %s, secure=%d\n",
 			domain->label, domain->secure);
@@ -625,11 +583,7 @@ static int msm_smmu_probe(struct platform_device *pdev)
 	return 0;
 }
 
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 static void msm_smmu_remove(struct platform_device *pdev)
-#else
-static int msm_smmu_remove(struct platform_device *pdev)
-#endif
 {
 	struct msm_smmu_client *client;
 	struct msm_smmu_client *curr, *next;
@@ -646,9 +600,6 @@ static int msm_smmu_remove(struct platform_device *pdev)
 	}
 	mutex_unlock(&smmu_list_lock);
 
-#if (KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE)
-	return 0;
-#endif
 }
 
 static struct platform_driver msm_smmu_driver = {
@@ -679,8 +630,4 @@ void __exit msm_smmu_driver_cleanup(void)
 
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("MSM SMMU driver");
-#if (KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE)
 MODULE_IMPORT_NS("DMA_BUF");
-#elif (KERNEL_VERSION(5, 19, 0) <= LINUX_VERSION_CODE)
-MODULE_IMPORT_NS("DMA_BUF");
-#endif

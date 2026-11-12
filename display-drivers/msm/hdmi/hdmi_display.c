@@ -1671,11 +1671,7 @@ bail:
 	return rc;
 }
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE)
 static void hdmi_display_remove(struct platform_device *pdev)
-#else
-static int hdmi_display_remove(struct platform_device *pdev)
-#endif
 {
 	int rc = 0;
 	struct hdmi_display_private *hdmi;
@@ -1696,11 +1692,7 @@ static int hdmi_display_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	kfree(hdmi);
 end:
-#if (KERNEL_VERSION(6, 12, 0) > LINUX_VERSION_CODE)
-	return rc;
-#else
 	return;
-#endif
 }
 
 static int hdmi_pm_suspend(struct device *dev)
