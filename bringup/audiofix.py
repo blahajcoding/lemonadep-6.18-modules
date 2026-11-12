@@ -34,11 +34,4 @@ for hdr in subprocess.run(["grep", "-rl", "msm_compr_new", "include", "asoc"], c
     if hdr.endswith(".h"):
         edit(hdr, lambda s: s.replace("int msm_compr_new(struct snd_soc_pcm_runtime *rtd, int num);", "int msm_compr_new(struct snd_soc_pcm_runtime *rtd);"))
 
-def lahaina(s):
-    s = s.replace("#include <trace/hooks/sound.h>\n", "")
-    s = re.sub(r"\n\s*register_trace_android_vh_snd_pcm_check_no_buffer\(qcom_check_hostless, NULL\);", "", s)
-    s = re.sub(r"\n\s*unregister_trace_android_vh_snd_pcm_check_no_buffer\(qcom_check_hostless, NULL\);", "", s)
-    return s
-
-edit("asoc/lahaina.c", lahaina)
 print("ok")

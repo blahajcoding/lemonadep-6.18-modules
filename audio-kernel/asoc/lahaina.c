@@ -51,6 +51,7 @@ SND_SOC_DAILINK_DEFS(pri_tdm_rx_0_spkr,
 			   COMP_CODEC("aw88261-l", "aw88261-aif"),
 			   COMP_CODEC("aw88261-r", "aw88261-aif")),
 	DAILINK_COMP_ARRAY(COMP_PLATFORM("msm-pcm-routing")));
+#include <trace/hooks/sound.h>
 
 #define DRV_NAME "lahaina-asoc-snd"
 #define __CHIPSET__ "LAHAINA "
@@ -8515,6 +8516,8 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 	dev_err(&pdev->dev, "%s: setting snd_card to ONLINE\n", __func__);
 	snd_card_set_card_status(SND_CARD_STATUS_ONLINE);
 
+	register_trace_android_vh_snd_pcm_check_no_buffer(qcom_check_hostless, NULL);
+
 	return 0;
 err:
 	devm_kfree(&pdev->dev, pdata);
@@ -8541,6 +8544,7 @@ static int msm_asoc_machine_remove(struct platform_device *pdev)
 	msm_audio_remove_qos_request();
 	snd_event_master_deregister(&pdev->dev);
 	snd_soc_unregister_card(card);
+	unregister_trace_android_vh_snd_pcm_check_no_buffer(qcom_check_hostless, NULL);
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
 	return 0;
