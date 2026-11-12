@@ -592,7 +592,13 @@ static int cam_mem_util_get_dma_buf(size_t len,
 		heap = tbl.system_heap;
 	} else {
 		try_heap = tbl.camera_uncached_heap;
-		heap = tbl.system_heap;
+		/*
+		 * Without a camera-uncached heap an uncached buffer has to come
+		 * from the uncached system heap: the ICP is not IO-coherent here,
+		 * and HFI queues in cached memory never reach the firmware.
+		 */
+		heap = tbl.system_uncached_heap ? tbl.system_uncached_heap :
+			tbl.system_heap;
 	}
 
 	CAM_DBG(CAM_MEM, "Using heaps : try=%pK, heap=%pK", try_heap, heap);
