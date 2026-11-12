@@ -27,10 +27,8 @@
 #include <linux/version.h>
 #include <net/pkt_sched.h>
 #include <net/ipv6.h>
-#if (KERNEL_VERSION(6, 5, 0) <= LINUX_VERSION_CODE)
 /* Needed kernel version check for compatibility */
 #include <net/gso.h>
-#endif
 #include "rmnet_config.h"
 #include "rmnet_handlers.h"
 #include "rmnet_private.h"
