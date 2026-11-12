@@ -682,8 +682,7 @@ fail:
 	return -EINVAL;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)) && \
-     defined(WLAN_FEATURE_11AX)
+#if defined(WLAN_FEATURE_11AX)
 static int32_t hdd_add_he_oper_info(struct sk_buff *skb,
 				    struct hdd_station_ctx *hdd_sta_ctx)
 {
@@ -919,21 +918,12 @@ fail:
 	return -EINVAL;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
 static inline int32_t remote_station_put_u64(struct sk_buff *skb,
 					     int32_t attrtype,
 					     uint64_t value)
 {
 	return nla_put_u64_64bit(skb, attrtype, value, REMOTE_PAD);
 }
-#else
-static inline int32_t remote_station_put_u64(struct sk_buff *skb,
-					     int32_t attrtype,
-					     uint64_t value)
-{
-	return nla_put_u64(skb, attrtype, value);
-}
-#endif
 
 /**
  * hdd_add_survey_info_sap_get_len - get data length used in

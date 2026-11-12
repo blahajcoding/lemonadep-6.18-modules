@@ -240,14 +240,9 @@ extern const struct nla_policy wlan_hdd_wisa_cmd_policy[
 #define IS_CHANNEL_VALID(channel) ((channel >= 0 && channel < 15) \
 			|| (channel >= 36 && channel <= 184))
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)) \
-	|| defined(BACKPORTED_CHANNEL_SWITCH_PRESENT)
 #define CHANNEL_SWITCH_SUPPORTED
-#endif
 
-#if defined(CFG80211_DEL_STA_V2) || (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)) || defined(WITH_BACKPORTS)
 #define USE_CFG80211_DEL_STA_V2
-#endif
 
 /**
  * enum eDFS_CAC_STATUS: CAC status
@@ -498,15 +493,9 @@ int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
 				  struct net_device *dev,
 				  struct station_del_parameters *param);
 #else
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
 int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
 				  struct net_device *dev,
 				  const uint8_t *mac);
-#else
-int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
-				  struct net_device *dev,
-				  uint8_t *mac);
-#endif
 #endif /* USE_CFG80211_DEL_STA_V2 */
 
 int wlan_hdd_send_avoid_freq_event(struct hdd_context *hdd_ctx,
@@ -922,20 +911,10 @@ hdd_convert_cfgdot11mode_to_80211mode(enum csr_cfgdot11mode mode);
  *
  * Return: none
  */
-#if defined(CFG80211_EXTERNAL_DH_UPDATE_SUPPORT) || \
-(LINUX_VERSION_CODE > KERNEL_VERSION(5, 2, 0))
 void hdd_send_update_owe_info_event(struct hdd_adapter *adapter,
 				    uint8_t sta_addr[],
 				    uint8_t *owe_ie,
 				    uint32_t owe_ie_len);
-#else
-static inline void hdd_send_update_owe_info_event(struct hdd_adapter *adapter,
-						  uint8_t sta_addr[],
-						  uint8_t *owe_ie,
-						  uint32_t owe_ie_len)
-{
-}
-#endif
 
 /**
  * hdd_set_phy_mode() - set phy mode

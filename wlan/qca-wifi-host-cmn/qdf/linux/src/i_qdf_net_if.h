@@ -32,7 +32,6 @@
 
 struct qdf_net_if;
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0))
 /**
  * __qdf_net_if_create_dummy_if() - create dummy interface
  * @nif: interface handle
@@ -65,20 +64,6 @@ __qdf_net_if_destroy_dummy_if(struct qdf_net_if *nif)
 	if (nif)
 		free_netdev((struct net_device *)nif);
 }
-#else
-static inline QDF_STATUS
-__qdf_net_if_create_dummy_if(struct qdf_net_if **nif)
-{
-	init_dummy_netdev((struct net_device *)*nif);
-
-	return qdf_status_from_os_return(0);
-}
-
-static inline void
-__qdf_net_if_destroy_dummy_if(struct qdf_net_if *nif)
-{
-}
-#endif
 
 /**
  * qdf_net_if_get_dev_by_name() - Find a network device by its name
@@ -116,7 +101,6 @@ __qdf_net_if_release_dev(struct qdf_net_if  *nif)
 	return QDF_STATUS_SUCCESS;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0))
 /**
  * qdf_net_update_net_device_dev_addr() - update net_device dev_addr
  * @ndev: net_device
@@ -135,24 +119,5 @@ __qdf_net_update_net_device_dev_addr(struct net_device *ndev,
 {
 	dev_addr_mod(ndev, 0, src_addr, len);
 }
-#else /* (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)) */
-/**
- * qdf_net_update_net_device_dev_addr() - update net_device dev_addr
- * @ndev: net_device
- * @src_addr: source mac address
- * @len: length
- *
- * This function updates dev_addr in net_device using mem copy.
- *
- * Return: void
- */
-static inline void
-__qdf_net_update_net_device_dev_addr(struct net_device *ndev,
-				     const void *src_addr,
-				     size_t len)
-{
-	memcpy(ndev->dev_addr, src_addr, len);
-}
-#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)) */
 
 #endif /*__I_QDF_NET_IF_H */

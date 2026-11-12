@@ -768,19 +768,7 @@ void cnss_record_stack_trace(struct cnss_alloc_info *alloc_info, void *mem,
 	alloc_info->comm[TASK_COMM_LEN - 1] = '\0';
 
 	/* First get the raw stack addresses */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0))
 	nr_entries = stack_trace_save(stack_addrs, CNSS_STACK_TRACE_DEPTH, 1);
-#else
-	{
-		struct stack_trace trace = {
-			.entries = stack_addrs,
-			.max_entries = CNSS_STACK_TRACE_DEPTH,
-			.skip = 1,
-		};
-		save_stack_trace(&trace);
-		nr_entries = trace.nr_entries;
-	}
-#endif
 
 	alloc_info->nr_entries = nr_entries;
 
@@ -1054,7 +1042,6 @@ void *wcnss_prealloc_get(size_t size)
 }
 EXPORT_SYMBOL(wcnss_prealloc_get);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0))
 /**
  * wcnss_prealloc_put() - Relase allocated memory
  * @mem: Allocated memory
@@ -1100,76 +1087,6 @@ int wcnss_prealloc_put(void *mem)
 	return 0;
 }
 EXPORT_SYMBOL(wcnss_prealloc_put);
-#else
-static int cnss_pool_get_index(void *mem)
-{
-	struct page *page;
-	struct kmem_cache *cache;
-	int i;
-
-	if (!virt_addr_valid(mem))
-		return -EINVAL;
-
-	/* mem -> page -> cache */
-	page = virt_to_head_page(mem);
-	if (!page)
-		return -ENOENT;
-
-	cache = page->slab_cache;
-	if (!cache)
-		return -ENOENT;
-
-	/* Check if memory belongs to a pool */
-	for (i = 0; i < cnss_prealloc_pool_size; i++) {
-		if (cnss_pools[i].cache == cache)
-			return i;
-	}
-
-	return -ENOENT;
-}
-
-/**
- * wcnss_prealloc_put() - Relase allocated memory
- * @mem: Allocated memory
- *
- * Free the memory got by wcnss_prealloc_get() to slab or pool reserve if memory
- * pool doesn't have enough elements.
- *
- * Return: 1 - success
- *         0 - fail
- */
-int wcnss_prealloc_put(void *mem)
-{
-	int i;
-	int ret;
-	unsigned long irq_flags;
-
-	if (!mem || !cnss_pools || !mempool_initialization_done)
-		return 0;
-
-	i = cnss_pool_get_index(mem);
-	if (i >= 0 && i < cnss_prealloc_pool_size && cnss_pools[i].mp) {
-		if (!cnss_pools[i].pool_ptrs) {
-			pr_err("%s mempool table is null\n",
-			       cnss_pools[i].name);
-			return 0;
-		}
-		spin_lock_irqsave(&pool_table_lock, irq_flags);
-		ret = wcnss_free_pool_table_slot(cnss_pools[i], mem);
-		if (ret >= 0 && cnss_prealloc_sysfs_stats)
-			cnss_pool_update_free_stats(&cnss_pools[i]);
-
-		spin_unlock_irqrestore(&pool_table_lock, irq_flags);
-		if (ret >= 0) {
-			mempool_free(mem, cnss_pools[i].mp);
-			return 1;
-		}
-	}
-
-	return 0;
-}
-EXPORT_SYMBOL(wcnss_prealloc_put);
-#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)) */
 
 /* Not implemented. Make use of Linux SLAB features. */
 void wcnss_prealloc_check_memory_leak(void) {}

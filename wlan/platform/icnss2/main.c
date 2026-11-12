@@ -3827,11 +3827,7 @@ static int icnss_ramdump_devnode_init(struct icnss_priv *priv)
 {
 	int ret = 0;
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0))
-	priv->icnss_ramdump_class = class_create(THIS_MODULE, ICNSS_RAMDUMP_NAME);
-#else
 	priv->icnss_ramdump_class = class_create(ICNSS_RAMDUMP_NAME);
-#endif
 	if (IS_ERR_OR_NULL(priv->icnss_ramdump_class)) {
 		ret = PTR_ERR(priv->icnss_ramdump_class);
 		icnss_pr_err("%s:Class create failed for ramdump devices (%d)\n", __func__, ret);
@@ -5092,19 +5088,11 @@ struct kobject *icnss_get_wifi_kobj(struct device *dev)
 }
 EXPORT_SYMBOL(icnss_get_wifi_kobj);
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0))
-static int icnss_iommu_map(struct iommu_domain *domain,
-			   unsigned long iova, phys_addr_t paddr, size_t size, int prot)
-{
-		return iommu_map(domain, iova, paddr, size, prot);
-}
-#else
 static int icnss_iommu_map(struct iommu_domain *domain,
 			   unsigned long iova, phys_addr_t paddr, size_t size, int prot)
 {
 		return iommu_map(domain, iova, paddr, size, prot, GFP_KERNEL);
 }
-#endif
 
 int icnss_audio_smmu_map(struct device *dev, phys_addr_t paddr, dma_addr_t iova,
 			 size_t size)
@@ -5656,7 +5644,6 @@ static void icnss_remove_sysfs_link(struct icnss_priv *priv)
 }
 
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0))
 union icnss_device_group_devres {
 	const struct attribute_group *group;
 };
@@ -5681,12 +5668,6 @@ static void icnss_devm_device_remove_group(struct icnss_priv *priv)
 			       devm_icnss_group_remove, devm_icnss_group_match,
 			       (void *)&icnss_attr_group));
 }
-#else
-static void icnss_devm_device_remove_group(struct icnss_priv *priv)
-{
-	devm_device_remove_group(&priv->pdev->dev, &icnss_attr_group);
-}
-#endif
 
 static int icnss_sysfs_create(struct icnss_priv *priv)
 {
@@ -6017,88 +5998,6 @@ static int icnss_smmu_fault_handler(struct iommu_domain *domain,
 	return -ENOSYS;
 }
 
-#if defined(CONFIG_CNSS2_SMMU_DB_SUPPORT) && \
-    (LINUX_VERSION_CODE < KERNEL_VERSION(6, 9, 0))
-#define PCIE_LOCAL_REG_APPS_TO_Q6	0x3224
-#define PCIE_LOCAL_REG_WCSS_IE_IRQ	0x3228
-
-static void icnss_record_smmu_fault_timestamp(struct icnss_priv *priv,
-					      enum icnss_smmu_fault_time id)
-{
-	if (id >= SMMU_CB_MAX)
-		return;
-
-	priv->smmu_fault_timestamp[id] = __arch_counter_get_cntvct();
-}
-
-static inline void icnss_pci_set_suspended(struct icnss_priv *priv, int val)
-{
-	atomic_set(&priv->suspended, val);
-}
-
-static inline int icnss_pci_get_suspended(struct icnss_priv *priv)
-{
-	return atomic_read(&priv->suspended);
-}
-
-static int icnss_ring_doorbell(struct icnss_priv *priv, enum icnss_db_msg msg)
-{
-	if (!icnss_pci_get_suspended(priv)) {
-		iowrite32(msg, priv->mem_base_va + PCIE_LOCAL_REG_APPS_TO_Q6);
-		iowrite32(1, priv->mem_base_va + PCIE_LOCAL_REG_WCSS_IE_IRQ);
-		return 0;
-	}
-
-	return -EINVAL;
-}
-
-static void icnss_pci_smmu_fault_handler_irq(struct iommu_domain *domain,
-					     void *handler_token)
-{
-	struct icnss_priv *priv = handler_token;
-	int ret = 0;
-	struct icnss_uevent_fw_down_data fw_down_data = {0};
-
-	icnss_record_smmu_fault_timestamp(priv, SMMU_CB_DOORBELL_RING);
-	ret = icnss_ring_doorbell(priv, DB_MSG_SMMU_FAULT);
-
-	icnss_record_smmu_fault_timestamp(priv, SMMU_CB_ENTRY);
-	if (test_bit(ICNSS_FW_READY, &priv->state)) {
-		clear_bit(ICNSS_FW_READY, &priv->state);
-		fw_down_data.crashed = true;
-		icnss_call_driver_uevent(priv, ICNSS_UEVENT_SMMU_FAULT,
-					 &fw_down_data);
-		icnss_call_driver_uevent(priv, ICNSS_UEVENT_FW_DOWN,
-					 &fw_down_data);
-	}
-
-	if (!ret)
-		icnss_pr_dbg("Sent SNOC trace stop indication");
-	else
-		icnss_trigger_recovery(&priv->pdev->dev);
-
-	icnss_record_smmu_fault_timestamp(priv, SMMU_CB_EXIT);
-}
-
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0))
-static void icnss_register_iommu_fault_handler_irq(struct icnss_priv *priv)
-{
-	struct platform_device *pdev = priv->pdev;
-	struct device *dev = &pdev->dev;
-
-	qcom_iommu_register_device_fault_handler_irq(
-				dev, icnss_pci_smmu_fault_handler_irq,
-				priv);
-}
-#else
-static void icnss_register_iommu_fault_handler_irq(struct icnss_priv *priv)
-{
-	qcom_iommu_set_fault_handler_irq(priv->iommu_domain,
-					 icnss_pci_smmu_fault_handler_irq,
-					 priv);
-}
-#endif
-#else
 static void icnss_register_iommu_fault_handler_irq(struct icnss_priv *priv)
 {
 }
@@ -6106,9 +6005,7 @@ static void icnss_register_iommu_fault_handler_irq(struct icnss_priv *priv)
 static inline void icnss_pci_set_suspended(struct icnss_priv *priv, int val)
 {
 }
-#endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0))
 static int icnss_dt_parse_iommu_address(struct device *dev, u32 *addr_win)
 {
 	const u32 *maps;
@@ -6154,12 +6051,6 @@ static int icnss_dt_parse_iommu_address(struct device *dev, u32 *addr_win)
 
 	return (addr_win[0] && addr_win[1]) ? 0 : -EINVAL;
 }
-#else
-static inline int icnss_dt_parse_iommu_address(struct device *dev, u32 *addr_win)
-{
-	return -EINVAL;
-}
-#endif
 
 
 static int icnss_smmu_dt_parse(struct icnss_priv *priv)
@@ -6557,16 +6448,9 @@ static int icnss_direct_link_probe(struct platform_device *pdev)
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0))
-static int icnss_direct_link_remove(struct platform_device *pdev)
-#else
 static void icnss_direct_link_remove(struct platform_device *pdev)
-#endif
 {
 	icnss_pr_info("icnss direct link device removed!\n");
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0))
-	return 0;
-#endif
 }
 
 static int icnss_probe(struct platform_device *pdev)
@@ -6795,11 +6679,7 @@ static void icnss_unregister_power_supply_notifier(struct icnss_priv *priv)
 	}
 }
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0))
-static int icnss_remove(struct platform_device *pdev)
-#else
 static void icnss_remove(struct platform_device *pdev)
-#endif
 {
 	struct icnss_priv *priv = dev_get_drvdata(&pdev->dev);
 
@@ -6882,9 +6762,6 @@ static void icnss_remove(struct platform_device *pdev)
 
 	dev_set_drvdata(&pdev->dev, NULL);
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0))
-	return 0;
-#endif
 }
 
 void icnss_recovery_timeout_hdlr(struct timer_list *t)

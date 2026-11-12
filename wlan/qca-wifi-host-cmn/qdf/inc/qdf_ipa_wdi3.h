@@ -27,8 +27,6 @@
 #include <qdf_ipa.h>
 #include <i_qdf_ipa_wdi3.h>
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)) || \
-	defined(CONFIG_IPA_WDI_UNIFIED_API)
 
 /**
  * qdf_ipa_wdi_version_t - IPA WDI version
@@ -138,7 +136,6 @@ static inline int qdf_ipa_wdi_cleanup(void)
 {
 	return __qdf_ipa_wdi_cleanup();
 }
-#endif /* CONFIG_IPA_WDI_UNIFIED_API */
 
 /**
  * qdf_ipa_wdi_hdr_info_t - Header to install on IPA HW

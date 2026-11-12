@@ -32,8 +32,7 @@
 #include <linux/inetdevice.h>
 #include <qdf_trace.h>
 /* Test against msm kernel version */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)) && \
-	IS_ENABLED(CONFIG_SCHED_WALT)
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 #include <linux/sched/walt.h>
 #endif
 

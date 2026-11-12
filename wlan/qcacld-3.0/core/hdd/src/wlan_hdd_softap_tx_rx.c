@@ -175,7 +175,6 @@ static inline struct sk_buff *hdd_skb_orphan(struct hdd_adapter *adapter,
 	int cpu;
 
 	if (adapter->tx_flow_low_watermark > 0) {
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 19, 0))
 		/*
 		 * The TCP TX throttling logic is changed a little after
 		 * 3.19-rc1 kernel, the TCP sending limit will be smaller,
@@ -190,10 +189,6 @@ static inline struct sk_buff *hdd_skb_orphan(struct hdd_adapter *adapter,
 		 * testing. So need to be protected by follow control.
 		 */
 		need_orphan = 1;
-#else
-		if (hdd_ctx->config->tx_orphan_enable)
-			need_orphan = 1;
-#endif
 	} else if (hdd_ctx->config->tx_orphan_enable) {
 		if (qdf_nbuf_is_ipv4_tcp_pkt(skb) ||
 		    qdf_nbuf_is_ipv6_tcp_pkt(skb))
@@ -856,11 +851,7 @@ static void __hdd_softap_tx_timeout(struct net_device *dev)
 	}
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
 void hdd_softap_tx_timeout(struct net_device *net_dev, unsigned int txqueue)
-#else
-void hdd_softap_tx_timeout(struct net_device *net_dev)
-#endif
 {
 	struct osif_vdev_sync *vdev_sync;
 

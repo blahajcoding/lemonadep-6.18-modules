@@ -26,13 +26,7 @@
 #define __I_QDF_MEM_H
 
 #ifdef __KERNEL__
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 17)
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33)
-#include <linux/autoconf.h>
-#else
 #include <generated/autoconf.h>
-#endif
-#endif
 #include <linux/slab.h>
 #include <linux/hardirq.h>
 #include <linux/vmalloc.h>
@@ -58,16 +52,13 @@
 #define QDF_RET_IP NULL
 #endif /* __KERNEL__ */
 #include <qdf_status.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)) && defined(MSM_PLATFORM)
+#if defined(MSM_PLATFORM)
 #include <linux/qcom-iommu-util.h>
 #endif
 
 #if IS_ENABLED(CONFIG_ARM_SMMU)
 #include <pld_common.h>
 #ifdef ENABLE_SMMU_S1_TRANSLATION
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0))
-#include <asm/dma-iommu.h>
-#endif
 #endif
 #include <linux/iommu.h>
 #endif
@@ -165,15 +156,6 @@ static inline uint32_t __qdf_mem_map_nbytes_single(qdf_device_t osdev,
 	QDF_STATUS_E_FAILURE : QDF_STATUS_SUCCESS;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-static inline void __qdf_mem_dma_cache_sync(qdf_device_t osdev,
-					    qdf_dma_addr_t buf,
-					    qdf_dma_dir_t dir,
-					    int nbytes)
-{
-	dma_cache_sync(osdev->dev, buf, nbytes, __qdf_dma_dir_to_os(dir));
-}
-#else
 static inline void __qdf_mem_dma_cache_sync(qdf_device_t osdev,
 					    qdf_dma_addr_t buf,
 					    qdf_dma_dir_t dir,
@@ -182,7 +164,6 @@ static inline void __qdf_mem_dma_cache_sync(qdf_device_t osdev,
 	dma_sync_single_for_cpu(osdev->dev, buf, nbytes,
 				__qdf_dma_dir_to_os(dir));
 }
-#endif
 
 /**
  * __qdf_mem_unmap_nbytes_single() - un_map memory for DMA
@@ -232,7 +213,6 @@ static inline bool __qdf_mem_smmu_s1_enabled(qdf_device_t osdev)
  */
 typedef struct iommu_domain __qdf_iommu_domain_t;
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
 #if IS_ENABLED(CONFIG_QCOM_IOMMU_UTIL)
 /**
  * __qdf_iommu_attr_to_os() - Convert qdf iommu attribute to OS mapping
@@ -293,89 +273,7 @@ __qdf_iommu_domain_get_attr(__qdf_iommu_domain_t *domain,
 	return -ENOTSUPP;
 }
 #endif /* CONFIG_QCOM_IOMMU_UTIL */
-#else
-/**
- * __qdf_iommu_attr_to_os() - Convert qdf iommu attribute to OS specific enum
- * @attr: QDF iommu attribute
- *
- * Return: enum iommu_attr
- */
-static inline
-enum iommu_attr __qdf_iommu_attr_to_os(enum qdf_iommu_attr attr)
-{
-	switch (attr) {
-	case QDF_DOMAIN_ATTR_GEOMETRY:
-		return DOMAIN_ATTR_GEOMETRY;
-	case QDF_DOMAIN_ATTR_PAGING:
-		return DOMAIN_ATTR_PAGING;
-	case QDF_DOMAIN_ATTR_WINDOWS:
-		return DOMAIN_ATTR_WINDOWS;
-	case QDF_DOMAIN_ATTR_FSL_PAMU_STASH:
-		return DOMAIN_ATTR_FSL_PAMU_STASH;
-	case QDF_DOMAIN_ATTR_FSL_PAMU_ENABLE:
-		return DOMAIN_ATTR_FSL_PAMU_ENABLE;
-	case QDF_DOMAIN_ATTR_FSL_PAMUV1:
-		return DOMAIN_ATTR_FSL_PAMUV1;
-	case QDF_DOMAIN_ATTR_NESTING:
-		return DOMAIN_ATTR_NESTING;
-	case QDF_DOMAIN_ATTR_DMA_USE_FLUSH_QUEUE:
-		return DOMAIN_ATTR_DMA_USE_FLUSH_QUEUE;
-	case QDF_DOMAIN_ATTR_CONTEXT_BANK:
-		return DOMAIN_ATTR_CONTEXT_BANK;
-	case QDF_DOMAIN_ATTR_NON_FATAL_FAULTS:
-		return DOMAIN_ATTR_NON_FATAL_FAULTS;
-	case QDF_DOMAIN_ATTR_S1_BYPASS:
-		return DOMAIN_ATTR_S1_BYPASS;
-	case QDF_DOMAIN_ATTR_ATOMIC:
-		return DOMAIN_ATTR_ATOMIC;
-	case QDF_DOMAIN_ATTR_SECURE_VMID:
-		return DOMAIN_ATTR_SECURE_VMID;
-	case QDF_DOMAIN_ATTR_FAST:
-		return DOMAIN_ATTR_FAST;
-	case QDF_DOMAIN_ATTR_PGTBL_INFO:
-		return DOMAIN_ATTR_PGTBL_INFO;
-	case QDF_DOMAIN_ATTR_USE_UPSTREAM_HINT:
-		return DOMAIN_ATTR_USE_UPSTREAM_HINT;
-	case QDF_DOMAIN_ATTR_EARLY_MAP:
-		return DOMAIN_ATTR_EARLY_MAP;
-	case QDF_DOMAIN_ATTR_PAGE_TABLE_IS_COHERENT:
-		return DOMAIN_ATTR_PAGE_TABLE_IS_COHERENT;
-	case QDF_DOMAIN_ATTR_PAGE_TABLE_FORCE_COHERENT:
-		return DOMAIN_ATTR_PAGE_TABLE_FORCE_COHERENT;
-	case QDF_DOMAIN_ATTR_USE_LLC_NWA:
-		return DOMAIN_ATTR_USE_LLC_NWA;
-	case QDF_DOMAIN_ATTR_SPLIT_TABLES:
-		return DOMAIN_ATTR_SPLIT_TABLES;
-	case QDF_DOMAIN_ATTR_FAULT_MODEL_NO_CFRE:
-		return DOMAIN_ATTR_FAULT_MODEL_NO_CFRE;
-	case QDF_DOMAIN_ATTR_FAULT_MODEL_NO_STALL:
-		return DOMAIN_ATTR_FAULT_MODEL_NO_STALL;
-	case QDF_DOMAIN_ATTR_FAULT_MODEL_HUPCF:
-		return DOMAIN_ATTR_FAULT_MODEL_HUPCF;
-	default:
-		return DOMAIN_ATTR_EXTENDED_MAX;
-	}
-}
 
-/**
- * __qdf_iommu_domain_get_attr() - API to get iommu domain attributes
- *
- * @domain: iommu domain
- * @attr: iommu attribute
- * @data: data pointer
- *
- * Return: iommu domain attr
- */
-static inline int
-__qdf_iommu_domain_get_attr(__qdf_iommu_domain_t *domain,
-			    enum qdf_iommu_attr attr, void *data)
-{
-	return iommu_domain_get_attr(domain, __qdf_iommu_attr_to_os(attr),
-				     data);
-}
-#endif
-
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
 /**
  * __qdf_dev_get_domain() - get iommu domain from osdev
  * @osdev: parent device instance
@@ -387,16 +285,6 @@ __qdf_dev_get_domain(qdf_device_t osdev)
 {
 	return osdev->domain;
 }
-#else
-static inline struct iommu_domain *
-__qdf_dev_get_domain(qdf_device_t osdev)
-{
-	if (osdev->iommu_mapping)
-		return osdev->iommu_mapping->domain;
-
-	return NULL;
-}
-#endif
 
 /**
  * __qdf_mem_paddr_from_dmaaddr() - get actual physical address from dma_addr

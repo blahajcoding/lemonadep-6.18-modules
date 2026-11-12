@@ -36,32 +36,11 @@ static int qdf_idr_gpf_flag(void)
 	return GFP_KERNEL;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
-/**
- * __qdf_idr_alloc() - Allocates an unused ID
- * @idp:   pointer to qdf idr
- * @ptr:   pointer to be associated with the new ID
- * @start: the minimum ID
- * @end:   the maximum ID
- *
- * Return: new ID
- */
-static inline int32_t
-__qdf_idr_alloc(qdf_idr *idp, void *ptr, int32_t start, int32_t end)
-{
-	int32_t id = 0;
-
-	idr_get_new(&idp->idr, ptr, &id);
-
-	return id;
-}
-#else
 static inline int32_t
 __qdf_idr_alloc(qdf_idr *idp, void *ptr, int32_t start, int32_t end)
 {
 	return idr_alloc(&idp->idr, ptr, start, end, qdf_idr_gpf_flag());
 }
-#endif
 
 QDF_STATUS qdf_idr_create(qdf_idr *idp)
 {

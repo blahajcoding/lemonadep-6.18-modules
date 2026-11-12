@@ -24,12 +24,7 @@
 #define _CDP_TXRX_IPA_H_
 
 #ifdef IPA_OFFLOAD
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)) || \
-	defined(CONFIG_IPA_WDI_UNIFIED_API)
 #include <qdf_ipa_wdi3.h>
-#else
-#include <qdf_ipa.h>
-#endif
 #include <cdp_txrx_cmn.h>
 #include "cdp_txrx_handle.h"
 
@@ -360,8 +355,6 @@ cdp_ipa_disable_autonomy(ol_txrx_soc_handle soc, uint8_t pdev_id)
 	return QDF_STATUS_SUCCESS;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)) || \
-	defined(CONFIG_IPA_WDI_UNIFIED_API)
 
 /**
  * cdp_ipa_setup() - Setup and connect IPA pipes
@@ -408,46 +401,6 @@ cdp_ipa_setup(ol_txrx_soc_handle soc, uint8_t pdev_id, void *ipa_i2w_cb,
 
 	return QDF_STATUS_SUCCESS;
 }
-#else /* CONFIG_IPA_WDI_UNIFIED_API */
-/**
- * cdp_ipa_setup() - Setup and connect IPA pipes
- * @soc: data path soc handle
- * @pdev_id: handle to the device instance number
- * @ipa_i2w_cb: IPA to WLAN callback
- * @ipa_w2i_cb: WLAN to IPA callback
- * @ipa_wdi_meter_notifier_cb: IPA WDI metering callback
- * @ipa_desc_size: IPA descriptor size
- * @ipa_priv: handle to the HTT instance
- * @is_rm_enabled: Is IPA RM enabled or not
- * @tx_pipe_handle: pointer to Tx pipe handle
- * @rx_pipe_handle: pointer to Rx pipe handle
- *
- * Return: QDF_STATUS
- */
-static inline QDF_STATUS
-cdp_ipa_setup(ol_txrx_soc_handle soc, uint8_t pdev_id, void *ipa_i2w_cb,
-	      void *ipa_w2i_cb, void *ipa_wdi_meter_notifier_cb,
-	      uint32_t ipa_desc_size, void *ipa_priv, bool is_rm_enabled,
-	      uint32_t *tx_pipe_handle, uint32_t *rx_pipe_handle)
-{
-	if (!soc || !soc->ops || !soc->ops->ipa_ops) {
-		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_FATAL,
-			"%s invalid instance", __func__);
-		return QDF_STATUS_E_FAILURE;
-	}
-
-	if (soc->ops->ipa_ops->ipa_setup)
-		return soc->ops->ipa_ops->ipa_setup(soc, pdev_id, ipa_i2w_cb,
-						    ipa_w2i_cb,
-						    ipa_wdi_meter_notifier_cb,
-						    ipa_desc_size, ipa_priv,
-						    is_rm_enabled,
-						    tx_pipe_handle,
-						    rx_pipe_handle);
-
-	return QDF_STATUS_SUCCESS;
-}
-#endif /* CONFIG_IPA_WDI_UNIFIED_API */
 
 /**
  * cdp_ipa_cleanup() - Disconnect IPA pipes

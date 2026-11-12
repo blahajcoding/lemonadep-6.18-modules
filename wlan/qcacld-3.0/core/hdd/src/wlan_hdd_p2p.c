@@ -350,16 +350,8 @@ static int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
 int wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
 		     struct cfg80211_mgmt_tx_params *params, u64 *cookie)
-#else
-int wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
-		     struct ieee80211_channel *chan, bool offchan,
-		     unsigned int wait,
-		     const u8 *buf, size_t len, bool no_cck,
-		     bool dont_wait_for_ack, u64 *cookie)
-#endif /* LINUX_VERSION_CODE */
 {
 	int errno;
 	struct osif_vdev_sync *vdev_sync;
@@ -368,16 +360,10 @@ int wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
 	if (errno)
 		return errno;
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
 	errno = __wlan_hdd_mgmt_tx(wiphy, wdev, params->chan, params->offchan,
 				   params->wait, params->buf, params->len,
 				   params->no_cck, params->dont_wait_for_ack,
 				   cookie);
-#else
-	errno = __wlan_hdd_mgmt_tx(wiphy, wdev, chan, offchan,
-				   wait, buf, len, no_cck,
-				   dont_wait_for_ack, cookie);
-#endif /* LINUX_VERSION_CODE */
 
 	osif_vdev_sync_op_stop(vdev_sync);
 
@@ -861,7 +847,6 @@ destroy_sync:
 	return wdev;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
 struct wireless_dev *wlan_hdd_add_virtual_intf(struct wiphy *wiphy,
 					       const char *name,
 					       unsigned char name_assign_type,
@@ -871,28 +856,6 @@ struct wireless_dev *wlan_hdd_add_virtual_intf(struct wiphy *wiphy,
 	return _wlan_hdd_add_virtual_intf(wiphy, name, name_assign_type,
 					  type, &params->flags, params);
 }
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)) || defined(WITH_BACKPORTS)
-struct wireless_dev *wlan_hdd_add_virtual_intf(struct wiphy *wiphy,
-					       const char *name,
-					       unsigned char name_assign_type,
-					       enum nl80211_iftype type,
-					       u32 *flags,
-					       struct vif_params *params)
-{
-	return _wlan_hdd_add_virtual_intf(wiphy, name, name_assign_type,
-					  type, flags, params);
-}
-#else
-struct wireless_dev *wlan_hdd_add_virtual_intf(struct wiphy *wiphy,
-					       const char *name,
-					       enum nl80211_iftype type,
-					       u32 *flags,
-					       struct vif_params *params)
-{
-	return _wlan_hdd_add_virtual_intf(wiphy, name, name_assign_type,
-					  type, flags, params);
-}
-#endif
 
 void hdd_clean_up_interface(struct hdd_context *hdd_ctx,
 			    struct hdd_adapter *adapter)
@@ -1138,20 +1101,9 @@ __hdd_indicate_mgmt_frame_to_user(struct hdd_adapter *adapter,
 
 	wlan_hdd_cfg80211_convert_rxmgmt_flags(rx_flags, &nl80211_flag);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0))
 	cfg80211_rx_mgmt(adapter->dev->ieee80211_ptr,
 			 rx_freq, rx_rssi * 100, pb_frames,
 			 frm_len, NL80211_RXMGMT_FLAG_ANSWERED | nl80211_flag);
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0))
-	cfg80211_rx_mgmt(adapter->dev->ieee80211_ptr,
-			 rx_freq, rx_rssi * 100, pb_frames,
-			 frm_len, NL80211_RXMGMT_FLAG_ANSWERED,
-			 GFP_ATOMIC);
-#else
-	cfg80211_rx_mgmt(adapter->dev->ieee80211_ptr, rx_freq,
-			 rx_rssi * 100,
-			 pb_frames, frm_len, GFP_ATOMIC);
-#endif /* LINUX_VERSION_CODE */
 }
 
 void hdd_indicate_mgmt_frame_to_user(struct hdd_adapter *adapter,

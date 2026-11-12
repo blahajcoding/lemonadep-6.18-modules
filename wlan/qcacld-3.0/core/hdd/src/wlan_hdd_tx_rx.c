@@ -294,7 +294,6 @@ static inline struct sk_buff *hdd_skb_orphan(struct hdd_adapter *adapter,
 	int cpu;
 
 	if (adapter->tx_flow_low_watermark > 0) {
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 19, 0))
 		/*
 		 * The TCP TX throttling logic is changed a little after
 		 * 3.19-rc1 kernel, the TCP sending limit will be smaller,
@@ -309,10 +308,6 @@ static inline struct sk_buff *hdd_skb_orphan(struct hdd_adapter *adapter,
 		 * testing. So need to be protected by follow control.
 		 */
 		need_orphan = 1;
-#else
-		if (hdd_ctx->config->tx_orphan_enable)
-			need_orphan = 1;
-#endif
 	} else if (hdd_ctx->config->tx_orphan_enable) {
 		if (qdf_nbuf_is_ipv4_tcp_pkt(skb) ||
 		    qdf_nbuf_is_ipv6_tcp_pkt(skb))
@@ -1471,11 +1466,7 @@ static void __hdd_tx_timeout(struct net_device *dev)
 	}
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
 void hdd_tx_timeout(struct net_device *net_dev, unsigned int txqueue)
-#else
-void hdd_tx_timeout(struct net_device *net_dev)
-#endif
 {
 	struct osif_vdev_sync *vdev_sync;
 
@@ -1714,20 +1705,8 @@ static void hdd_resolve_rx_ol_mode(struct hdd_context *hdd_ctx)
  * check gro_result returned from napi_gro_receive to determine
  * is extra GRO flush still necessary.
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0))
 #define HDD_IS_EXTRA_GRO_FLUSH_NECESSARY(_gro_ret) true
 #define GRO_DROP_UPDATE_STATUS(gro_ret, status)
-#else
-#define GRO_DROP_UPDATE_STATUS(gro_ret, status) \
-	if ((gro_ret) == GRO_DROP) ((status) = QDF_STATUS_E_GRO_DROP)
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
-#define HDD_IS_EXTRA_GRO_FLUSH_NECESSARY(_gro_ret) \
-	((_gro_ret) != GRO_DROP)
-#else
-#define HDD_IS_EXTRA_GRO_FLUSH_NECESSARY(_gro_ret) \
-	((_gro_ret) != GRO_DROP && (_gro_ret) != GRO_NORMAL)
-#endif
-#endif
 
 #ifdef WLAN_FEATURE_DYNAMIC_RX_AGGREGATION
 /**
@@ -2390,17 +2369,10 @@ QDF_STATUS hdd_rx_deliver_to_stack(struct hdd_adapter *adapter,
 #endif /* WLAN_FEATURE_DYNAMIC_RX_AGGREGATION */
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0))
 static bool hdd_is_gratuitous_arp_unsolicited_na(struct sk_buff *skb)
 {
 	return false;
 }
-#else
-static bool hdd_is_gratuitous_arp_unsolicited_na(struct sk_buff *skb)
-{
-	return cfg80211_is_gratuitous_arp_unsolicited_na(skb);
-}
-#endif
 
 QDF_STATUS hdd_rx_flush_packet_cbk(void *adapter_context, uint8_t vdev_id)
 {
@@ -2806,11 +2778,7 @@ static inline bool hdd_netdev_queue_is_locked(struct netdev_queue *txq)
 static void
 hdd_txq_trans_update(struct net_device *dev, struct netdev_queue *txq)
 {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0))
 	txq_trans_update(dev, txq);
-#else
-	txq_trans_update(txq);
-#endif
 }
 
 /**

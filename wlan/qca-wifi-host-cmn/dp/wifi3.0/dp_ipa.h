@@ -162,8 +162,6 @@ QDF_STATUS dp_ipa_enable_autonomy(struct cdp_soc_t *soc_hdl, uint8_t pdev_id);
  */
 QDF_STATUS dp_ipa_disable_autonomy(struct cdp_soc_t *soc_hdl, uint8_t pdev_id);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)) || \
-	defined(CONFIG_IPA_WDI_UNIFIED_API)
 /**
  * dp_ipa_setup() - Setup and connect IPA pipes
  * @soc_hdl - data path soc handle
@@ -189,29 +187,6 @@ QDF_STATUS dp_ipa_setup(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
 			uint32_t *rx_pipe_handle,
 			bool is_smmu_enabled,
 			qdf_ipa_sys_connect_params_t *sys_in, bool over_gsi);
-#else /* CONFIG_IPA_WDI_UNIFIED_API */
-/**
- * dp_ipa_setup() - Setup and connect IPA pipes
- * @soc_hdl - data path soc handle
- * @pdev_id - device instance id
- * @ipa_i2w_cb: IPA to WLAN callback
- * @ipa_w2i_cb: WLAN to IPA callback
- * @ipa_wdi_meter_notifier_cb: IPA WDI metering callback
- * @ipa_desc_size: IPA descriptor size
- * @ipa_priv: handle to the HTT instance
- * @is_rm_enabled: Is IPA RM enabled or not
- * @tx_pipe_handle: pointer to Tx pipe handle
- * @rx_pipe_handle: pointer to Rx pipe handle
- *
- * Return: QDF_STATUS
- */
-QDF_STATUS dp_ipa_setup(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
-			void *ipa_i2w_cb, void *ipa_w2i_cb,
-			void *ipa_wdi_meter_notifier_cb,
-			uint32_t ipa_desc_size, void *ipa_priv,
-			bool is_rm_enabled, uint32_t *tx_pipe_handle,
-			uint32_t *rx_pipe_handle);
-#endif /* CONFIG_IPA_WDI_UNIFIED_API */
 QDF_STATUS dp_ipa_cleanup(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
 			  uint32_t tx_pipe_handle,
 			  uint32_t rx_pipe_handle);

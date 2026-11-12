@@ -156,17 +156,10 @@ static inline int pld_pcie_set_suspend_mode(enum pld_suspend_mode mode)
 #endif
 
 #ifndef CONFIG_PLD_PCIE_CNSS
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
 static inline void *pld_pcie_smmu_get_domain(struct device *dev)
 {
 	return NULL;
 }
-#else
-static inline void *pld_pcie_smmu_get_mapping(struct device *dev)
-{
-	return NULL;
-}
-#endif
 
 static inline int
 pld_pcie_smmu_map(struct device *dev,
@@ -430,16 +423,8 @@ static inline int pld_pcie_set_wfc_mode(struct device *dev,
 	return 0;
 }
 #else
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 int pld_pcie_set_wfc_mode(struct device *dev,
 			  enum pld_wfc_mode wfc_mode);
-#else
-static inline int pld_pcie_set_wfc_mode(struct device *dev,
-					enum pld_wfc_mode wfc_mode)
-{
-	return 0;
-}
-#endif
 
 int pld_pcie_get_fw_files_for_target(struct device *dev,
 				     struct pld_fw_files *pfw_files,
@@ -473,17 +458,10 @@ pld_pcie_qmi_send(struct device *dev, int type, void *cmd,
 	return cnss_qmi_send(dev, type, cmd, cmd_len, cb_ctx, cb);
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
 static inline void *pld_pcie_smmu_get_domain(struct device *dev)
 {
 	return cnss_smmu_get_domain(dev);
 }
-#else
-static inline void *pld_pcie_smmu_get_mapping(struct device *dev)
-{
-	return cnss_smmu_get_mapping(dev);
-}
-#endif
 
 static inline int
 pld_pcie_smmu_map(struct device *dev,
@@ -542,20 +520,11 @@ static inline void pld_pcie_link_down(struct device *dev)
 	cnss_pci_link_down(dev);
 }
 
-#if ((LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)) && \
-		(LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0)))
-static inline int pld_pcie_get_reg_dump(struct device *dev, uint8_t *buf,
-					uint32_t len)
-{
-	return cnss_pci_get_reg_dump(dev, buf, len);
-}
-#else
 static inline int pld_pcie_get_reg_dump(struct device *dev, uint8_t *buf,
 					uint32_t len)
 {
 	return 0;
 }
-#endif
 
 static inline int pld_pcie_is_fw_down(struct device *dev)
 {
@@ -650,17 +619,10 @@ static inline void pld_pcie_unlock_reg_window(struct device *dev,
 	cnss_pci_unlock_reg_window(dev, flags);
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 static inline int pld_pcie_get_pci_slot(struct device *dev)
 {
 	return cnss_get_pci_slot(dev);
 }
-#else
-static inline int pld_pcie_get_pci_slot(struct device *dev)
-{
-	return 0;
-}
-#endif
 
 static inline int pld_pcie_power_on(struct device *dev)
 {

@@ -28,8 +28,6 @@
 #include <qdf_status.h>         /* QDF_STATUS */
 #include <linux/ipa_wdi3.h>
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)) || \
-	defined(CONFIG_IPA_WDI_UNIFIED_API)
 
 /**
  * __qdf_ipa_wdi_version_t - IPA WDI version
@@ -240,12 +238,8 @@ typedef struct ipa_wdi_conn_out_params  __qdf_ipa_wdi_conn_out_params_t;
 #endif
 #define __QDF_IPA_WDI_CONN_OUT_PARAMS_RX_UC_DB_PA(pipe_out)	\
 	(((struct ipa_wdi_conn_out_params *)(pipe_out))->rx_uc_db_pa)
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
 #define __QDF_IPA_WDI_CONN_OUT_PARAMS_IS_DB_DDR_MAPPED(pipe_out)	\
 	(((struct ipa_wdi_conn_out_params *)(pipe_out))->is_ddr_mapped)
-#else
-#define __QDF_IPA_WDI_CONN_OUT_PARAMS_IS_DB_DDR_MAPPED(pipe_out) false
-#endif
 
 /**
  * __qdf_ipa_wdi_perf_profile_t - To set BandWidth profile
@@ -380,7 +374,6 @@ static inline int __qdf_ipa_wdi_set_perf_profile(
 	return ipa_wdi_set_perf_profile(profile);
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 15))
 /**
  * __qdf_ipa_wdi_create_smmu_mapping() - Client should call this function to
  *		create smmu mapping
@@ -410,20 +403,6 @@ static inline int __qdf_ipa_wdi_release_smmu_mapping(u32 num_buffers,
 {
 	return ipa_wdi_release_smmu_mapping_per_inst(0, num_buffers, info);
 }
-#else
-
-static inline int __qdf_ipa_wdi_create_smmu_mapping(u32 num_buffers,
-		struct ipa_wdi_buffer_info *info)
-{
-	return ipa_wdi_create_smmu_mapping(num_buffers, info);
-}
-
-static inline int __qdf_ipa_wdi_release_smmu_mapping(u32 num_buffers,
-		struct ipa_wdi_buffer_info *info)
-{
-	return ipa_wdi_release_smmu_mapping(num_buffers, info);
-}
-#endif
 
 #ifdef WDI3_STATS_UPDATE
 /**
@@ -449,220 +428,6 @@ static inline int __qdf_ipa_uc_bw_monitor(struct ipa_wdi_bw_info *bw_info)
 	return ipa_uc_bw_monitor(bw_info);
 }
 #endif
-#else /* CONFIG_IPA_WDI_UNIFIED_API */
-
-/**
- * __qdf_ipa_wdi_hdr_info_t - Header to install on IPA HW
- */
-typedef struct ipa_wdi3_hdr_info  __qdf_ipa_wdi_hdr_info_t;
-
-#define __QDF_IPA_WDI_HDR_INFO_HDR(hdr_info)	\
-	(((struct ipa_wdi3_hdr_info *)(hdr_info))->hdr)
-#define __QDF_IPA_WDI_HDR_INFO_HDR_LEN(hdr_info)	\
-	(((struct ipa_wdi3_hdr_info *)(hdr_info))->hdr_len)
-#define __QDF_IPA_WDI_HDR_INFO_DST_MAC_ADDR_OFFSET(hdr_info)	\
-	(((struct ipa_wdi3_hdr_info *)(hdr_info))->dst_mac_addr_offset)
-#define __QDF_IPA_WDI_HDR_INFO_HDR_TYPE(hdr_info)	\
-	(((struct ipa_wdi3_hdr_info *)(hdr_info))->hdr_type)
-
-/**
- * __qdf_ipa_wdi_reg_intf_in_params_t - parameters for uC offload
- *	interface registration
- */
-typedef struct ipa_wdi3_reg_intf_in_params  __qdf_ipa_wdi_reg_intf_in_params_t;
-
-#define __QDF_IPA_WDI_REG_INTF_IN_PARAMS_NETDEV_NAME(in)	\
-	(((struct ipa_wdi3_reg_intf_in_params *)(in))->netdev_name)
-#define __QDF_IPA_WDI_REG_INTF_IN_PARAMS_HDR_INFO(in)	\
-	(((struct ipa_wdi3_reg_intf_in_params *)(in))->hdr_info)
-#define __QDF_IPA_WDI_REG_INTF_IN_PARAMS_IS_META_DATA_VALID(in)	\
-	(((struct ipa_wdi3_reg_intf_in_params *)(in))->is_meta_data_valid)
-#define __QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA(in)	\
-	(((struct ipa_wdi3_reg_intf_in_params *)(in))->meta_data)
-#define __QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA_MASK(in)	\
-	(((struct ipa_wdi3_reg_intf_in_params *)(in))->meta_data_mask)
-
-/**
- * __qdf_ipa_wdi_setup_info_t - WDI3 TX/Rx configuration
- */
-typedef struct ipa_wdi3_setup_info  __qdf_ipa_wdi_pipe_setup_info_t;
-
-#define __QDF_IPA_WDI_SETUP_INFO_NAT_EN(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->ipa_ep_cfg.nat.nat_en)
-#define __QDF_IPA_WDI_SETUP_INFO_HDR_LEN(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->ipa_ep_cfg.hdr.hdr_len)
-#define __QDF_IPA_WDI_SETUP_INFO_HDR_OFST_METADATA_VALID(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->ipa_ep_cfg.hdr.hdr_ofst_metadata_valid)
-#define __QDF_IPA_WDI_SETUP_INFO_HDR_METADATA_REG_VALID(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->ipa_ep_cfg.hdr.hdr_metadata_reg_valid)
-#define __QDF_IPA_WDI_SETUP_INFO_HDR_OFST_PKT_SIZE_VALID(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->ipa_ep_cfg.hdr.hdr_ofst_pkt_size_valid)
-#define __QDF_IPA_WDI_SETUP_INFO_HDR_OFST_PKT_SIZE(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->ipa_ep_cfg.hdr.hdr_ofst_pkt_size)
-#define __QDF_IPA_WDI_SETUP_INFO_HDR_ADDITIONAL_CONST_LEN(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->ipa_ep_cfg.hdr.hdr_additional_const_len)
-#define __QDF_IPA_WDI_SETUP_INFO_MODE(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->ipa_ep_cfg.mode.mode)
-#define __QDF_IPA_WDI_SETUP_INFO_HDR_LITTLE_ENDIAN(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->ipa_ep_cfg.hdr_ext.hdr_little_endian)
-
-#define __QDF_IPA_WDI_SETUP_INFO_CLIENT(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->client)
-#define __QDF_IPA_WDI_SETUP_INFO_TRANSFER_RING_BASE_PA(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->transfer_ring_base_pa)
-#define __QDF_IPA_WDI_SETUP_INFO_TRANSFER_RING_SIZE(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->transfer_ring_size)
-#define __QDF_IPA_WDI_SETUP_INFO_TRANSFER_RING_DOORBELL_PA(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->transfer_ring_doorbell_pa)
-#define __QDF_IPA_WDI_SETUP_INFO_EVENT_RING_BASE_PA(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->event_ring_base_pa)
-#define __QDF_IPA_WDI_SETUP_INFO_EVENT_RING_SIZE(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->event_ring_size)
-#define __QDF_IPA_WDI_SETUP_INFO_EVENT_RING_DOORBELL_PA(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->event_ring_doorbell_pa)
-#define __QDF_IPA_WDI_SETUP_INFO_NUM_PKT_BUFFERS(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->num_pkt_buffers)
-#define __QDF_IPA_WDI_SETUP_INFO_PKT_OFFSET(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->pkt_offset)
-#define __QDF_IPA_WDI_SETUP_INFO_DESC_FORMAT_TEMPLATE(txrx)	\
-	(((struct ipa_wdi3_setup_info *)(txrx))->desc_format_template)
-
-/**
- * __qdf_ipa_wdi_conn_in_params_t - information provided by
- *		uC offload client
- */
-typedef struct ipa_wdi3_conn_in_params  __qdf_ipa_wdi_conn_in_params_t;
-
-#define __QDF_IPA_WDI_CONN_IN_PARAMS_NOTIFY(pipe_in)	\
-	(((struct ipa_wdi3_conn_in_params *)(pipe_in))->notify)
-#define __QDF_IPA_WDI_CONN_IN_PARAMS_PRIV(pipe_in)	\
-	(((struct ipa_wdi3_conn_in_params *)(pipe_in))->priv)
-#define __QDF_IPA_WDI_CONN_IN_PARAMS_TX(pipe_in)	\
-	(((struct ipa_wdi3_conn_in_params *)(pipe_in))->tx)
-#define __QDF_IPA_WDI_CONN_IN_PARAMS_RX(pipe_in)	\
-	(((struct ipa_wdi3_conn_in_params *)(pipe_in))->rx)
-
-/**
- * __qdf_ipa_wdi_conn_out_params_t - information provided
- *				to WLAN druver
- */
-typedef struct ipa_wdi3_conn_out_params  __qdf_ipa_wdi_conn_out_params_t;
-
-#define __QDF_IPA_WDI_CONN_OUT_PARAMS_TX_UC_DB_PA(pipe_out)	\
-	(((struct ipa_wdi3_conn_out_params *)(pipe_out))->tx_uc_db_pa)
-#define __QDF_IPA_WDI_CONN_OUT_PARAMS_TX_UC_DB_VA(pipe_out)	\
-	(((struct ipa_wdi3_conn_out_params *)(pipe_out))->tx_uc_db_va)
-#define __QDF_IPA_WDI_CONN_OUT_PARAMS_RX_UC_DB_PA(pipe_out)	\
-	(((struct ipa_wdi3_conn_out_params *)(pipe_out))->rx_uc_db_pa)
-
-/**
- * __qdf_ipa_wdi_perf_profile_t - To set BandWidth profile
- */
-typedef struct ipa_wdi3_perf_profile  __qdf_ipa_wdi_perf_profile_t;
-
-#define __QDF_IPA_WDI_PERF_PROFILE_CLIENT(profile)	\
-	(((struct ipa_wdi3_perf_profile *)(profile))->client)
-#define __QDF_IPA_WDI_PERF_PROFILE_MAX_SUPPORTED_BW_MBPS(profile)	\
-	(((struct ipa_wdi3_perf_profile *)(profile))->max_supported_bw_mbps)
-
-/**
- * __qdf_ipa_wdi_reg_intf - Client should call this function to
- * init WDI3 IPA offload data path
- *
- * Note: Should not be called from atomic context and only
- * after checking IPA readiness using ipa_register_ipa_ready_cb()
- *
- * @Return 0 on success, negative on failure
- */
-static inline int __qdf_ipa_wdi_reg_intf(
-	struct ipa_wdi3_reg_intf_in_params *in)
-{
-	return ipa_wdi3_reg_intf(in);
-}
-
-/**
- * __qdf_ipa_wdi_dereg_intf - Client Driver should call this
- * function to deregister before unload and after disconnect
- *
- * @Return 0 on success, negative on failure
- */
-static inline int __qdf_ipa_wdi_dereg_intf(const char *netdev_name)
-{
-	return ipa_wdi3_dereg_intf(netdev_name);
-}
-
-/**
- * __qdf_ipa_wdi_conn_pipes - Client should call this
- * function to connect pipes
- *
- * @in:	[in] input parameters from client
- * @out: [out] output params to client
- *
- * Note: Should not be called from atomic context and only
- * after checking IPA readiness using ipa_register_ipa_ready_cb()
- *
- * @Return 0 on success, negative on failure
- */
-static inline int __qdf_ipa_wdi_conn_pipes(struct ipa_wdi3_conn_in_params *in,
-					   struct ipa_wdi3_conn_out_params *out)
-{
-	return ipa_wdi3_conn_pipes(in, out);
-}
-
-/**
- * __qdf_ipa_wdi_disconn_pipes() - Client should call this
- *		function to disconnect pipes
- *
- * Note: Should not be called from atomic context
- *
- * Returns: 0 on success, negative on failure
- */
-static inline int __qdf_ipa_wdi_disconn_pipes(void)
-{
-	return ipa_wdi3_disconn_pipes();
-}
-
-/**
- * __qdf_ipa_wdi_enable_pipes() - Client should call this
- *		function to enable IPA offload data path
- *
- * Note: Should not be called from atomic context
- *
- * Returns: 0 on success, negative on failure
- */
-static inline int __qdf_ipa_wdi_enable_pipes(void)
-{
-	return ipa_wdi3_enable_pipes();
-}
-
-/**
- * __qdf_ipa_wdi_disable_pipes() - Client should call this
- *		function to disable IPA offload data path
- *
- * Note: Should not be called from atomic context
- *
- * Returns: 0 on success, negative on failure
- */
-static inline int __qdf_ipa_wdi_disable_pipes(void)
-{
-	return ipa_wdi3_disable_pipes();
-}
-
-/**
- * __qdf_ipa_wdi_set_perf_profile() - Client should call this function to
- *		set IPA clock bandwidth based on data rates
- *
- * @profile: [in] BandWidth profile to use
- *
- * Returns: 0 on success, negative on failure
- */
-static inline int __qdf_ipa_wdi_set_perf_profile(
-			struct ipa_wdi3_perf_profile *profile)
-{
-	return ipa_wdi3_set_perf_profile(profile);
-}
-
-#endif /* CONFIG_IPA_WDI_UNIFIED_API */
 
 #endif /* IPA_OFFLOAD */
 #endif /* I_QDF_IPA_WDI_H */

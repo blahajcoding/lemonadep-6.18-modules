@@ -680,7 +680,6 @@ static void hif_exec_napi_schedule(struct hif_exec_context *ctx)
 	napi_schedule(&n_ctx->napi);
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0))
 /**
  * qdf_napi_get_dummy_nd_ptr() - Get dummy netdev pointer
  * @ctx: hif_napi_exec_context pointer
@@ -699,19 +698,6 @@ qdf_napi_set_dummy_nd_ptr(struct hif_napi_exec_context *ctx,
 {
 	ctx->netdev = nd;
 }
-#else
-static inline struct net_device *
-qdf_napi_get_dummy_nd_ptr(struct hif_napi_exec_context *ctx)
-{
-	return &ctx->netdev;
-}
-
-static inline void
-qdf_napi_set_dummy_nd_ptr(struct hif_napi_exec_context *ctx,
-			  struct net_device *nd)
-{
-}
-#endif
 
 /**
  * hif_exec_napi_kill() - stop a napi exec context from being rescheduled

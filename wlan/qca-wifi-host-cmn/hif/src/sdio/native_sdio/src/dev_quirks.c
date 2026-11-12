@@ -369,7 +369,6 @@ int hif_sdio_quirk_mod_strength(struct hif_softc *ol_sc, struct sdio_func *func)
 	return ret;
 }
 
-#if KERNEL_VERSION(3, 4, 0) <= LINUX_VERSION_CODE
 #ifdef SDIO_BUS_WIDTH_8BIT
 static int hif_cmd52_write_byte_8bit(struct sdio_func *func)
 {
@@ -382,7 +381,6 @@ static int hif_cmd52_write_byte_8bit(struct sdio_func *func)
 	hif_err("8BIT Bus Width not supported");
 	return QDF_STATUS_E_FAILURE;
 }
-#endif
 #endif
 
 /**
@@ -406,11 +404,7 @@ QDF_STATUS hif_sdio_set_bus_speed(struct hif_softc *ol_sc,
 
 	if (mmcclock > 0)
 		clock_set = mmcclock;
-#if (KERNEL_VERSION(3, 16, 0) > LINUX_VERSION_CODE)
-	if (sdio_card_highspeed(func->card))
-#else
 		if (mmc_card_hs(func->card))
-#endif
 			clock = 50000000;
 		else
 			clock = func->card->cis.max_dtr;
@@ -453,7 +447,6 @@ QDF_STATUS hif_sdio_set_bus_width(struct hif_softc *ol_sc,
 	if (manfid == MANUFACTURER_ID_QCN7605_BASE)
 		return status;
 
-#if KERNEL_VERSION(3, 4, 0) <= LINUX_VERSION_CODE
 	if (mmcbuswidth == 0)
 		return status;
 
@@ -497,7 +490,6 @@ QDF_STATUS hif_sdio_set_bus_width(struct hif_softc *ol_sc,
 
 out:
 	hif_debug("Bus width: %d", mmcbuswidth);
-#endif
 	return status;
 }
 

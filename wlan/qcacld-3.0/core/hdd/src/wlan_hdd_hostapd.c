@@ -2640,15 +2640,6 @@ QDF_STATUS hdd_hostapd_sap_event_cb(struct sap_event *sap_event,
 
 			sta_info->assoc_req_ies = event->ies;
 			sta_info->assoc_req_ies_len = ies_len;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 0, 0)) && !defined(WITH_BACKPORTS)
-			/*
-			 * After Kernel 4.0, it's no longer need to set
-			 * STATION_INFO_ASSOC_REQ_IES flag, as it
-			 * changed to use assoc_req_ies_len length to
-			 * check the existence of request IE.
-			 */
-			sta_info->filled |= STATION_INFO_ASSOC_REQ_IES;
-#endif
 			/* For ML clients need to fill assoc resp IEs
 			 * and MLD address.
 			 * For Legacy clients MLD address will be
@@ -4004,14 +3995,9 @@ const struct net_device_ops net_ops_struct = {
 	.ndo_tx_timeout = hdd_softap_tx_timeout,
 	.ndo_get_stats = hdd_get_stats,
 	.ndo_set_mac_address = hdd_hostapd_set_mac_address,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
-	.ndo_do_ioctl = hdd_ioctl,
-#endif
 	.ndo_change_mtu = hdd_hostapd_change_mtu,
 	.ndo_select_queue = hdd_select_queue,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 	.ndo_siocdevprivate = hdd_dev_private_ioctl,
-#endif
 };
 
 #ifdef WLAN_FEATURE_TSF_PTP
@@ -4290,9 +4276,7 @@ struct hdd_adapter *hdd_wlan_create_ap_dev(struct hdd_context *hdd_ctx,
 	hdd_debug("iface_name = %s", iface_name);
 
 	dev = alloc_netdev_mqs(sizeof(struct hdd_adapter), iface_name,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)) || defined(WITH_BACKPORTS)
 			       name_assign_type,
-#endif
 			       ether_setup, NUM_TX_QUEUES, NUM_RX_QUEUES);
 
 	if (!dev)
@@ -6790,7 +6774,6 @@ int wlan_hdd_cfg80211_stop_ap(struct wiphy *wiphy, struct net_device *dev)
 	return errno;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
 /*
  * Beginning with 4.7 struct ieee80211_channel uses enum nl80211_band
  * ieee80211_channel_band() - return channel band
@@ -6803,23 +6786,7 @@ enum nl80211_band ieee80211_channel_band(const struct ieee80211_channel *chan)
 {
 	return chan->band;
 }
-#else
-/*
- * Prior to 4.7 struct ieee80211_channel used enum ieee80211_band. However the
- * ieee80211_band enum values are assigned from enum nl80211_band so we can
- * safely typecast one to another.
- */
-static inline
-enum nl80211_band ieee80211_channel_band(const struct ieee80211_channel *chan)
-{
-	enum ieee80211_band band = chan->band;
 
-	return (enum nl80211_band)band;
-}
-#endif
-
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)) || \
-	defined(CFG80211_BEACON_TX_RATE_CUSTOM_BACKPORT)
 /**
  * hdd_get_data_rate_from_rate_mask() - convert mask to rate
  * @wiphy: Pointer to wiphy
@@ -6883,13 +6850,6 @@ static void hdd_update_beacon_rate(struct hdd_adapter *adapter,
 			  adapter->session.ap.sap_config.beacon_tx_rate);
 	}
 }
-#else
-static void hdd_update_beacon_rate(struct hdd_adapter *adapter,
-		struct wiphy *wiphy,
-		struct cfg80211_ap_settings *params)
-{
-}
-#endif
 
 /**
  * wlan_hdd_ap_ap_force_scc_override() - force Same band SCC chan override
@@ -7050,8 +7010,7 @@ hdd_sap_nan_check_and_disable_unsupported_ndi(struct wlan_objmgr_psoc *psoc,
 }
 #endif
 
-#if defined(WLAN_SUPPORT_TWT) && \
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0))
+#if defined(WLAN_SUPPORT_TWT)
 static void
 wlan_hdd_update_twt_responder(struct hdd_context *hdd_ctx,
 			      struct cfg80211_ap_settings *params)
@@ -7560,7 +7519,6 @@ static int __wlan_hdd_cfg80211_change_beacon(struct wiphy *wiphy,
 	return status;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
 /**
  * wlan_hdd_cfg80211_change_beacon() - change beacon content in sap mode
  * @wiphy: Pointer to wiphy
@@ -7586,33 +7544,6 @@ int wlan_hdd_cfg80211_change_beacon(struct wiphy *wiphy,
 
 	return errno;
 }
-#else
-/**
- * wlan_hdd_cfg80211_change_beacon() - change beacon content in sap mode
- * @wiphy: Pointer to wiphy
- * @dev: Pointer to netdev
- * @params: Pointer to change beacon parameters
- *
- * Return: zero for success non-zero for failure
- */
-int wlan_hdd_cfg80211_change_beacon(struct wiphy *wiphy,
-				struct net_device *dev,
-				struct cfg80211_beacon_data *params)
-{
-	int errno;
-	struct osif_vdev_sync *vdev_sync;
-
-	errno = osif_vdev_sync_op_start(dev, &vdev_sync);
-	if (errno)
-		return errno;
-
-	errno = __wlan_hdd_cfg80211_change_beacon(wiphy, dev, params);
-
-	osif_vdev_sync_op_stop(vdev_sync);
-
-	return errno;
-}
-#endif
 
 /**
  * hdd_sap_indicate_disconnect_for_sta() - Indicate disconnect indication

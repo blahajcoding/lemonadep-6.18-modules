@@ -167,7 +167,6 @@ void qdf_debugfs_printf(qdf_debugfs_file_t file, const char *f, ...)
 
 qdf_export_symbol(qdf_debugfs_printf);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
 
 void qdf_debugfs_hexdump(qdf_debugfs_file_t file, const uint8_t *buf,
 			 qdf_size_t len, int rowsize, int groupsize)
@@ -177,35 +176,6 @@ void qdf_debugfs_hexdump(qdf_debugfs_file_t file, const uint8_t *buf,
 }
 
 qdf_export_symbol(qdf_debugfs_hexdump);
-#else
-
-void qdf_debugfs_hexdump(qdf_debugfs_file_t file, const uint8_t *buf,
-			 qdf_size_t len, int rowsize, int groupsize)
-{
-	char *dst;
-	size_t dstlen, readlen, remaining = len;
-	int prefix = 0;
-	size_t commitlen;
-
-	while (remaining > 0 && (file->size > file->count)) {
-		seq_printf(file, "%.8x: ", prefix);
-
-		readlen = qdf_min(remaining, (qdf_size_t)rowsize);
-		dstlen = seq_get_buf(file, &dst);
-		hex_dump_to_buffer(buf, readlen, rowsize, groupsize, dst,
-				   dstlen, false);
-		commitlen = strnlen(dst, dstlen);
-		seq_commit(file, commitlen);
-		seq_putc(file, '\n');
-
-		remaining = (remaining > rowsize) ? remaining - rowsize : 0;
-		buf += readlen;
-		prefix += rowsize;
-	}
-}
-
-qdf_export_symbol(qdf_debugfs_hexdump);
-#endif
 
 bool qdf_debugfs_overflow(qdf_debugfs_file_t file)
 {

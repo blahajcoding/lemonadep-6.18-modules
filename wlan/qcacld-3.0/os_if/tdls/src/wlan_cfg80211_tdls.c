@@ -253,7 +253,7 @@ wlan_cfg80211_tdls_extract_6ghz_params(struct tdls_update_peer_params *req_info,
 		     params->link_sta_params.he_6ghz_capa,
 		     sizeof(req_info->he_6ghz_cap));
 }
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
+#else
 static void
 wlan_cfg80211_tdls_extract_6ghz_params(struct tdls_update_peer_params *req_info,
 				       struct station_parameters *params)
@@ -265,13 +265,6 @@ wlan_cfg80211_tdls_extract_6ghz_params(struct tdls_update_peer_params *req_info,
 
 	qdf_mem_copy(&req_info->he_6ghz_cap, params->he_6ghz_capa,
 		     sizeof(req_info->he_6ghz_cap));
-}
-#else
-static void
-wlan_cfg80211_tdls_extract_6ghz_params(struct tdls_update_peer_params *req_info,
-				       struct station_parameters *params)
-{
-	osif_debug("kernel don't support tdls 6 ghz band");
 }
 #endif
 
@@ -762,18 +755,9 @@ void wlan_cfg80211_tdls_rx_callback(void *user_data,
 	osif_notice("Indicate frame over nl80211, vdev id:%d, idx:%d",
 		    rx_frame->vdev_id, wdev->netdev->ifindex);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0))
 	cfg80211_rx_mgmt(wdev, rx_frame->rx_freq, rx_frame->rx_rssi * 100,
 			 rx_frame->buf, rx_frame->frame_len,
 			 NL80211_RXMGMT_FLAG_ANSWERED);
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0))
-	cfg80211_rx_mgmt(wdev, rx_frame->rx_freq, rx_frame->rx_rssi * 100,
-			 rx_frame->buf, rx_frame->frame_len,
-			 NL80211_RXMGMT_FLAG_ANSWERED, GFP_ATOMIC);
-#else
-	cfg80211_rx_mgmt(wdev, rx_frame->rx_freq, rx_frame->rx_rssi * 100,
-			 rx_frame->buf, rx_frame->frame_len, GFP_ATOMIC);
-#endif /* LINUX_VERSION_CODE */
 fail:
 	wlan_objmgr_vdev_release_ref(vdev, WLAN_TDLS_NB_ID);
 }

@@ -99,11 +99,7 @@ QDF_STATUS hdd_softap_ipa_start_xmit(qdf_nbuf_t nbuf, qdf_netdev_t dev);
  *
  * Return: None
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
 void hdd_softap_tx_timeout(struct net_device *dev, unsigned int txqueue);
-#else
-void hdd_softap_tx_timeout(struct net_device *dev);
-#endif
 /**
  * hdd_softap_init_tx_rx() - Initialize Tx/Rx module
  * @adapter: pointer to adapter context
@@ -326,7 +322,6 @@ void hdd_softap_check_wait_for_tx_eap_pkt(struct hdd_adapter *adapter,
 					  struct qdf_mac_addr *mac_addr);
 
 #ifndef QCA_LL_LEGACY_TX_FLOW_CONTROL
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 19, 0))
 /**
  * hdd_skb_orphan() - skb_unshare a cloned packed else skb_orphan
  * @adapter: pointer to HDD adapter
@@ -361,17 +356,5 @@ static inline struct sk_buff *hdd_skb_orphan(struct hdd_adapter *adapter,
 
 	return skb;
 }
-#else
-static inline struct sk_buff *hdd_skb_orphan(struct hdd_adapter *adapter,
-					     struct sk_buff *skb)
-{
-	struct sk_buff *nskb;
-
-	hdd_skb_fill_gso_size(adapter->dev, skb);
-	nskb = skb_unshare(skb, GFP_ATOMIC);
-
-	return nskb;
-}
-#endif
 #endif /* QCA_LL_LEGACY_TX_FLOW_CONTROL */
 #endif /* end #if !defined(WLAN_HDD_SOFTAP_TX_RX_H) */

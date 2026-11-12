@@ -155,113 +155,6 @@ struct wlan_ipa_iface_context *
 wlan_ipa_get_iface_by_mode_netdev(struct wlan_ipa_priv *ipa_ctx,
 				  qdf_netdev_t ndev, uint8_t mode);
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0)) && \
-	!defined(CONFIG_IPA_WDI_UNIFIED_API)
-
-/**
- * wlan_ipa_is_rm_enabled() - Is IPA RM enabled?
- * @ipa_cfg: IPA config
- *
- * Return: true if IPA RM is enabled, false otherwise
- */
-static inline bool wlan_ipa_is_rm_enabled(struct wlan_ipa_config *ipa_cfg)
-{
-	return WLAN_IPA_IS_CONFIG_ENABLED(ipa_cfg, WLAN_IPA_RM_ENABLE_MASK);
-}
-
-/**
- * wlan_ipa_is_clk_scaling_enabled() - Is IPA clock scaling enabled?
- * @ipa_cfg: IPA config
- *
- * Return: true if IPA clock scaling is enabled, false otherwise
- */
-static inline
-bool wlan_ipa_is_clk_scaling_enabled(struct wlan_ipa_config *ipa_cfg)
-{
-	return WLAN_IPA_IS_CONFIG_ENABLED(ipa_cfg,
-					  WLAN_IPA_CLK_SCALING_ENABLE_MASK |
-					  WLAN_IPA_RM_ENABLE_MASK);
-}
-
-/**
- * wlan_ipa_wdi_rm_request_resource() - IPA WDI request resource
- * @ipa_ctx: IPA context
- * @res_name: IPA RM resource name
- *
- * Return: 0 on success, negative errno on error
- */
-static inline
-int wlan_ipa_wdi_rm_request_resource(struct wlan_ipa_priv *ipa_ctx,
-				     qdf_ipa_rm_resource_name_t res_name)
-{
-	return qdf_ipa_rm_request_resource(res_name);
-}
-
-/**
- * wlan_ipa_wdi_rm_release_resource() - IPA WDI release resource
- * @ipa_ctx: IPA context
- * @res_name: IPA RM resource name
- *
- * Return: 0 on success, negative errno on error
- */
-static inline
-int wlan_ipa_wdi_rm_release_resource(struct wlan_ipa_priv *ipa_ctx,
-				     qdf_ipa_rm_resource_name_t res_name)
-{
-	return qdf_ipa_rm_release_resource(res_name);
-}
-
-/**
- * wlan_ipa_wdi_rm_request() - Request resource from IPA
- * @ipa_ctx: IPA context
- *
- * Return: QDF_STATUS
- */
-QDF_STATUS wlan_ipa_wdi_rm_request(struct wlan_ipa_priv *ipa_ctx);
-
-/**
- * wlan_ipa_wdi_rm_try_release() - Attempt to release IPA resource
- * @ipa_ctx: IPA context
- *
- * Return: QDF_STATUS
- */
-QDF_STATUS wlan_ipa_wdi_rm_try_release(struct wlan_ipa_priv *ipa_ctx);
-
-/**
- * wlan_ipa_wdi_setup_rm() - Setup IPA resource management
- * @ipa_ctx: IPA context
- *
- * Return: QDF_STATUS
- */
-QDF_STATUS wlan_ipa_wdi_setup_rm(struct wlan_ipa_priv *ipa_ctx);
-
-/**
- * wlan_ipa_wdi_destroy_rm() - Destroy IPA resources
- * @ipa_ctx: IPA context
- *
- * Destroys all resources associated with the IPA resource manager
- *
- * Return: None
- */
-void wlan_ipa_wdi_destroy_rm(struct wlan_ipa_priv *ipa_ctx);
-
-static inline
-int wlan_ipa_wdi_rm_notify_completion(qdf_ipa_rm_event_t event,
-				      qdf_ipa_rm_resource_name_t res_name)
-{
-	return qdf_ipa_rm_notify_completion(event, res_name);
-}
-
-static inline
-int wlan_ipa_wdi_rm_inactivity_timer_destroy(
-					qdf_ipa_rm_resource_name_t res_name)
-{
-	return qdf_ipa_rm_inactivity_timer_destroy(res_name);
-}
-
-bool wlan_ipa_is_rm_released(struct wlan_ipa_priv *ipa_ctx);
-
-#else /* CONFIG_IPA_WDI_UNIFIED_API */
 
 /**
  * wlan_ipa_is_rm_enabled() - Is IPA RM enabled?
@@ -346,7 +239,6 @@ bool wlan_ipa_is_rm_released(struct wlan_ipa_priv *ipa_ctx)
 	return true;
 }
 
-#endif /* CONFIG_IPA_WDI_UNIFIED_API */
 
 #ifdef FEATURE_METERING
 

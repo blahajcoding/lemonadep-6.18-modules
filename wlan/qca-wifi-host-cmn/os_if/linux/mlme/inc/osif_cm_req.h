@@ -64,9 +64,7 @@ struct osif_connect_params {
 #define WLAN_CM_MAX_CONNECT_AKMS 5
 #endif
 
-#if defined(WLAN_FEATURE_FILS_SK) && \
-	(defined(CFG80211_FILS_SK_OFFLOAD_SUPPORT) || \
-		 (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)))
+#if defined(WLAN_FEATURE_FILS_SK)
 /**
  * osif_cm_get_fils_auth_type() - get fils auth type
  * @auth: nl auth type

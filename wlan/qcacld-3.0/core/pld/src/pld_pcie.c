@@ -43,10 +43,8 @@
 #define CE_COUNT_MAX 8
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 #ifndef CHIP_VERSION
 #define CHIP_VERSION CNSS_CHIP_VER_ANY
-#endif
 #endif
 
 /**
@@ -278,7 +276,6 @@ out:
 	return;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
 /**
  * pld_bus_event_type_convert() - Convert enum cnss_bus_event_type
  *		to enum pld_bus_event
@@ -361,7 +358,6 @@ static int pld_pcie_update_event(struct pci_dev *pdev,
 
 	return 0;
 }
-#endif
 
 #ifdef FEATURE_RUNTIME_PM
 /**
@@ -708,9 +704,7 @@ struct cnss_wlan_driver pld_pcie_ops = {
 	.crash_shutdown = pld_pcie_crash_shutdown,
 	.modem_status   = pld_pcie_notify_handler,
 	.update_status  = pld_pcie_uevent,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
 	.update_event = pld_pcie_update_event,
-#endif
 #ifdef CONFIG_PM
 	.suspend    = pld_pcie_suspend,
 	.resume     = pld_pcie_resume,
@@ -726,9 +720,7 @@ struct cnss_wlan_driver pld_pcie_ops = {
 #ifdef FEATURE_WLAN_FULL_POWER_DOWN_SUPPORT
 	.suspend_mode = &pld_pcie_suspend_mode,
 #endif
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 	.chip_version = CHIP_VERSION,
-#endif
 };
 
 /**
@@ -1036,7 +1028,6 @@ void pld_pcie_device_self_recovery(struct device *dev,
 	cnss_self_recovery(dev, cnss_reason);
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 int pld_pcie_set_wfc_mode(struct device *dev,
 			  enum pld_wfc_mode wfc_mode)
 {
@@ -1059,6 +1050,5 @@ int pld_pcie_set_wfc_mode(struct device *dev,
 out:
 	return ret;
 }
-#endif
 #endif
 #endif

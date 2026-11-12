@@ -72,7 +72,6 @@ static int hif_rxthread_napi_poll(struct napi_struct *napi, int budget)
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0))
 /**
  * hif_rx_thread_napi_get_netdev_ptr() - Get dummy netdev pointer
  * @napii: qca_napi_info pointer
@@ -91,19 +90,6 @@ hif_rx_thread_napi_set_netdev_ptr(struct qca_napi_info *napii,
 {
 	napii->rx_thread_netdev = nd;
 }
-#else
-static inline struct net_device *
-hif_rx_thread_napi_get_netdev_ptr(struct qca_napi_info *napii)
-{
-	return &napii->rx_thread_netdev;
-}
-
-static inline void
-hif_rx_thread_napi_set_netdev_ptr(struct qca_napi_info *napii,
-				  struct net_device *nd)
-{
-}
-#endif
 
 /**
  * hif_init_rx_thread_napi() - Initialize dummy Rx_thread NAPI
@@ -147,7 +133,6 @@ static void hif_deinit_rx_thread_napi(struct qca_napi_info *napii)
 }
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0))
 /**
  * hif_napi_get_dummy_netdev_ptr() - Get dummy netdev pointer
  * @napii: qca_napi_info pointer
@@ -166,19 +151,6 @@ hif_napi_set_dummy_netdev_ptr(struct qca_napi_info *napii,
 {
 	napii->netdev = nd;
 }
-#else
-static inline struct net_device *
-hif_napi_get_dummy_netdev_ptr(struct qca_napi_info *napii)
-{
-	return &napii->netdev;
-}
-
-static inline void
-hif_napi_set_dummy_netdev_ptr(struct qca_napi_info *napii,
-			      struct net_device *nd)
-{
-}
-#endif
 
 /**
  * hif_napi_create() - creates the NAPI structures for a given CE
@@ -1408,17 +1380,11 @@ static int hnc_tput_hook(int install)
  * Implementation of hif_napi_cpu API
  */
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
 static inline void record_sibling_cpumask(struct qca_napi_cpu *cpus, int i)
 {
 	cpumask_copy(&(cpus[i].thread_mask),
 			     topology_sibling_cpumask(i));
 }
-#else
-static inline void record_sibling_cpumask(struct qca_napi_cpu *cpus, int i)
-{
-}
-#endif
 
 
 /**

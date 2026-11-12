@@ -3791,15 +3791,6 @@ static struct qmi_msg_handler qmi_wlfw_msg_handlers[] = {
 	{}
 };
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 19, 0))
-static int cnss_kernel_connect(struct socket *sock,
-			       struct sockaddr_qrtr *sq,
-			       int addrlen, int flags)
-{
-	return kernel_connect(sock, (struct sockaddr_unsized *)sq,
-			      addrlen, flags);
-}
-#else
 static int cnss_kernel_connect(struct socket *sock,
 			       struct sockaddr_qrtr *sq,
 			       int addrlen, int flags)
@@ -3807,7 +3798,6 @@ static int cnss_kernel_connect(struct socket *sock,
 	return kernel_connect(sock, (struct sockaddr *)sq,
 			      addrlen, flags);
 }
-#endif
 
 static int cnss_wlfw_connect_to_server(struct cnss_plat_data *plat_priv,
 				       void *data)

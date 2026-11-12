@@ -104,11 +104,7 @@ netdev_tx_t hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev);
  *
  * Return: none
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
 void hdd_tx_timeout(struct net_device *dev, unsigned int txqueue);
-#else
-void hdd_tx_timeout(struct net_device *dev);
-#endif
 
 QDF_STATUS hdd_init_tx_rx(struct hdd_adapter *adapter);
 QDF_STATUS hdd_deinit_tx_rx(struct hdd_adapter *adapter);
@@ -481,22 +477,10 @@ int hdd_set_udp_qos_upgrade_config(struct hdd_adapter *adapter,
  * As of the 4.7 kernel, net_device->trans_start is removed. Create shims to
  * support compiling against older versions of the kernel.
  */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 7, 0))
-static inline void netif_trans_update(struct net_device *dev)
-{
-	dev->trans_start = jiffies;
-}
-
-#define TX_TIMEOUT_TRACE(dev, module_id) QDF_TRACE( \
-	module_id, QDF_TRACE_LEVEL_ERROR, \
-	"%s: Transmission timeout occurred jiffies %lu trans_start %lu", \
-	__func__, jiffies, dev->trans_start)
-#else
 #define TX_TIMEOUT_TRACE(dev, module_id) QDF_TRACE( \
 	module_id, QDF_TRACE_LEVEL_ERROR, \
 	"%s: Transmission timeout occurred jiffies %lu", \
 	__func__, jiffies)
-#endif
 
 static inline void
 hdd_skb_fill_gso_size(struct net_device *dev, struct sk_buff *skb)

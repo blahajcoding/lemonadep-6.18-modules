@@ -475,11 +475,7 @@ static const struct mhi_channel_config cnss_mhi_channels_genoa[] = {
 	},
 };
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0))
 static struct mhi_event_config cnss_mhi_events[] = {
-#else
-static const struct mhi_event_config cnss_mhi_events[] = {
-#endif
 	{
 		.num_elements = 32,
 		.irq_moderation_ms = 0,
@@ -1036,9 +1032,7 @@ static int cnss_mhi_device_get_sync_atomic(struct cnss_pci_data *pci_priv,
 					  timeout_us, in_panic);
 }
 
-#if defined(CONFIG_CNSS2_SMMU_DB_SUPPORT) && \
-    ((LINUX_VERSION_CODE < KERNEL_VERSION(6, 9, 0)) || \
-     (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0)))
+#if defined(CONFIG_CNSS2_SMMU_DB_SUPPORT)
 static int cnss_mhi_host_notify_db_disable_trace(struct cnss_pci_data *pci_priv)
 {
 	return mhi_host_notify_db_disable_trace(pci_priv->mhi_ctrl);
@@ -1103,9 +1097,7 @@ static int cnss_mhi_device_get_sync_atomic(struct cnss_pci_data *pci_priv,
 	return -EOPNOTSUPP;
 }
 
-#if defined(CONFIG_CNSS2_SMMU_DB_SUPPORT) && \
-    ((LINUX_VERSION_CODE < KERNEL_VERSION(6, 9, 0)) || \
-     (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0)))
+#if defined(CONFIG_CNSS2_SMMU_DB_SUPPORT)
 static int cnss_mhi_host_notify_db_disable_trace(struct cnss_pci_data *pci_priv)
 {
 	return -EOPNOTSUPP;
@@ -1269,9 +1261,7 @@ void cnss_pci_controller_set_base(struct cnss_pci_data *pci_priv)
 	cnss_pr_dbg("Remove MHI satellite configuration\n");
 	return cnss_mhi_controller_set_base(pci_priv, 0);
 }
-#if defined(CONFIG_CNSS2_SMMU_DB_SUPPORT) && \
-    ((LINUX_VERSION_CODE < KERNEL_VERSION(6, 9, 0)) || \
-     (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0)))
+#if defined(CONFIG_CNSS2_SMMU_DB_SUPPORT)
 #define CNSS_MHI_WAKE_TIMEOUT		500000
 
 static void cnss_record_smmu_fault_timestamp(struct cnss_pci_data *pci_priv,
@@ -1312,40 +1302,21 @@ static void cnss_pci_smmu_fault_handler_irq(struct iommu_domain *domain,
 	cnss_record_smmu_fault_timestamp(pci_priv, SMMU_CB_EXIT);
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)) && \
-     (LINUX_VERSION_CODE < KERNEL_VERSION(6, 18, 0))
-void cnss_register_iommu_fault_handler_irq(struct cnss_pci_data *pci_priv)
-{
-	qcom_iommu_register_device_fault_handler_irq(&pci_priv->pci_dev->dev,
-						     cnss_pci_smmu_fault_handler_irq,
-						     pci_priv);
-}
-#else
 void cnss_register_iommu_fault_handler_irq(struct cnss_pci_data *pci_priv)
 {
 	qcom_iommu_set_fault_handler_irq(pci_priv->iommu_domain,
 					 cnss_pci_smmu_fault_handler_irq, pci_priv);
 }
-#endif
 #else
 void cnss_register_iommu_fault_handler_irq(struct cnss_pci_data *pci_priv)
 {
 }
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)) && \
-    (LINUX_VERSION_CODE < KERNEL_VERSION(6, 9, 0))
-static
-void cnss_unregister_iommu_fault_handler(struct cnss_pci_data *pci_priv)
-{
-	iommu_unregister_device_fault_handler(&pci_priv->pci_dev->dev);
-}
-#else
 static inline
 void cnss_unregister_iommu_fault_handler(struct cnss_pci_data *pci_priv)
 {
 }
-#endif
 
 int cnss_pci_check_link_status(struct cnss_pci_data *pci_priv)
 {
@@ -2748,17 +2719,10 @@ static void cnss_pci_set_mhi_state_bit(struct cnss_pci_data *pci_priv,
 	}
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 static int cnss_mhi_pm_force_resume(struct cnss_pci_data *pci_priv)
 {
 	return mhi_pm_resume_force(pci_priv->mhi_ctrl);
 }
-#else
-static int cnss_mhi_pm_force_resume(struct cnss_pci_data *pci_priv)
-{
-	return mhi_pm_resume(pci_priv->mhi_ctrl);
-}
-#endif
 
 static int cnss_pci_set_mhi_state(struct cnss_pci_data *pci_priv,
 				  enum cnss_mhi_state mhi_state)
@@ -6659,9 +6623,7 @@ static void cnss_pci_free_aux_mem(struct cnss_pci_data *pci_priv)
 	aux_mem->size = 0;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0) || \
-	defined(BACKPORTED_EXPORT_SAVE_STACK_TRACE_TSK_ARM)) && \
-	defined(CONFIG_STACKTRACE)
+#if defined(CONFIG_STACKTRACE)
 #define CNSS_PRINT_TRACE_COUNT 32
 #define CNSS_PRINT_TRACE_SPACES 4
 
@@ -6677,7 +6639,7 @@ static void cnss_print_thread_trace(struct task_struct *task)
 	nr_entries = stack_trace_save_tsk(task, entries, max_entries, skip);
 	stack_trace_print(entries, nr_entries, spaces);
 }
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0))
+#else
 static void cnss_print_thread_trace(struct task_struct *task)
 {
 	const int spaces = CNSS_PRINT_TRACE_SPACES;
@@ -6693,21 +6655,6 @@ static void cnss_print_thread_trace(struct task_struct *task)
 	stack_trace_print(entries, trace.nr_entries, spaces);
 }
 
-#else
-static void cnss_print_thread_trace(struct task_struct *task)
-{
-	const int spaces = CNSS_PRINT_TRACE_SPACES;
-	unsigned long entries[CNSS_PRINT_TRACE_COUNT] = {0};
-	struct stack_trace trace = {
-		.nr_entries = 0,
-		.skip = 0,
-		.entries = &entries[0],
-		.max_entries = CNSS_PRINT_TRACE_COUNT,
-	};
-
-	save_stack_trace_tsk(task, &trace);
-	print_stack_trace(&trace, spaces);
-}
 #endif
 
 #else
@@ -7219,7 +7166,6 @@ u32 cnss_pci_get_wake_msi(struct cnss_pci_data *pci_priv)
 	return user_base_data;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0))
 static inline int cnss_pci_set_dma_mask(struct pci_dev *pci_dev, u64 mask)
 {
 	return dma_set_mask(&pci_dev->dev, mask);
@@ -7230,18 +7176,6 @@ static inline int cnss_pci_set_coherent_dma_mask(struct pci_dev *pci_dev,
 {
 	return dma_set_coherent_mask(&pci_dev->dev, mask);
 }
-#else /* (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)) */
-static inline int cnss_pci_set_dma_mask(struct pci_dev *pci_dev, u64 mask)
-{
-	return pci_set_dma_mask(pci_dev, mask);
-}
-
-static inline int cnss_pci_set_coherent_dma_mask(struct pci_dev *pci_dev,
-	u64 mask)
-{
-	return pci_set_consistent_dma_mask(pci_dev, mask);
-}
-#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)) */
 
 static int cnss_pci_enable_bus(struct cnss_pci_data *pci_priv)
 {
@@ -8578,7 +8512,6 @@ static int cnss_get_soc_info_pre_mhi(struct cnss_pci_data *pci_priv)
 }
 
 #ifdef CONFIG_ONE_MSI_VECTOR
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0))
 static void cnss_pci_set_mhi_event_config_for_one_msi(void)
 {
 	uint32_t i;
@@ -8592,21 +8525,6 @@ static void cnss_pci_set_mhi_event_config_for_one_msi(void)
 	for (i = 0; i < num_events; i++)
 		cnss_mhi_events[i].irq = 0;
 }
-#else
-static void cnss_pci_set_mhi_event_config_for_one_msi(void)
-{
-	/* The irq field value of cnss_mhi_events array should be set to 0, but when
-	 * the kernel version is older than 5.12, cnss_mhi_events is defined as const
-	 * type and irq field cannot be overwritten with the correct value. since the
-	 * kernel older than 5.12 is becoming outdated, this issue on the old kernel
-	 * will not be fixed for now.
-	 */
-	cnss_pr_err("Known issue: The irq field value of cnss_mhi_events should "
-		    "be an incorrect value in one msi mode, this may result in "
-		    "the host not being able to get interrupt. All rings should "
-		    "share the same vector 0 in one msi mode.");
-}
-#endif
 #else
 static void cnss_pci_set_mhi_event_config_for_one_msi(void)
 {
@@ -8679,9 +8597,6 @@ static bool cnss_is_tme_supported(struct cnss_pci_data *pci_priv)
 static void cnss_mhi_misc_init(struct cnss_pci_data *pci_priv,
 			       struct mhi_controller *mhi_ctrl)
 {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0))
-	mhi_ctrl->fallback_fw_image = pci_priv->plat_priv->fw_fallback_name;
-#endif
 	mhi_ctrl->runtime_get_sync = cnss_mhi_pm_runtime_get_sync;
 	mhi_ctrl->runtime_put_autosuspend = cnss_mhi_pm_runtime_put_autosuspend;
 	mhi_ctrl->tme_supported_image = cnss_is_tme_supported(pci_priv);

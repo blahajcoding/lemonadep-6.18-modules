@@ -388,22 +388,11 @@ void hdd_ipv6_notifier_work_queue(struct work_struct *work);
  *
  * Return: 0 for success, error number on failure.
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0))
 int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
 				  struct wireless_dev *wdev,
 				  int radio_idx,
 				  unsigned int link_id,
 				  int *dbm);
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0))
-int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
-				  struct wireless_dev *wdev,
-				  unsigned int link_id,
-				  int *dbm);
-#else
-int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
-				  struct wireless_dev *wdev,
-				  int *dbm);
-#endif
 
 /**
  * wlan_hdd_cfg80211_set_txpower() - set TX power
@@ -415,18 +404,11 @@ int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
  *
  * Return: 0 for success, non-zero for failure
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0))
 int wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
 				  struct wireless_dev *wdev,
 				  int radio_idx,
 				  enum nl80211_tx_power_setting type,
 				  int dbm);
-#else
-int wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
-				  struct wireless_dev *wdev,
-				  enum nl80211_tx_power_setting type,
-				  int dbm);
-#endif
 
 /**
  * wlan_hdd_cfg80211_set_power_mgmt() - set cfg80211 power management config
@@ -482,15 +464,7 @@ int wlan_hdd_pm_qos_notify(struct notifier_block *nb, unsigned long curr_val,
  * Return: true if there is PM QoS global vote,
  *	   or an false otherwise
  */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 bool wlan_hdd_is_cpu_pm_qos_in_progress(struct hdd_context *hdd_ctx);
-#else
-static inline bool
-wlan_hdd_is_cpu_pm_qos_in_progress(struct hdd_context *hdd_ctx)
-{
-	return false;
-}
-#endif
 #endif
 /**
  * wlan_hdd_ipv6_changed() - IPv6 change notifier callback

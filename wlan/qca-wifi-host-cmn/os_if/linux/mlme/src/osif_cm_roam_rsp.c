@@ -62,8 +62,6 @@ static inline void osif_update_fils_hlp_data(struct net_device *dev,
  *
  * Return: none
  */
-#if defined CFG80211_ROAMED_API_UNIFIED || \
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0))
 
 #ifdef CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT
 static
@@ -94,17 +92,6 @@ static void osif_roamed_ind(struct net_device *dev, struct cfg80211_bss *bss,
 	info.resp_ie_len = resp_ie_len;
 	cfg80211_roamed(dev, &info, qdf_mem_malloc_flags());
 }
-#else
-static inline void osif_roamed_ind(struct net_device *dev,
-				   struct cfg80211_bss *bss,
-				   const uint8_t *req_ie, size_t req_ie_len,
-				   const uint8_t *resp_ie,
-				   size_t resp_ie_len)
-{
-	cfg80211_roamed_bss(dev, bss, req_ie, req_ie_len, resp_ie, resp_ie_len,
-			    qdf_mem_malloc_flags());
-}
-#endif
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 #ifdef WLAN_FEATURE_FILS_SK

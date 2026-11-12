@@ -47,27 +47,6 @@
 #include "cdp_txrx_host_stats.h"
 #include "wlan_hdd_object_manager.h"
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 0, 0)) && !defined(WITH_BACKPORTS)
-#define HDD_INFO_SIGNAL                 STATION_INFO_SIGNAL
-#define HDD_INFO_SIGNAL_AVG             STATION_INFO_SIGNAL_AVG
-#define HDD_INFO_TX_PACKETS             STATION_INFO_TX_PACKETS
-#define HDD_INFO_TX_RETRIES             STATION_INFO_TX_RETRIES
-#define HDD_INFO_TX_FAILED              STATION_INFO_TX_FAILED
-#define HDD_INFO_TX_BITRATE             STATION_INFO_TX_BITRATE
-#define HDD_INFO_RX_BITRATE             STATION_INFO_RX_BITRATE
-#define HDD_INFO_TX_BYTES               STATION_INFO_TX_BYTES
-#define HDD_INFO_CHAIN_SIGNAL_AVG       STATION_INFO_CHAIN_SIGNAL_AVG
-#define HDD_INFO_EXPECTED_THROUGHPUT    0
-#define HDD_INFO_RX_BYTES               STATION_INFO_RX_BYTES
-#define HDD_INFO_RX_PACKETS             STATION_INFO_RX_PACKETS
-#define HDD_INFO_TX_BYTES64             0
-#define HDD_INFO_RX_BYTES64             0
-#define HDD_INFO_INACTIVE_TIME          0
-#define HDD_INFO_CONNECTED_TIME         0
-#define HDD_INFO_STA_FLAGS              0
-#define HDD_INFO_RX_MPDUS               0
-#define HDD_INFO_FCS_ERROR_COUNT        0
-#else
 #define HDD_INFO_SIGNAL                 BIT(NL80211_STA_INFO_SIGNAL)
 #define HDD_INFO_SIGNAL_AVG             BIT(NL80211_STA_INFO_SIGNAL_AVG)
 #define HDD_INFO_TX_PACKETS             BIT(NL80211_STA_INFO_TX_PACKETS)
@@ -87,7 +66,6 @@
 #define HDD_INFO_STA_FLAGS              BIT(NL80211_STA_INFO_STA_FLAGS)
 #define HDD_INFO_RX_MPDUS             BIT_ULL(NL80211_STA_INFO_RX_MPDUS)
 #define HDD_INFO_FCS_ERROR_COUNT      BIT_ULL(NL80211_STA_INFO_FCS_ERROR_COUNT)
-#endif /* kernel version less than 4.0.0 && no_backport */
 
 #define HDD_LINK_STATS_MAX		5
 #define HDD_MAX_ALLOWED_LL_STATS_FAILURE	5
@@ -185,7 +163,6 @@ static int rssi_mcs_tbl[][14] = {
 	{-76, -73, -71, -68, -64, -60, -59, -58, -53, -51, -46, -42, -46, -36}
 };
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
 static bool wlan_hdd_is_he_mcs_12_13_supported(uint16_t he_mcs_12_13_map)
 {
 	if (he_mcs_12_13_map)
@@ -193,12 +170,6 @@ static bool wlan_hdd_is_he_mcs_12_13_supported(uint16_t he_mcs_12_13_map)
 	else
 		return false;
 }
-#else
-static bool wlan_hdd_is_he_mcs_12_13_supported(uint16_t he_mcs_12_13_map)
-{
-	return false;
-}
-#endif
 
 static bool get_station_fw_request_needed = true;
 
@@ -4566,7 +4537,6 @@ static void hdd_get_max_rate_vht(struct hdd_station_info *stainfo,
 	*max_mcs_idx = mcsidx;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
 /**
  * hdd_fill_bw_mcs() - fill ch width and mcs flags
  * @rate_info: pointer to struct rate_info
@@ -4603,44 +4573,6 @@ static void hdd_fill_bw_mcs(struct rate_info *rate_info,
 			rate_info->bw = RATE_INFO_BW_40;
 	}
 }
-#else
-/**
- * hdd_fill_bw_mcs() - fill ch width and mcs flags
- * @rate_info: pointer to struct rate_info
- * @rate_flags: HDD rate flags
- * @mcsidx: mcs index
- * @nss: number of streams
- * @vht: vht mode or not
- *
- * This function will fill ch width and mcs flags
- *
- * Return: None
- */
-static void hdd_fill_bw_mcs(struct rate_info *rate_info,
-			    enum tx_rate_info rate_flags,
-			    uint8_t mcsidx,
-			    uint8_t nss,
-			    bool vht)
-{
-	if (vht) {
-		rate_info->nss = nss;
-		rate_info->mcs = mcsidx;
-		rate_info->flags |= RATE_INFO_FLAGS_VHT_MCS;
-		if (rate_flags & TX_RATE_VHT80)
-			rate_info->flags |= RATE_INFO_FLAGS_80_MHZ_WIDTH;
-		else if (rate_flags & TX_RATE_VHT40)
-			rate_info->flags |= RATE_INFO_FLAGS_40_MHZ_WIDTH;
-		else if (rate_flags & TX_RATE_VHT20)
-			rate_info->flags |= RATE_INFO_FLAGS_VHT_MCS;
-	} else {
-		rate_info->mcs = (nss - 1) << 3;
-		rate_info->mcs |= mcsidx;
-		rate_info->flags |= RATE_INFO_FLAGS_MCS;
-		if (rate_flags & TX_RATE_HT40)
-			rate_info->flags |= RATE_INFO_FLAGS_40_MHZ_WIDTH;
-	}
-}
-#endif
 
 /**
  * hdd_fill_bw_mcs_vht() - fill ch width and mcs flags for VHT mode
@@ -5299,8 +5231,7 @@ static int wlan_hdd_get_station_remote(struct wiphy *wiphy,
 	return status;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)) && \
-	defined(WLAN_FEATURE_11AX)
+#if defined(WLAN_FEATURE_11AX)
 /**
  * hdd_map_he_gi_to_os() - map txrate_gi to os guard interval
  * @guard_interval: guard interval get from fw rate
@@ -5694,7 +5625,6 @@ static void hdd_report_actual_rate(enum tx_rate_info rate_flags,
  *
  * Return: None
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
 static inline
 void hdd_wlan_fill_per_chain_rssi_stats(struct station_info *sinfo,
 					struct hdd_adapter *adapter)
@@ -5723,16 +5653,7 @@ void hdd_wlan_fill_per_chain_rssi_stats(struct station_info *sinfo,
 		sinfo->filled |= HDD_INFO_SIGNAL_AVG;
 	}
 }
-#else
-static inline
-void hdd_wlan_fill_per_chain_rssi_stats(struct station_info *sinfo,
-					struct hdd_adapter *adapter)
-{
-}
-#endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 20, 0)) || \
-	defined(CFG80211_RX_FCS_ERROR_REPORTING_SUPPORT)
 static void hdd_fill_fcs_and_mpdu_count(struct hdd_adapter *adapter,
 					struct station_info *sinfo)
 {
@@ -5742,12 +5663,6 @@ static void hdd_fill_fcs_and_mpdu_count(struct hdd_adapter *adapter,
 		  sinfo->rx_mpdu_count, sinfo->fcs_err_count);
 	sinfo->filled |= HDD_INFO_FCS_ERROR_COUNT | HDD_INFO_RX_MPDUS;
 }
-#else
-static void hdd_fill_fcs_and_mpdu_count(struct hdd_adapter *adapter,
-					struct station_info *sinfo)
-{
-}
-#endif
 
 void hdd_check_and_update_nss(struct hdd_context *hdd_ctx,
 			      uint8_t *tx_nss, uint8_t *rx_nss)
@@ -6230,7 +6145,6 @@ struct net_device_stats *hdd_get_stats(struct net_device *dev)
  * ms level, the result is
  * time = cycle / (clock_freq * 1000)
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
 static bool wlan_fill_survey_result(struct survey_info *survey, int opfreq,
 				    struct scan_chan_info *chan_info,
 				    struct ieee80211_channel *channels)
@@ -6264,43 +6178,6 @@ static bool wlan_fill_survey_result(struct survey_info *survey, int opfreq,
 			  SURVEY_INFO_TIME_TX;
 	return true;
 }
-#else
-static bool wlan_fill_survey_result(struct survey_info *survey, int opfreq,
-				    struct scan_chan_info *chan_info,
-				    struct ieee80211_channel *channels)
-{
-	uint64_t clock_freq = chan_info->clock_freq * 1000;
-
-	if (channels->center_freq != (uint16_t)chan_info->freq)
-		return false;
-
-	survey->channel = channels;
-	survey->noise = chan_info->noise_floor;
-	survey->filled = 0;
-
-	if (chan_info->noise_floor)
-		survey->filled |= SURVEY_INFO_NOISE_DBM;
-
-	if (opfreq == chan_info->freq)
-		survey->filled |= SURVEY_INFO_IN_USE;
-
-	if (clock_freq == 0)
-		return true;
-
-	survey->channel_time = qdf_do_div(chan_info->cycle_count, clock_freq);
-
-	survey->channel_time_busy = qdf_do_div(chan_info->rx_clear_count,
-							 clock_freq);
-
-	survey->channel_time_tx = qdf_do_div(chan_info->tx_frame_count,
-							 clock_freq);
-
-	survey->filled |= SURVEY_INFO_CHANNEL_TIME |
-			  SURVEY_INFO_CHANNEL_TIME_BUSY |
-			  SURVEY_INFO_CHANNEL_TIME_TX;
-	return true;
-}
-#endif
 
 static bool wlan_hdd_update_survey_info(struct wiphy *wiphy,
 					struct hdd_adapter *adapter,

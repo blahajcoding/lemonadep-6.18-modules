@@ -82,18 +82,9 @@ static void wlan_p2p_rx_callback(void *user_data,
 	osif_debug("Indicate frame over nl80211, idx:%d",
 		   wdev->netdev->ifindex);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0))
 	cfg80211_rx_mgmt(wdev, rx_frame->rx_freq, rx_frame->rx_rssi * 100,
 			 rx_frame->buf, rx_frame->frame_len,
 			 NL80211_RXMGMT_FLAG_ANSWERED);
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0))
-	cfg80211_rx_mgmt(wdev, rx_frame->rx_freq, rx_frame->rx_rssi * 100,
-			 rx_frame->buf, rx_frame->frame_len,
-			 NL80211_RXMGMT_FLAG_ANSWERED, GFP_ATOMIC);
-#else
-	cfg80211_rx_mgmt(wdev, rx_frame->rx_freq, rx_frame->rx_rssi * 100,
-			 rx_frame->buf, rx_frame->frame_len, GFP_ATOMIC);
-#endif /* LINUX_VERSION_CODE */
 fail:
 	wlan_objmgr_vdev_release_ref(vdev, WLAN_P2P_ID);
 }

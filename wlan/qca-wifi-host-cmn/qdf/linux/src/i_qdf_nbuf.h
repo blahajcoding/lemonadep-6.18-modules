@@ -41,7 +41,6 @@
 #include <qdf_nbuf_frag.h>
 #include "qdf_time.h"
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0))
 /* Since commit
  *  baebdf48c3600 ("net: dev: Makes sure netif_rx() can be invoked in any context.")
  *
@@ -51,7 +50,6 @@
  * Use netif_rx().
  */
 #define netif_rx_ni(skb) netif_rx(skb)
-#endif
 
 /*
  * Use socket buffer as the underlying implementation as skbuf .
@@ -84,11 +82,6 @@ typedef struct sk_buff_head __qdf_nbuf_queue_head_t;
 #define QDF_NBUF_CB_PACKET_TYPE_ICMPv6 6
 
 #define RADIOTAP_BASE_HEADER_LEN sizeof(struct ieee80211_radiotap_header)
-
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0))
-#define IEEE80211_RADIOTAP_HE 23
-#define IEEE80211_RADIOTAP_HE_MU 24
-#endif
 
 #define IEEE80211_RADIOTAP_HE_MU_OTHER 25
 
@@ -382,15 +375,9 @@ struct qdf_nbuf_cb {
 	} u;
 }; /* struct qdf_nbuf_cb: MAX 48 bytes */
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0))
 QDF_COMPILE_TIME_ASSERT(qdf_nbuf_cb_size,
 			(sizeof(struct qdf_nbuf_cb)) <=
 			sizeof_field(struct sk_buff, cb));
-#else
-QDF_COMPILE_TIME_ASSERT(qdf_nbuf_cb_size,
-			(sizeof(struct qdf_nbuf_cb)) <=
-			FIELD_SIZEOF(struct sk_buff, cb));
-#endif
 
 /**
  *  access macros to qdf_nbuf_cb
@@ -1216,7 +1203,6 @@ __qdf_nbuf_reset(struct sk_buff *skb, int reserve, int align)
 	skb_reserve(skb, reserve);
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
 /**
  * qdf_nbuf_dev_scratch_is_supported() - dev_scratch support for network buffer
  *                                       in kernel
@@ -1253,22 +1239,6 @@ __qdf_nbuf_set_dev_scratch(struct sk_buff *skb, unsigned long value)
 {
 	skb->dev_scratch = value;
 }
-#else
-static inline bool __qdf_nbuf_is_dev_scratch_supported(void)
-{
-	return false;
-}
-
-static inline unsigned long __qdf_nbuf_get_dev_scratch(struct sk_buff *skb)
-{
-	return 0;
-}
-
-static inline void
-__qdf_nbuf_set_dev_scratch(struct sk_buff *skb, unsigned long value)
-{
-}
-#endif /* KERNEL_VERSION(4, 14, 0) */
 
 /**
  * __qdf_nbuf_head() - return the pointer the skb's head pointer

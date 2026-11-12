@@ -147,7 +147,6 @@ nla_put_failure:
 	qdf_mem_free(req);
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
 /**
  * hdd_cfg80211_scan_done() - Scan completed callback to cfg80211
  * @adapter: Pointer to the adapter
@@ -169,42 +168,6 @@ static void hdd_cfg80211_scan_done(struct hdd_adapter *adapter,
 	if (adapter->dev->flags & IFF_UP)
 		cfg80211_scan_done(req, &info);
 }
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
-/**
- * hdd_cfg80211_scan_done() - Scan completed callback to cfg80211
- * @adapter: Pointer to the adapter
- * @req : Scan request
- * @aborted : true scan aborted false scan success
- *
- * This function notifies scan done to cfg80211
- *
- * Return: none
- */
-static void hdd_cfg80211_scan_done(struct hdd_adapter *adapter,
-				   struct cfg80211_scan_request *req,
-				   bool aborted)
-{
-	if (adapter->dev->flags & IFF_UP)
-		cfg80211_scan_done(req, aborted);
-}
-#else
-/**
- * hdd_cfg80211_scan_done() - Scan completed callback to cfg80211
- * @adapter: Pointer to the adapter
- * @req : Scan request
- * @aborted : true scan aborted false scan success
- *
- * This function notifies scan done to cfg80211
- *
- * Return: none
- */
-static void hdd_cfg80211_scan_done(struct hdd_adapter *adapter,
-				   struct cfg80211_scan_request *req,
-				   bool aborted)
-{
-	cfg80211_scan_done(req, aborted);
-}
-#endif
 
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
 /**
@@ -803,19 +766,11 @@ static int wlan_hdd_send_scan_start_event(struct wiphy *wiphy,
  *
  * Return: None
  */
-#if defined(CFG80211_SCAN_BSSID) || \
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
 static inline void wlan_hdd_copy_bssid(struct cfg80211_scan_request *request,
 					uint8_t *bssid)
 {
 	qdf_mem_copy(request->bssid, bssid, QDF_MAC_ADDR_SIZE);
 }
-#else
-static inline void wlan_hdd_copy_bssid(struct cfg80211_scan_request *request,
-					uint8_t *bssid)
-{
-}
-#endif
 
 static void hdd_process_vendor_acs_response(struct hdd_adapter *adapter)
 {
@@ -829,8 +784,6 @@ static void hdd_process_vendor_acs_response(struct hdd_adapter *adapter)
 	}
 }
 
-#if defined(CFG80211_SCAN_RANDOM_MAC_ADDR) || \
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
 /**
  * wlan_hdd_vendor_scan_random_attr() - check and fill scan randomization attrs
  * @wiphy: Pointer to wiphy
@@ -895,15 +848,6 @@ static int wlan_hdd_vendor_scan_random_attr(struct wiphy *wiphy,
 
 	return 0;
 }
-#else
-static int wlan_hdd_vendor_scan_random_attr(struct wiphy *wiphy,
-					struct cfg80211_scan_request *request,
-					struct hdd_adapter *adapter,
-					struct nlattr **tb)
-{
-	return 0;
-}
-#endif
 
 const
 struct nla_policy scan_policy[QCA_WLAN_VENDOR_ATTR_SCAN_MAX + 1] = {
@@ -1456,33 +1400,6 @@ static int __wlan_hdd_cfg80211_sched_scan_stop(struct net_device *dev)
 	return errno;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0)
-int wlan_hdd_cfg80211_sched_scan_stop(struct wiphy *wiphy,
-				      struct net_device *dev)
-{
-	int errno;
-	struct osif_vdev_sync *vdev_sync;
-
-	errno = osif_vdev_sync_op_start(dev, &vdev_sync);
-	if (errno)
-		return errno;
-
-	errno = __wlan_hdd_cfg80211_sched_scan_stop(dev);
-
-	osif_vdev_sync_op_stop(vdev_sync);
-
-	/* The return 0 is intentional. We observed a crash due to a return of
-	 * failure in sched_scan_stop , especially for a case where the unload
-	 * of the happens at the same time. The function
-	 * __cfg80211_stop_sched_scan was clearing rdev->sched_scan_req only
-	 * when the sched_scan_stop returns success. If it returns a failure ,
-	 * then its next invocation due to the clean up of the second interface
-	 * will have the dev pointer corresponding to the first one leading to
-	 * a crash.
-	 */
-	return 0;
-}
-#else
 int wlan_hdd_cfg80211_sched_scan_stop(struct wiphy *wiphy,
 				      struct net_device *dev,
 				      uint64_t reqid)
@@ -1509,11 +1426,8 @@ int wlan_hdd_cfg80211_sched_scan_stop(struct wiphy *wiphy,
 	 */
 	return 0;
 }
-#endif /* KERNEL_VERSION(4, 12, 0) */
 #endif /*FEATURE_WLAN_SCAN_PNO */
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0)) || \
-	defined(CFG80211_ABORT_SCAN)
 /**
  * __wlan_hdd_cfg80211_abort_scan() - cfg80211 abort scan api
  * @wiphy: Pointer to wiphy
@@ -1574,7 +1488,6 @@ void wlan_hdd_cfg80211_abort_scan(struct wiphy *wiphy,
 
 	osif_psoc_sync_op_stop(psoc_sync);
 }
-#endif
 
 /**
  * hdd_scan_context_destroy() - Destroy scan context

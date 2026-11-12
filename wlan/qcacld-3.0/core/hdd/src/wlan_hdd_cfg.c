@@ -182,7 +182,6 @@ static QDF_STATUS update_mac_from_string(struct hdd_context *hdd_ctx,
 	return status;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0))
 static inline
 int hdd_firmware_request_nowarn(const struct firmware **fw,
 				const char *name,
@@ -190,15 +189,6 @@ int hdd_firmware_request_nowarn(const struct firmware **fw,
 {
 	return firmware_request_nowarn(fw, name, device);
 }
-#else
-static inline
-int hdd_firmware_request_nowarn(const struct firmware **fw,
-				const char *name,
-				struct device *device)
-{
-	return request_firmware(fw, name, device);
-}
-#endif
 
 /**
  * hdd_update_mac_config() - update MAC address from cfg file

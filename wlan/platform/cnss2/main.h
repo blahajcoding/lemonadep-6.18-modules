@@ -835,9 +835,7 @@ struct cnss_plat_data {
 	enum cnss_power_ctrl_mode pwr_ctrl_mode;
 };
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0))
 #define from_timer timer_container_of
-#endif
 
 #if IS_ENABLED(CONFIG_ARCH_QCOM)
 static inline u64 cnss_get_host_timestamp(struct cnss_plat_data *plat_priv)
@@ -985,7 +983,6 @@ int cnss_cx_voltage_corners_init(struct cnss_plat_data *plat_priv);
 int cnss_xo_trim_perform(struct cnss_xo_trim_config *conf);
 int cnss_caldb_rddm_reuse(struct cnss_plat_data *plat_priv, bool save);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0))
 static inline int cnss_timer_delete(struct timer_list *timer)
 {
 	return timer_delete(timer);
@@ -995,17 +992,6 @@ static inline int cnss_timer_delete_sync(struct timer_list *timer)
 {
 	return timer_delete_sync(timer);
 }
-#else
-static inline int cnss_timer_delete(struct timer_list *timer)
-{
-	return del_timer(timer);
-}
-
-static inline int cnss_timer_delete_sync(struct timer_list *timer)
-{
-	return del_timer_sync(timer);
-}
-#endif
 
 void cnss_power_ctrl_mode_init(struct cnss_plat_data *plat_priv);
 #endif /* _CNSS_MAIN_H */

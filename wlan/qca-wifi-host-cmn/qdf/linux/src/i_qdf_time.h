@@ -27,34 +27,18 @@
 #include <linux/version.h>
 #include <linux/jiffies.h>
 #include <linux/delay.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
 #include <linux/sched/clock.h>
-#else
-#include <linux/sched.h>
-#endif
 #include <linux/ktime.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0))
 #include <linux/timekeeping.h>
-#else
-#include <linux/hrtimer.h>
-#endif
 #ifdef MSM_PLATFORM
 #include <asm/arch_timer.h>
 #endif
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
 #include <linux/sched/clock.h>
-#else
-#include <linux/sched.h>
-#endif
 
 typedef unsigned long __qdf_time_t;
 typedef ktime_t  __qdf_ktime_t;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
 typedef struct timespec64 __qdf_timespec_t;
-#else
-typedef struct timeval __qdf_timespec_t;
-#endif
 
 typedef struct work_struct __qdf_work_struct_t;
 
@@ -300,22 +284,10 @@ static inline uint64_t __qdf_get_monotonic_boottime(void)
  *
  * Return: QTIMER(19.2 MHz) clock ticks
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0))
 static inline uint64_t __qdf_get_log_timestamp(void)
 {
 	return __arch_counter_get_cntvct();
 }
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
-static inline uint64_t __qdf_get_log_timestamp(void)
-{
-	return arch_counter_get_cntvct();
-}
-#else
-static inline uint64_t __qdf_get_log_timestamp(void)
-{
-	return arch_counter_get_cntpct();
-}
-#endif /* LINUX_VERSION_CODE */
 #else
 
 /**
@@ -323,7 +295,6 @@ static inline uint64_t __qdf_get_log_timestamp(void)
  *
  * Return: system tick for non MSM platfroms
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0))
 static inline uint64_t __qdf_get_log_timestamp(void)
 {
 	struct timespec64 ts;
@@ -332,16 +303,6 @@ static inline uint64_t __qdf_get_log_timestamp(void)
 
 	return ((uint64_t)ts.tv_sec * 1000000) + (ts.tv_nsec / 1000);
 }
-#else
-static inline uint64_t __qdf_get_log_timestamp(void)
-{
-	struct timespec ts;
-
-	ktime_get_ts(&ts);
-
-	return ((uint64_t) ts.tv_sec * 1000000) + (ts.tv_nsec / 1000);
-}
-#endif
 #endif
 
 /**
@@ -355,24 +316,11 @@ static inline uint64_t __qdf_get_log_timestamp(void)
  * The time since system booted in nanoseconds
  */
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0))
 static inline uint64_t __qdf_get_bootbased_boottime_ns(void)
 {
 	return ktime_get_boottime_ns();
 }
 
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0))
-static inline uint64_t __qdf_get_bootbased_boottime_ns(void)
-{
-	return ktime_get_boot_ns();
-}
-
-#else
-static inline uint64_t __qdf_get_bootbased_boottime_ns(void)
-{
-	return ktime_to_ns(ktime_get_boottime());
-}
-#endif
 
 /**
  * __qdf_time_ms_to_ktime() - Converts milliseconds to a ktime object
@@ -449,16 +397,9 @@ static inline int64_t __qdf_time_ktime_to_us(ktime_t ktime)
  *
  * Return: none
  */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
 static inline void __qdf_time_ktime_get_real_time(__qdf_timespec_t *ts)
 {
 	ktime_get_real_ts64(ts);
 }
-#else
-static inline void __qdf_time_ktime_get_real_time(__qdf_timespec_t *ts)
-{
-	do_gettimeofday(ts);
-}
-#endif
 
 #endif

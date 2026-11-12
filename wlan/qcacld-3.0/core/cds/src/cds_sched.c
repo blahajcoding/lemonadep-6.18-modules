@@ -46,9 +46,6 @@
  * cead18552660 ("exit: Rename complete_and_exit to kthread_complete_and_exit")
  * Use the old name for kernels before 5.17
  */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0))
-#define kthread_complete_and_exit(c, s) complete_and_exit(c, s)
-#endif
 
 static spinlock_t ssr_protect_lock;
 
@@ -115,7 +112,6 @@ void cds_set_rx_thread_ul_cpu_mask(uint8_t cpu_affinity_mask)
 	sched_context->conf_rx_thread_ul_affinity = cpu_affinity_mask;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
 /**
  * cds_rx_thread_log_cpu_affinity_change - Log Rx thread affinity change
  * @core_affine_cnt: Available cores
@@ -142,14 +138,6 @@ static void cds_rx_thread_log_cpu_affinity_change(unsigned char core_affine_cnt,
 	cds_debug("num online cores %d, high tput req %d, Rx_thread old mask %s new mask %s",
 		  core_affine_cnt, tput_req, old_mask_str, new_mask_str);
 }
-#else
-static void cds_rx_thread_log_cpu_affinity_change(unsigned char core_affine_cnt,
-						  int tput_req,
-						  struct cpumask *old_mask,
-						  struct cpumask *new_mask)
-{
-}
-#endif
 
 /**
  * cds_sched_find_attach_cpu - find available cores and attach to required core

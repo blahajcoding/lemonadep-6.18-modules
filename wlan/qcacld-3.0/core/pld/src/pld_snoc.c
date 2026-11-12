@@ -297,7 +297,6 @@ static int pld_snoc_resume_noirq(struct device *dev)
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
 static int pld_update_hang_evt_data(struct icnss_uevent_hang_data *evt_data,
 				    struct pld_uevent_data *data)
 {
@@ -353,44 +352,6 @@ static int pld_snoc_uevent(struct device *dev,
 out:
 	return 0;
 }
-#else
-static int pld_snoc_uevent(struct device *dev,
-			   struct icnss_uevent_data *uevent)
-{
-	struct pld_context *pld_context;
-	struct icnss_uevent_fw_down_data *fw_down_data = NULL;
-	struct pld_uevent_data data = {0};
-
-	pld_context = pld_get_global_context();
-	if (!pld_context)
-		return -EINVAL;
-
-	if (!pld_context->ops->uevent)
-		goto out;
-
-	if (!uevent)
-		return -EINVAL;
-
-	switch (uevent->uevent) {
-	case ICNSS_UEVENT_FW_CRASHED:
-		data.uevent = PLD_FW_CRASHED;
-		break;
-	case ICNSS_UEVENT_FW_DOWN:
-		if (!uevent->data)
-			return -EINVAL;
-		fw_down_data = (struct icnss_uevent_fw_down_data *)uevent->data;
-		data.uevent = PLD_FW_DOWN;
-		data.fw_down.crashed = fw_down_data->crashed;
-		break;
-	default:
-		goto out;
-	}
-
-	pld_context->ops->uevent(dev, &data);
-out:
-	return 0;
-}
-#endif
 
 #ifdef MULTI_IF_NAME
 #define PLD_SNOC_OPS_NAME "pld_snoc_" MULTI_IF_NAME
@@ -398,18 +359,14 @@ out:
 #define PLD_SNOC_OPS_NAME "pld_snoc"
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 static struct device_info pld_snoc_dev_info[] = {
 	{ "ADRASTEA", ADRASTEA_DEVICE_ID },
 	{ 0 }
 };
-#endif
 
 struct icnss_driver_ops pld_snoc_ops = {
 	.name       = PLD_SNOC_OPS_NAME,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 	.dev_info   = pld_snoc_dev_info,
-#endif
 	.probe      = pld_snoc_probe,
 	.remove     = pld_snoc_remove,
 	.shutdown   = pld_snoc_shutdown,

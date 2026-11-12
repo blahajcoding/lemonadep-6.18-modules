@@ -26,9 +26,7 @@
 #include <linux/vmalloc.h>
 #include <wlan_logging_sock_svc.h>
 #include <linux/kthread.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 #include <linux/panic_notifier.h>
-#endif
 #include <qdf_time.h>
 #include <qdf_trace.h>
 #include <qdf_mc_timer.h>
@@ -69,9 +67,6 @@
  * cead18552660 ("exit: Rename complete_and_exit to kthread_complete_and_exit")
  * Use the old name for kernels before 5.17
  */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0))
-#define kthread_complete_and_exit(c, s) complete_and_exit(c, s)
-#endif
 
 #define MAX_NUM_PKT_LOG 32
 

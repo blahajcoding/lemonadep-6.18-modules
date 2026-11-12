@@ -35,14 +35,6 @@
 #include "pld_common.h"
 #include "target_type.h"
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0))
-/*
- * Commit 359745d78351 ("proc: remove PDE_DATA() completely")
- * Replaced PDE_DATA() with pde_data()
- */
-#define pde_data(inode) PDE_DATA(inode)
-#endif
-
 #define PROCFS_NAME             "athdiagpfs"
 #ifdef MULTI_IF_NAME
 #define PROCFS_DIR              "cld" MULTI_IF_NAME
@@ -547,18 +539,11 @@ static ssize_t ath_procfs_diag_write(struct file *file,
 	return rv;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
 static const struct proc_ops athdiag_fops = {
 	.proc_read = ath_procfs_diag_read,
 	.proc_write = ath_procfs_diag_write,
 	.proc_lseek = default_llseek,
 };
-#else
-static const struct file_operations athdiag_fops = {
-	.read = ath_procfs_diag_read,
-	.write = ath_procfs_diag_write,
-};
-#endif
 
 /*
  * This function is called when the module is loaded

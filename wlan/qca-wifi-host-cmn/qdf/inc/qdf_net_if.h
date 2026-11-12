@@ -31,13 +31,8 @@
 
 struct qdf_net_if;
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0))
 #define netif_napi_add_ni(net_device, napi, poll, weight) \
 	netif_napi_add_weight(net_device, napi, poll, weight)
-#else
-#define netif_napi_add_ni(net_device, napi, poll, weight) \
-	netif_napi_add(net_device, napi, poll, weight)
-#endif
 
 #ifdef ENHANCED_OS_ABSTRACTION
 /**

@@ -59,22 +59,12 @@ const struct nla_policy cfg80211_scan_policy[
  *
  * Return: True if colocated 6ghz scan flag present in scan req
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 static bool
 wlan_cfg80211_is_colocated_6ghz_scan_supported(uint32_t scan_flag)
 {
 	return !!(scan_flag & NL80211_SCAN_FLAG_COLOCATED_6GHZ);
 }
-#else
-static inline bool
-wlan_cfg80211_is_colocated_6ghz_scan_supported(uint32_t scan_flag)
-{
-	return false;
-}
-#endif
 
-#if defined(CFG80211_SCAN_RANDOM_MAC_ADDR) || \
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
 /**
  * wlan_fill_scan_rand_attrs() - Populate the scan randomization attrs
  * @vdev: pointer to objmgr vdev
@@ -140,28 +130,8 @@ static void wlan_scan_rand_attrs(struct wlan_objmgr_vdev *vdev,
 	req->scan_req.scan_f_add_spoofed_mac_in_probe = true;
 	req->scan_req.scan_f_add_rand_seq_in_probe = true;
 }
-#else
-/**
- * wlan_scan_rand_attrs() - Wrapper function to fill scan random attrs
- * @vdev: pointer to objmgr vdev
- * @request: pointer to cfg80211 scan request
- * @req: pointer to cmn module scan request
- *
- * This is a wrapper function which invokes wlan_fill_scan_rand_attrs()
- * to fill random attributes of internal scan request with cfg80211_scan_request
- *
- * Return: None
- */
-static void wlan_scan_rand_attrs(struct wlan_objmgr_vdev *vdev,
-				 struct cfg80211_scan_request *request,
-				 struct scan_start_request *req)
-{
-}
-#endif
 
 #ifdef FEATURE_WLAN_SCAN_PNO
-#if ((LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)) || \
-	defined(CFG80211_MULTI_SCAN_PLAN_BACKPORT))
 
 /**
  * wlan_config_sched_scan_plan() - configures the sched scan plans
@@ -206,40 +176,12 @@ wlan_config_sched_scan_plan(struct wlan_objmgr_psoc *psoc,
 			 request->n_scan_plans);
 	}
 }
-#else
-#define wlan_config_sched_scan_plan(psoc, pno_req, request) \
-	__wlan_config_sched_scan_plan(pno_req, request, psoc)
 
-static void
-__wlan_config_sched_scan_plan(struct pno_scan_req_params *pno_req,
-			      struct cfg80211_sched_scan_request *request,
-			      struct wlan_objmgr_psoc *psoc)
-{
-	uint32_t scan_timer_repeat_value, slow_scan_multiplier;
-
-	scan_timer_repeat_value = ucfg_scan_get_scan_timer_repeat_value(psoc);
-	slow_scan_multiplier = ucfg_scan_get_slow_scan_multiplier(psoc);
-
-	pno_req->fast_scan_period = request->interval;
-	pno_req->fast_scan_max_cycles = scan_timer_repeat_value;
-	pno_req->slow_scan_period =
-		(slow_scan_multiplier * pno_req->fast_scan_period);
-}
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0)
-static inline void
-wlan_cfg80211_sched_scan_results(struct wiphy *wiphy, uint64_t reqid)
-{
-	cfg80211_sched_scan_results(wiphy);
-}
-#else
 static inline void
 wlan_cfg80211_sched_scan_results(struct wiphy *wiphy, uint64_t reqid)
 {
 	cfg80211_sched_scan_results(wiphy, reqid);
 }
-#endif
 
 /**
  * wlan_cfg80211_pno_callback() - pno callback function to handle
@@ -320,8 +262,6 @@ static QDF_STATUS wlan_cfg80211_is_chan_ok_for_dnbs(
 }
 #endif
 
-#if defined(CFG80211_SCAN_RANDOM_MAC_ADDR) || \
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
 /**
  * wlan_pno_scan_rand_attr() - Wrapper function to fill sched scan random attrs
  * @vdev: pointer to objmgr vdev
@@ -346,25 +286,6 @@ static void wlan_pno_scan_rand_attr(struct wlan_objmgr_vdev *vdev,
 				  request->mac_addr_mask, randomize, mac_addr,
 				  mac_mask);
 }
-#else
-/**
- * wlan_pno_scan_rand_attr() - Wrapper function to fill sched scan random attrs
- * @vdev: pointer to objmgr vdev
- * @request: pointer to cfg80211 sched scan request
- * @req: pointer to cmn module pno scan request
- *
- * This is a wrapper function which invokes wlan_fill_scan_rand_attrs()
- * to fill random attributes of internal pno scan
- * with cfg80211_sched_scan_request
- *
- * Return: None
- */
-static void wlan_pno_scan_rand_attr(struct wlan_objmgr_vdev *vdev,
-				    struct cfg80211_sched_scan_request *request,
-				    struct pno_scan_req_params *req)
-{
-}
-#endif
 
 /**
  * wlan_hdd_sched_scan_update_relative_rssi() - update CPNO params
@@ -375,8 +296,6 @@ static void wlan_pno_scan_rand_attr(struct wlan_objmgr_vdev *vdev,
  *
  * Return: None
  */
-#if defined(CFG80211_REPORT_BETTER_BSS_IN_SCHED_SCAN) || \
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
 static inline void wlan_hdd_sched_scan_update_relative_rssi(
 			struct pno_scan_req_params *pno_request,
 			struct cfg80211_sched_scan_request *request)
@@ -389,28 +308,13 @@ static inline void wlan_hdd_sched_scan_update_relative_rssi(
 		pno_request->band_rssi_pref.band = WLAN_BAND_5_GHZ;
 	pno_request->band_rssi_pref.rssi = request->rssi_adjust.delta;
 }
-#else
-static inline void wlan_hdd_sched_scan_update_relative_rssi(
-			struct pno_scan_req_params *pno_request,
-			struct cfg80211_sched_scan_request *request)
-{
-}
-#endif
 
 #ifdef FEATURE_WLAN_SCAN_PNO
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
 static uint32_t wlan_config_sched_scan_start_delay(
 		struct cfg80211_sched_scan_request *request)
 {
 	return request->delay;
 }
-#else
-static uint32_t wlan_config_sched_scan_start_delay(
-		struct cfg80211_sched_scan_request *request)
-{
-	return 0;
-}
-#endif /*(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)) */
 #endif /* FEATURE_WLAN_SCAN_PNO */
 
 int wlan_cfg80211_sched_scan_start(struct wlan_objmgr_vdev *vdev,
@@ -670,8 +574,6 @@ int wlan_cfg80211_sched_scan_stop(struct wlan_objmgr_vdev *vdev)
  *
  * Return: None
  */
-#if defined(CFG80211_SCAN_BSSID) || \
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
 static inline void
 wlan_copy_bssid_scan_request(struct scan_start_request *scan_req,
 		struct cfg80211_scan_request *request)
@@ -679,14 +581,6 @@ wlan_copy_bssid_scan_request(struct scan_start_request *scan_req,
 	qdf_mem_copy(scan_req->scan_req.bssid_list[0].bytes,
 				request->bssid, QDF_MAC_ADDR_SIZE);
 }
-#else
-static inline void
-wlan_copy_bssid_scan_request(struct scan_start_request *scan_req,
-		struct cfg80211_scan_request *request)
-{
-
-}
-#endif
 
 /**
  * wlan_schedule_scan_start_request() - Schedule scan start request
@@ -835,7 +729,6 @@ static QDF_STATUS wlan_scan_request_dequeue(
 	return status;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
 /**
  * wlan_cfg80211_scan_done() - Scan completed callback to cfg80211
  * @netdev: Net device
@@ -857,25 +750,6 @@ void wlan_cfg80211_scan_done(struct net_device *netdev,
 	if (netdev->flags & IFF_UP)
 		cfg80211_scan_done(req, &info);
 }
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
-/**
- * wlan_cfg80211_scan_done() - Scan completed callback to cfg80211
- * @netdev: Net device
- * @req : Scan request
- * @aborted : true scan aborted false scan success
- *
- * This function notifies scan done to cfg80211
- *
- * Return: none
- */
-void wlan_cfg80211_scan_done(struct net_device *netdev,
-			     struct cfg80211_scan_request *req,
-			     bool aborted)
-{
-	if (netdev->flags & IFF_UP)
-		cfg80211_scan_done(req, aborted);
-}
-#endif
 
 /**
  * wlan_vendor_scan_callback() - Scan completed callback event
@@ -1359,8 +1233,6 @@ void wlan_cfg80211_cleanup_scan_queue(struct wlan_objmgr_pdev *pdev,
  *
  * Return: None
  */
-#if defined(CFG80211_SCAN_DBS_CONTROL_SUPPORT) || \
-	   (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0))
 static void wlan_cfg80211_update_scan_policy_type_flags(
 	struct cfg80211_scan_request *req,
 	struct scan_req_params *scan_req)
@@ -1375,13 +1247,6 @@ static void wlan_cfg80211_update_scan_policy_type_flags(
 	if (wlan_cfg80211_is_colocated_6ghz_scan_supported(req->flags))
 		scan_req->scan_policy_colocated_6ghz = true;
 }
-#else
-static inline void wlan_cfg80211_update_scan_policy_type_flags(
-		struct cfg80211_scan_request *req,
-		struct scan_req_params *scan_req)
-{
-}
-#endif
 
 #ifdef WLAN_POLICY_MGR_ENABLE
 static bool
@@ -1981,8 +1846,6 @@ static inline void wlan_add_age_ie(uint8_t *mgmt_frame,
 }
 #endif /* WLAN_ENABLE_AGEIE_ON_SCAN_RESULTS */
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)) || \
-	defined(CFG80211_INFORM_BSS_FRAME_DATA)
 /**
  * wlan_fill_per_chain_rssi() - fill per chain RSSI in inform bss
  * @data: bss data
@@ -1990,8 +1853,6 @@ static inline void wlan_add_age_ie(uint8_t *mgmt_frame,
  *
  * Return: void
  */
-#if defined(CFG80211_SCAN_PER_CHAIN_RSSI_SUPPORT) || \
-	   (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0))
 static void wlan_fill_per_chain_rssi(struct cfg80211_inform_bss *data,
 	struct wlan_cfg80211_inform_bss *bss)
 {
@@ -2010,13 +1871,6 @@ static void wlan_fill_per_chain_rssi(struct cfg80211_inform_bss *data,
 		data->chains |= BIT(i);
 	}
 }
-#else
-static inline void
-wlan_fill_per_chain_rssi(struct cfg80211_inform_bss *data,
-	struct wlan_cfg80211_inform_bss *bss)
-{
-}
-#endif
 
 struct cfg80211_bss *
 wlan_cfg80211_inform_bss_frame_data(struct wiphy *wiphy,
@@ -2036,31 +1890,12 @@ wlan_cfg80211_inform_bss_frame_data(struct wiphy *wiphy,
 	return cfg80211_inform_bss_frame_data(wiphy, &data, bss->mgmt,
 					      bss->frame_len, GFP_ATOMIC);
 }
-#else
-struct cfg80211_bss *
-wlan_cfg80211_inform_bss_frame_data(struct wiphy *wiphy,
-		struct wlan_cfg80211_inform_bss *bss)
 
-{
-	return cfg80211_inform_bss_frame(wiphy, bss->chan, bss->mgmt,
-					 bss->frame_len,
-					 bss->rssi, GFP_ATOMIC);
-}
-#endif
-
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0))
 static inline void wlan_cfg80211_put_bss(struct wiphy *wiphy,
 		struct cfg80211_bss *bss)
 {
 	cfg80211_put_bss(wiphy, bss);
 }
-#else
-static inline void wlan_cfg80211_put_bss(struct wiphy *wiphy,
-		struct cfg80211_bss *bss)
-{
-	cfg80211_put_bss(bss);
-}
-#endif
 
 void wlan_cfg80211_inform_bss_frame(struct wlan_objmgr_pdev *pdev,
 		struct scan_cache_entry *scan_params)
@@ -2132,19 +1967,6 @@ void wlan_cfg80211_inform_bss_frame(struct wlan_objmgr_pdev *pdev,
 	qdf_mem_free(bss_data.mgmt);
 }
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)) && \
-	!defined(WITH_BACKPORTS) && !defined(IEEE80211_PRIVACY)
-struct cfg80211_bss *wlan_cfg80211_get_bss(struct wiphy *wiphy,
-					   struct ieee80211_channel *channel,
-					   const u8 *bssid, const u8 *ssid,
-					   size_t ssid_len)
-{
-	return cfg80211_get_bss(wiphy, channel, bssid,
-				ssid, ssid_len,
-				WLAN_CAPABILITY_ESS,
-				WLAN_CAPABILITY_ESS);
-}
-#else
 struct cfg80211_bss *wlan_cfg80211_get_bss(struct wiphy *wiphy,
 					   struct ieee80211_channel *channel,
 					   const u8 *bssid, const u8 *ssid,
@@ -2155,7 +1977,6 @@ struct cfg80211_bss *wlan_cfg80211_get_bss(struct wiphy *wiphy,
 				IEEE80211_BSS_TYPE_ESS,
 				IEEE80211_PRIVACY_ANY);
 }
-#endif
 
 QDF_STATUS  __wlan_cfg80211_unlink_bss_list(struct wiphy *wiphy,
 					    struct wlan_objmgr_pdev *pdev,
@@ -2225,42 +2046,19 @@ void wlan_cfg80211_unlink_bss_list(struct wlan_objmgr_pdev *pdev,
 					scan_entry->ssid.length);
 }
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0))
-/*
- * wlan_scan_wiphy_set_max_sched_scans() - set maximum number of scheduled scans
- * to wiphy.
- * @wiphy: pointer to wiphy
- * @max_scans: max num scans to be configured
- *
- */
-static inline void
-wlan_scan_wiphy_set_max_sched_scans(struct wiphy *wiphy, uint8_t max_scans)
-{
-	if (max_scans == 0)
-		wiphy->flags &= ~WIPHY_FLAG_SUPPORTS_SCHED_SCAN;
-	else
-		wiphy->flags |= WIPHY_FLAG_SUPPORTS_SCHED_SCAN;
-}
-#else
 static inline void
 wlan_scan_wiphy_set_max_sched_scans(struct wiphy *wiphy, uint8_t max_scans)
 {
 	wiphy->max_sched_scan_reqs = max_scans;
 }
-#endif /* KERNEL_VERSION(4, 12, 0) */
 
-#if defined(CFG80211_REPORT_BETTER_BSS_IN_SCHED_SCAN) || \
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
 void wlan_scan_cfg80211_add_connected_pno_support(struct wiphy *wiphy)
 {
 	wiphy_ext_feature_set(wiphy,
 			      NL80211_EXT_FEATURE_SCHED_SCAN_RELATIVE_RSSI);
 }
-#endif
 
-#if ((LINUX_VERSION_CODE > KERNEL_VERSION(4, 4, 0)) || \
-		defined(CFG80211_MULTI_SCAN_PLAN_BACKPORT)) && \
-		defined(FEATURE_WLAN_SCAN_PNO)
+#if defined(FEATURE_WLAN_SCAN_PNO)
 void wlan_config_sched_scan_plans_to_wiphy(struct wiphy *wiphy,
 					   struct wlan_objmgr_psoc *psoc)
 {

@@ -259,10 +259,8 @@ static const u32 hdd_cipher_suites[] = {
 	WLAN_CIPHER_SUITE_SMS4,
 #endif
 	WLAN_CIPHER_SUITE_AES_CMAC,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
 	WLAN_CIPHER_SUITE_BIP_GMAC_128,
 	WLAN_CIPHER_SUITE_BIP_GMAC_256,
-#endif
 };
 
 static const struct ieee80211_channel hdd_channels_2_4_ghz[] = {
@@ -411,8 +409,7 @@ static struct ieee80211_supported_band wlan_hdd_band_5_ghz = {
 	.vht_cap.vht_supported = 1,
 };
 
-#if defined(CONFIG_BAND_6GHZ) && (defined(CFG80211_6GHZ_BAND_SUPPORTED) || \
-	(KERNEL_VERSION(5, 4, 0) <= LINUX_VERSION_CODE))
+#if defined(CONFIG_BAND_6GHZ)
 
 static struct ieee80211_channel hdd_channels_6_ghz[NUM_6GHZ_CHANNELS];
 
@@ -477,8 +474,6 @@ static void hdd_init_6ghz(struct hdd_context *hdd_ctx)
 }
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)) || \
-	defined(CFG80211_IFTYPE_AKM_SUITES_SUPPORT)
 /*akm suits supported by sta*/
 static const u32 hdd_sta_akm_suites[] = {
 	WLAN_AKM_SUITE_8021X,
@@ -530,7 +525,6 @@ static const struct wiphy_iftype_akm_suites
 		.n_akm_suites = (sizeof(hdd_ap_akm_suites) / sizeof(u32)),
 	},
 };
-#endif
 
 /* This structure contain information what kind of frame are expected in
  * TX/RX direction for each kind of interface
@@ -698,8 +692,7 @@ static const struct ieee80211_iface_limit
 	},
 };
 
-#if defined(WLAN_FEATURE_NAN) && \
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
+#if defined(WLAN_FEATURE_NAN)
 /* STA + NAN disc combination */
 static const struct ieee80211_iface_limit
 	wlan_hdd_sta_nan_iface_limit[] = {
@@ -746,10 +739,7 @@ static struct ieee80211_iface_combination
 		.num_different_channels = 2,
 		.max_interfaces = (QDF_MAX_NO_OF_SAP_MODE),
 		.n_limits = ARRAY_SIZE(wlan_hdd_ap_iface_limit),
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)) || \
-	defined(CFG80211_BEACON_INTERVAL_BACKPORT)
 		.beacon_int_min_gcd = 1,
-#endif
 	},
 	/* P2P */
 	{
@@ -765,10 +755,7 @@ static struct ieee80211_iface_combination
 		.max_interfaces = 2,
 		.n_limits = ARRAY_SIZE(wlan_hdd_sta_ap_iface_limit),
 		.beacon_int_infra_match = true,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)) || \
-	defined(CFG80211_BEACON_INTERVAL_BACKPORT)
 		.beacon_int_min_gcd = 1,
-#endif
 	},
 	/* STA + P2P */
 	{
@@ -822,8 +809,7 @@ static struct ieee80211_iface_combination
 		.num_different_channels = 2,
 		.n_limits = ARRAY_SIZE(wlan_hdd_mon_iface_limit),
 	},
-#if defined(WLAN_FEATURE_NAN) && \
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
+#if defined(WLAN_FEATURE_NAN)
 	/* NAN + STA */
 	{
 		.limits = wlan_hdd_sta_nan_iface_limit,
@@ -875,14 +861,12 @@ enum wlan_hdd_vendor_ie_access_policy {
 	WLAN_HDD_VENDOR_IE_ACCESS_ALLOW_IF_LISTED,
 };
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0))
 static const struct wiphy_wowlan_support wowlan_support_cfg80211_init = {
 	.flags = WIPHY_WOWLAN_MAGIC_PKT,
 	.n_patterns = WOWL_MAX_PTRNS_ALLOWED,
 	.pattern_min_len = 1,
 	.pattern_max_len = WOWL_PTRN_MAX_SIZE,
 };
-#endif
 
 /**
  * hdd_add_channel_switch_support()- Adds Channel Switch flag if supported
@@ -1860,14 +1844,9 @@ static int __is_driver_dfs_capable(struct wiphy *wiphy,
 		return -EPERM;
 	}
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)) || \
-	defined(CFG80211_DFS_OFFLOAD_BACKPORT)
 	dfs_capability =
 		wiphy_ext_feature_isset(wiphy,
 					NL80211_EXT_FEATURE_DFS_OFFLOAD);
-#else
-	dfs_capability = !!(wiphy->flags & WIPHY_FLAG_DFS_OFFLOAD);
-#endif
 
 	temp_skbuff = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(u32) +
 							  NLMSG_HDRLEN);
@@ -4424,17 +4403,11 @@ static void wlan_hdd_cfg80211_set_feature(uint8_t *feature_flags,
  *
  * Return: None
  **/
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0))
 static void wlan_hdd_set_ndi_feature(uint8_t *feature_flags)
 {
 	wlan_hdd_cfg80211_set_feature(feature_flags,
 		QCA_WLAN_VENDOR_FEATURE_USE_ADD_DEL_VIRTUAL_INTF_FOR_NDI);
 }
-#else
-static inline void wlan_hdd_set_ndi_feature(uint8_t *feature_flags)
-{
-}
-#endif
 
 /**
  * __wlan_hdd_cfg80211_get_features() - Get the Driver Supported features
@@ -4540,11 +4513,8 @@ __wlan_hdd_cfg80211_get_features(struct wiphy *wiphy,
 	 * has support for processing user cell_base hints when wiphy is
 	 * self managed or check the backport flag for the same.
 	 */
-#if defined CFG80211_USER_HINT_CELL_BASE_SELF_MANAGED || \
-	    (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0))
 	wlan_hdd_cfg80211_set_feature(feature_flags,
 			QCA_WLAN_VENDOR_FEATURE_SELF_MANAGED_REGULATORY);
-#endif
 
 	if (wlan_hdd_thermal_config_support())
 		wlan_hdd_cfg80211_set_feature(feature_flags,
@@ -7059,9 +7029,7 @@ struct hdd_station_info *hdd_get_stainfo(struct hdd_station_info *astainfo,
 #undef REMOTE_RX_STBC
 #undef REMOTE_CH_WIDTH
 #undef REMOTE_SGI_ENABLE
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
 #undef REMOTE_PAD
-#endif
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 /**
@@ -9512,7 +9480,6 @@ wlan_hdd_get_multi_ll_req_in_progress(struct hdd_adapter *adapter)
 }
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0))
 static QDF_STATUS hdd_get_netlink_sender_portid(struct hdd_context *hdd_ctx,
 						uint32_t *port_id)
 {
@@ -9523,13 +9490,6 @@ static QDF_STATUS hdd_get_netlink_sender_portid(struct hdd_context *hdd_ctx,
 
 	return QDF_STATUS_SUCCESS;
 }
-#else
-static inline QDF_STATUS
-hdd_get_netlink_sender_portid(struct hdd_context *hdd_ctx, uint32_t *port_id)
-{
-	return QDF_STATUS_E_NOSUPPORT;
-}
-#endif
 
 static int hdd_config_latency_level(struct hdd_adapter *adapter,
 				    const struct nlattr *attr)
@@ -13536,24 +13496,13 @@ static int __wlan_hdd_cfg80211_get_link_properties(struct wiphy *wiphy,
 	if (!(rate_flags & TX_RATE_LEGACY)) {
 		if (rate_flags & TX_RATE_VHT80) {
 			final_rate_flags |= RATE_INFO_FLAGS_VHT_MCS;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 0, 0)) && !defined(WITH_BACKPORTS)
-			final_rate_flags |= RATE_INFO_FLAGS_80_MHZ_WIDTH;
-#endif
 		} else if (rate_flags & TX_RATE_VHT40) {
 			final_rate_flags |= RATE_INFO_FLAGS_VHT_MCS;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 0, 0)) && !defined(WITH_BACKPORTS)
-			final_rate_flags |= RATE_INFO_FLAGS_40_MHZ_WIDTH;
-#endif
 		} else if (rate_flags & TX_RATE_VHT20) {
 			final_rate_flags |= RATE_INFO_FLAGS_VHT_MCS;
 		} else if (rate_flags &
 				(TX_RATE_HT20 | TX_RATE_HT40)) {
 			final_rate_flags |= RATE_INFO_FLAGS_MCS;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 0, 0)) && !defined(WITH_BACKPORTS)
-			if (rate_flags & TX_RATE_HT40)
-				final_rate_flags |=
-					RATE_INFO_FLAGS_40_MHZ_WIDTH;
-#endif
 		}
 
 		if (rate_flags & TX_RATE_SGI) {
@@ -18850,23 +18799,14 @@ int wlan_hdd_cfg80211_update_band(struct hdd_context *hdd_ctx,
 	return 0;
 }
 
-#if defined(CFG80211_SCAN_RANDOM_MAC_ADDR) || \
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
 static void wlan_hdd_cfg80211_scan_randomization_init(struct wiphy *wiphy)
 {
 	wiphy->features |= NL80211_FEATURE_SCAN_RANDOM_MAC_ADDR;
 	wiphy->features |= NL80211_FEATURE_SCHED_SCAN_RANDOM_MAC_ADDR;
 }
-#else
-static void wlan_hdd_cfg80211_scan_randomization_init(struct wiphy *wiphy)
-{
-}
-#endif
 
 #define WLAN_HDD_MAX_NUM_CSA_COUNTERS 2
 
-#if defined(CFG80211_RAND_TA_FOR_PUBLIC_ACTION_FRAME) || \
-		(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
 /**
  * wlan_hdd_cfg80211_action_frame_randomization_init() - Randomize SA of MA
  * frames
@@ -18882,16 +18822,8 @@ wlan_hdd_cfg80211_action_frame_randomization_init(struct wiphy *wiphy)
 {
 	wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_MGMT_TX_RANDOM_TA);
 }
-#else
-static void
-wlan_hdd_cfg80211_action_frame_randomization_init(struct wiphy *wiphy)
-{
-}
-#endif
 
-#if defined(WLAN_FEATURE_FILS_SK) && \
-	(defined(CFG80211_FILS_SK_OFFLOAD_SUPPORT) || \
-		 (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)))
+#if defined(WLAN_FEATURE_FILS_SK)
 static void wlan_hdd_cfg80211_set_wiphy_fils_feature(struct wiphy *wiphy)
 {
 	wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_FILS_SK_OFFLOAD);
@@ -18902,47 +18834,24 @@ static void wlan_hdd_cfg80211_set_wiphy_fils_feature(struct wiphy *wiphy)
 }
 #endif
 
-#if defined (CFG80211_SCAN_DBS_CONTROL_SUPPORT) || \
-	    (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0))
 static void wlan_hdd_cfg80211_set_wiphy_scan_flags(struct wiphy *wiphy)
 {
 	wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_LOW_SPAN_SCAN);
 	wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_LOW_POWER_SCAN);
 	wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_HIGH_ACCURACY_SCAN);
 }
-#else
-static void wlan_hdd_cfg80211_set_wiphy_scan_flags(struct wiphy *wiphy)
-{
-}
-#endif
 
-#if defined(CFG80211_BIGTK_CONFIGURATION_SUPPORT) || \
-	   (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
 static void wlan_hdd_cfg80211_set_bigtk_flags(struct wiphy *wiphy)
 {
 	wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_BEACON_PROTECTION);
 }
-#else
-static void wlan_hdd_cfg80211_set_bigtk_flags(struct wiphy *wiphy)
-{
-}
-#endif
 
-#if defined(CFG80211_OCV_CONFIGURATION_SUPPORT) || \
-	   (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0))
 static void wlan_hdd_cfg80211_set_ocv_flags(struct wiphy *wiphy)
 {
 	wiphy_ext_feature_set(wiphy,
 			      NL80211_EXT_FEATURE_OPERATING_CHANNEL_VALIDATION);
 }
-#else
-static void wlan_hdd_cfg80211_set_ocv_flags(struct wiphy *wiphy)
-{
-}
-#endif
 
-#if defined(CFG80211_SCAN_OCE_CAPABILITY_SUPPORT) || \
-	   (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
 static void wlan_hdd_cfg80211_set_wiphy_oce_scan_flags(struct wiphy *wiphy)
 {
 	wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_FILS_MAX_CHANNEL_TIME);
@@ -18953,15 +18862,8 @@ static void wlan_hdd_cfg80211_set_wiphy_oce_scan_flags(struct wiphy *wiphy)
 	wiphy_ext_feature_set(
 		wiphy, NL80211_EXT_FEATURE_OCE_PROBE_REQ_DEFERRAL_SUPPRESSION);
 }
-#else
-static void wlan_hdd_cfg80211_set_wiphy_oce_scan_flags(struct wiphy *wiphy)
-{
-}
-#endif
 
-#if defined(WLAN_FEATURE_SAE) && \
-		(defined(CFG80211_EXTERNAL_AUTH_SUPPORT) || \
-		LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0))
+#if defined(WLAN_FEATURE_SAE)
 /**
  * wlan_hdd_cfg80211_set_wiphy_sae_feature() - Indicates support of SAE feature
  * @wiphy: Pointer to wiphy
@@ -18983,18 +18885,10 @@ static void wlan_hdd_cfg80211_set_wiphy_sae_feature(struct wiphy *wiphy)
 }
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)) || \
-	defined(CFG80211_DFS_OFFLOAD_BACKPORT)
 static void wlan_hdd_cfg80211_set_dfs_offload_feature(struct wiphy *wiphy)
 {
 	wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_DFS_OFFLOAD);
 }
-#else
-static void wlan_hdd_cfg80211_set_dfs_offload_feature(struct wiphy *wiphy)
-{
-	wiphy->flags |= WIPHY_FLAG_DFS_OFFLOAD;
-}
-#endif
 
 #ifdef WLAN_FEATURE_DSRC
 static void wlan_hdd_get_num_dsrc_ch_and_len(struct hdd_config *hdd_cfg,
@@ -19088,11 +18982,8 @@ wlan_hdd_populate_5dot9_chan_info(struct hdd_context *hdd_ctx, uint32_t index)
 
 #endif
 
-#if defined(WLAN_FEATURE_11AX) && \
-	(defined(CFG80211_SBAND_IFTYPE_DATA_BACKPORT) || \
-	 (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)))
-#if defined(CONFIG_BAND_6GHZ) && (defined(CFG80211_6GHZ_BAND_SUPPORTED) || \
-	   (KERNEL_VERSION(5, 4, 0) <= LINUX_VERSION_CODE))
+#if defined(WLAN_FEATURE_11AX)
+#if defined(CONFIG_BAND_6GHZ)
 static QDF_STATUS
 wlan_hdd_iftype_data_alloc_6ghz(struct hdd_context *hdd_ctx)
 {
@@ -19175,8 +19066,7 @@ wlan_hdd_iftype_data_mem_free(struct hdd_context *hdd_ctx)
 }
 #endif
 
-#if defined(WLAN_FEATURE_NAN) && \
-	   (KERNEL_VERSION(4, 9, 0) <= LINUX_VERSION_CODE)
+#if defined(WLAN_FEATURE_NAN)
 static void wlan_hdd_set_nan_if_mode(struct wiphy *wiphy)
 {
 	wiphy->interface_modes |= BIT(NL80211_IFTYPE_NAN);
@@ -19187,8 +19077,7 @@ static void wlan_hdd_set_nan_if_mode(struct wiphy *wiphy)
 }
 #endif
 
-#if defined(WLAN_FEATURE_NAN) && \
-	   (KERNEL_VERSION(4, 14, 0) <= LINUX_VERSION_CODE)
+#if defined(WLAN_FEATURE_NAN)
 static void wlan_hdd_set_nan_supported_bands(struct wiphy *wiphy)
 {
 	wiphy->nan_supported_bands =
@@ -19206,20 +19095,12 @@ static void wlan_hdd_set_nan_supported_bands(struct wiphy *wiphy)
  *
  * Return: void
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)) || \
-	defined(CFG80211_IFTYPE_AKM_SUITES_SUPPORT)
 static void
 wlan_hdd_update_akm_suit_info(struct wiphy *wiphy)
 {
 	wiphy->iftype_akm_suites = wlan_hdd_akm_suites;
 	wiphy->num_iftype_akm_suites = QDF_ARRAY_SIZE(wlan_hdd_akm_suites);
 }
-#else
-static void
-wlan_hdd_update_akm_suit_info(struct wiphy *wiphy)
-{
-}
-#endif
 
 #ifdef CFG80211_CTRL_FRAME_SRC_ADDR_TA_ADDR
 static void wlan_hdd_update_eapol_over_nl80211_flags(struct wiphy *wiphy)
@@ -19275,14 +19156,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 			| WIPHY_FLAG_OFFCHAN_TX;
 
 	if (ucfg_pmo_get_suspend_mode(hdd_ctx->psoc) == PMO_SUSPEND_WOW) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0))
 		wiphy->wowlan = &wowlan_support_cfg80211_init;
-#else
-		wiphy->wowlan.flags = WIPHY_WOWLAN_MAGIC_PKT;
-		wiphy->wowlan.n_patterns = WOWL_MAX_PTRNS_ALLOWED;
-		wiphy->wowlan.pattern_min_len = 1;
-		wiphy->wowlan.pattern_max_len = WOWL_PTRN_MAX_SIZE;
-#endif
 	}
 
 #ifdef FEATURE_WLAN_TDLS
@@ -19368,12 +19242,9 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 	wiphy->features |= NL80211_FEATURE_INACTIVITY_TIMER;
 
 	wiphy->features |= NL80211_FEATURE_VIF_TXPOWER;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)) || \
-	defined(CFG80211_BEACON_TX_RATE_CUSTOM_BACKPORT)
 	wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_BEACON_RATE_LEGACY);
 	wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_BEACON_RATE_HT);
 	wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_BEACON_RATE_VHT);
-#endif
 
 	hdd_add_channel_switch_support(&wiphy->flags);
 	wiphy->max_num_csa_counters = WLAN_HDD_MAX_NUM_CSA_COUNTERS;
@@ -19611,16 +19482,10 @@ static void wlan_hdd_update_lfr_wiphy(struct hdd_context *hdd_ctx)
 }
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
 static void wlan_hdd_set_mfp_optional(struct wiphy *wiphy)
 {
 	wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_MFP_OPTIONAL);
 }
-#else
-static void wlan_hdd_set_mfp_optional(struct wiphy *wiphy)
-{
-}
-#endif
 
 /**
  * wlan_hdd_iface_debug_string() - This API converts IFACE type to string
@@ -20763,27 +20628,6 @@ err:
 	return errno;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0)
-/**
- * wlan_hdd_cfg80211_change_iface() - change interface cfg80211 op
- * @wiphy: Pointer to the wiphy structure
- * @ndev: Pointer to the net device
- * @type: Interface type
- * @flags: Flags for change interface
- * @params: Pointer to change interface parameters
- *
- * Return: 0 for success, error number on failure.
- */
-static int wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
-					  struct net_device *ndev,
-					  enum nl80211_iftype type,
-					  u32 *flags,
-					  struct vif_params *params)
-{
-	return _wlan_hdd_cfg80211_change_iface(wiphy, ndev, type,
-					       flags, params);
-}
-#else
 static int wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
 					  struct net_device *ndev,
 					  enum nl80211_iftype type,
@@ -20792,7 +20636,6 @@ static int wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
 	return _wlan_hdd_cfg80211_change_iface(wiphy, ndev, type,
 					       &params->flags, params);
 }
-#endif /* KERNEL_VERSION(4, 12, 0) */
 
 QDF_STATUS wlan_hdd_send_sta_authorized_event(
 					struct hdd_adapter *adapter,
@@ -20858,17 +20701,10 @@ QDF_STATUS wlan_hdd_send_sta_authorized_event(
  *
  * Return: 0 for success, error number on failure.
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
 static int __wlan_hdd_change_station(struct wiphy *wiphy,
 				   struct net_device *dev,
 				   const uint8_t *mac,
 				   struct station_parameters *params)
-#else
-static int __wlan_hdd_change_station(struct wiphy *wiphy,
-				   struct net_device *dev,
-				   uint8_t *mac,
-				   struct station_parameters *params)
-#endif
 {
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
 	struct hdd_adapter *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
@@ -20965,17 +20801,10 @@ static int __wlan_hdd_change_station(struct wiphy *wiphy,
  *
  * Return: 0 for success, error number on failure.
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0)) || defined(WITH_BACKPORTS)
 static int wlan_hdd_change_station(struct wiphy *wiphy,
 				   struct net_device *dev,
 				   const u8 *mac,
 				   struct station_parameters *params)
-#else
-static int wlan_hdd_change_station(struct wiphy *wiphy,
-				   struct net_device *dev,
-				   u8 *mac,
-				   struct station_parameters *params)
-#endif
 {
 	int errno;
 	struct osif_vdev_sync *vdev_sync;
@@ -21733,8 +21562,6 @@ static int wlan_hdd_cfg80211_set_default_key(struct wiphy *wiphy,
 }
 #endif
 
-#if defined (CFG80211_BIGTK_CONFIGURATION_SUPPORT) || \
-	    (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
 static int _wlan_hdd_cfg80211_set_default_beacon_key(struct wiphy *wiphy,
 						     struct net_device *ndev,
 						     u8 key_index)
@@ -21806,7 +21633,6 @@ static int wlan_hdd_cfg80211_set_default_beacon_key(struct wiphy *wiphy,
 
 	return errno;
 }
-#endif
 #endif
 
 #ifdef FEATURE_MONITOR_MODE_SUPPORT
@@ -22051,13 +21877,8 @@ static int __wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
  *
  * Return: 0 for success, non-zero for failure
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0))
 static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
 					      int radio_idx, u32 changed)
-#else
-static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
-					      u32 changed)
-#endif
 {
 	struct osif_psoc_sync *psoc_sync;
 	int errno;
@@ -22546,18 +22367,9 @@ int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
 					      param->reason_code,
 					      param->subtype);
 }
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
-int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy, struct net_device *dev,
-				  const uint8_t *mac)
-{
-	uint16_t reason = REASON_DEAUTH_NETWORK_LEAVING;
-	uint8_t subtype = SIR_MAC_MGMT_DEAUTH >> 4;
-
-	return _wlan_hdd_cfg80211_del_station(wiphy, dev, mac, reason, subtype);
-}
 #else
 int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy, struct net_device *dev,
-				  uint8_t *mac)
+				  const uint8_t *mac)
 {
 	uint16_t reason = REASON_DEAUTH_NETWORK_LEAVING;
 	uint8_t subtype = SIR_MAC_MGMT_DEAUTH >> 4;
@@ -22636,16 +22448,10 @@ static int __wlan_hdd_cfg80211_add_station(struct wiphy *wiphy,
  *
  * Return: 0 for success, non-zero for failure
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
 static int wlan_hdd_cfg80211_add_station(struct wiphy *wiphy,
 					 struct net_device *dev,
 					 const uint8_t *mac,
 					 struct station_parameters *params)
-#else
-static int wlan_hdd_cfg80211_add_station(struct wiphy *wiphy,
-					 struct net_device *dev, uint8_t *mac,
-					 struct station_parameters *params)
-#endif
 {
 	int errno;
 	struct osif_vdev_sync *vdev_sync;
@@ -22661,8 +22467,6 @@ static int wlan_hdd_cfg80211_add_station(struct wiphy *wiphy,
 	return errno;
 }
 
-#if (defined(CFG80211_CONFIG_PMKSA_TIMER_PARAMS_SUPPORT) || \
-	     (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)))
 static inline void
 hdd_fill_pmksa_lifetime(struct cfg80211_pmksa *pmksa,
 			struct wlan_crypto_pmksa *pmk_cache)
@@ -22680,12 +22484,6 @@ hdd_fill_pmksa_lifetime(struct cfg80211_pmksa *pmksa,
 	hdd_debug("PMKSA: lifetime:%d threshold:%d",  pmk_cache->pmk_lifetime,
 		  pmk_cache->pmk_lifetime_threshold);
 }
-#else
-static inline void
-hdd_fill_pmksa_lifetime(struct cfg80211_pmksa *pmksa,
-			struct wlan_crypto_pmksa *src_pmk_cache)
-{}
-#endif
 
 static QDF_STATUS wlan_hdd_set_pmksa_cache(struct hdd_adapter *adapter,
 					   struct wlan_crypto_pmksa *pmk_cache)
@@ -22789,8 +22587,6 @@ QDF_STATUS wlan_hdd_flush_pmksa_cache(struct hdd_adapter *adapter)
 	return result;
 }
 
-#if defined(CFG80211_FILS_SK_OFFLOAD_SUPPORT) || \
-	 (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0))
 /*
  * wlan_hdd_is_pmksa_valid: API to validate pmksa
  * @pmksa: pointer to cfg80211_pmksa structure
@@ -22851,49 +22647,6 @@ static void hdd_fill_pmksa_info(struct hdd_adapter *adapter,
 	} else
 		hdd_debug("pmk len is %zu", pmksa->pmk_len);
 }
-#else
-/*
- * wlan_hdd_is_pmksa_valid: API to validate pmksa
- * @pmksa: pointer to cfg80211_pmksa structure
- *
- * Return: True if valid else false
- */
-static inline bool wlan_hdd_is_pmksa_valid(struct cfg80211_pmksa *pmksa)
-{
-	if (!pmksa->bssid) {
-		hdd_err("both bssid is NULL %pK", pmksa->bssid);
-		return false;
-	}
-	return true;
-}
-
-/*
- * hdd_fill_pmksa_info: API to update struct wlan_crypto_pmksa from
- * cfg80211_pmksa
- * @adapter: Pointer to hdd adapter
- * @pmk_cache: pmk which needs to be updated
- * @pmksa: pmk from supplicant
- * @is_delete: Bool to decide whether to set or delete PMK
- *
- * Return: None
- */
-static void hdd_fill_pmksa_info(struct hdd_adapter *adapter,
-				struct wlan_crypto_pmksa *pmk_cache,
-				struct cfg80211_pmksa *pmksa, bool is_delete)
-{
-	mac_handle_t mac_handle;
-
-	hdd_debug("%s PMKSA for " QDF_MAC_ADDR_FMT, is_delete ? "Delete" : "Set",
-		  QDF_MAC_ADDR_REF(pmksa->bssid));
-	qdf_mem_copy(pmk_cache->bssid.bytes, pmksa->bssid, QDF_MAC_ADDR_SIZE);
-
-	if (is_delete)
-		return;
-	mac_handle = hdd_adapter_get_mac_handle(adapter);
-	sme_get_pmk_info(mac_handle, adapter->vdev_id, pmk_cache);
-	qdf_mem_copy(pmk_cache->pmkid, pmksa->pmkid, PMKID_LEN);
-}
-#endif
 
 /**
  * __wlan_hdd_cfg80211_set_pmksa() - set pmksa
@@ -23249,8 +23002,6 @@ wlan_hdd_cfg80211_update_ft_ies(struct wiphy *wiphy,
 }
 #endif
 
-#if defined(CFG80211_EXTERNAL_DH_UPDATE_SUPPORT) || \
-(LINUX_VERSION_CODE > KERNEL_VERSION(5, 2, 0))
 /**
  * __wlan_hdd_cfg80211_update_owe_info() - update OWE info
  * @wiphy: Pointer to wiphy
@@ -23323,7 +23074,6 @@ wlan_hdd_cfg80211_update_owe_info(struct wiphy *wiphy,
 
 	return errno;
 }
-#endif
 
 void wlan_hdd_cfg80211_update_replay_counter_cb(
 		void *cb_ctx, struct pmo_gtk_rsp_params *gtk_rsp_param)
@@ -23837,9 +23587,7 @@ static int __wlan_hdd_cfg80211_testmode(struct wiphy *wiphy,
  * Return: 0 for success, non-zero for failure
  */
 static int wlan_hdd_cfg80211_testmode(struct wiphy *wiphy,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0))
 				      struct wireless_dev *wdev,
-#endif
 				      void *data, int len)
 {
 	struct osif_psoc_sync *psoc_sync;
@@ -24245,7 +23993,6 @@ static int __wlan_hdd_cfg80211_set_mon_ch(struct wiphy *wiphy,
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0))
 /*
  * wlan_hdd_cfg80211_set_mon_ch() - Set monitor mode capture channel
  * @wiphy: Handle to struct wiphy to get handle to module context.
@@ -24260,20 +24007,6 @@ static int __wlan_hdd_cfg80211_set_mon_ch(struct wiphy *wiphy,
 static int wlan_hdd_cfg80211_set_mon_ch(struct wiphy *wiphy,
 					struct net_device *dev,
 					struct cfg80211_chan_def *chandef)
-#else
-/*
- * wlan_hdd_cfg80211_set_mon_ch() - Set monitor mode capture channel
- * @wiphy: Handle to struct wiphy to get handle to module context.
- * @chandef: Contains information about the capture channel to be set.
- *
- * This interface is called if and only if monitor mode interface alone is
- * active.
- *
- * Return: 0 success or error code on failure.
- */
-static int wlan_hdd_cfg80211_set_mon_ch(struct wiphy *wiphy,
-					struct cfg80211_chan_def *chandef)
-#endif
 {
 	struct osif_psoc_sync *psoc_sync;
 	int errno;
@@ -24336,11 +24069,7 @@ static void hdd_update_chan_info(struct hdd_context *hdd_ctx,
 #define UPDATE_FILS_AUTH_TYPE BIT(2)
 #endif
 
-#if defined(WLAN_FEATURE_FILS_SK) &&\
-	(defined(CFG80211_FILS_SK_OFFLOAD_SUPPORT) ||\
-		(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0))) &&\
-	(defined(CFG80211_UPDATE_CONNECT_PARAMS) ||\
-		(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)))
+#if defined(WLAN_FEATURE_FILS_SK)
 static inline int
 hdd_update_connect_params_fils_info(struct hdd_adapter *adapter,
 				    struct hdd_context *hdd_ctx,
@@ -24444,8 +24173,6 @@ hdd_update_connect_params_fils_info(struct hdd_adapter *adapter,
 }
 #endif
 
-#if defined(CFG80211_UPDATE_CONNECT_PARAMS) ||\
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
 
 /**
  * __wlan_hdd_cfg80211_update_connect_params - update connect params
@@ -24555,13 +24282,8 @@ wlan_hdd_cfg80211_update_connect_params(struct wiphy *wiphy,
 
 	return errno;
 }
-#endif
 
-#if defined(WLAN_FEATURE_SAE) && \
-		(defined(CFG80211_EXTERNAL_AUTH_SUPPORT) || \
-		LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0))
-#if (defined(CFG80211_EXTERNAL_AUTH_AP_SUPPORT) || \
-		LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
+#if defined(WLAN_FEATURE_SAE)
 /**
  * wlan_hdd_extauth_cache_pmkid() - Extract and cache pmkid
  * @adapter: hdd vdev/net_device context
@@ -24615,18 +24337,6 @@ wlan_hdd_extauth_copy_pmkid(struct cfg80211_external_auth_params *params,
 		qdf_mem_copy(pmkid, params->pmkid, PMKID_LEN);
 }
 
-#else
-static void
-wlan_hdd_extauth_cache_pmkid(struct hdd_adapter *adapter,
-			     mac_handle_t mac_handle,
-			     struct cfg80211_external_auth_params *params)
-{}
-
-static void
-wlan_hdd_extauth_copy_pmkid(struct cfg80211_external_auth_params *params,
-			    uint8_t *pmkid)
-{}
-#endif
 /**
  * __wlan_hdd_cfg80211_external_auth() - Handle external auth
  *
@@ -24707,8 +24417,7 @@ wlan_hdd_cfg80211_external_auth(struct wiphy *wiphy,
 }
 #endif
 
-#if defined(WLAN_FEATURE_NAN) && \
-	   (KERNEL_VERSION(4, 9, 0) <= LINUX_VERSION_CODE)
+#if defined(WLAN_FEATURE_NAN)
 static int
 wlan_hdd_cfg80211_start_nan(struct wiphy *wiphy, struct wireless_dev *wdev,
 			    struct cfg80211_nan_conf *conf)
@@ -24848,7 +24557,6 @@ void wlan_hdd_deinit_chan_info(struct hdd_context *hdd_ctx)
 		qdf_mem_free(chan);
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)) || defined(WITH_BACKPORTS)
 static enum rate_info_bw hdd_map_hdd_bw_to_os(enum hdd_rate_info_bw hdd_bw)
 {
 	switch (hdd_bw) {
@@ -24875,42 +24583,7 @@ void hdd_set_rate_bw(struct rate_info *info, enum hdd_rate_info_bw hdd_bw)
 {
 	info->bw = hdd_map_hdd_bw_to_os(hdd_bw);
 }
-#else
-static enum rate_info_flags hdd_map_hdd_bw_to_os(enum hdd_rate_info_bw hdd_bw)
-{
-	switch (hdd_bw) {
-	case HDD_RATE_BW_5:
-	case HDD_RATE_BW_10:
-	case HDD_RATE_BW_20:
-		return (enum rate_info_flags)0;
-	case HDD_RATE_BW_40:
-		return RATE_INFO_FLAGS_40_MHZ_WIDTH;
-	case HDD_RATE_BW_80:
-		return RATE_INFO_FLAGS_80_MHZ_WIDTH;
-	case HDD_RATE_BW_160:
-		return RATE_INFO_FLAGS_160_MHZ_WIDTH;
-	}
 
-	hdd_err("Unhandled HDD_RATE_BW: %d", hdd_bw);
-
-	return (enum rate_info_flags)0;
-}
-
-void hdd_set_rate_bw(struct rate_info *info, enum hdd_rate_info_bw hdd_bw)
-{
-	const enum rate_info_flags all_bws =
-		RATE_INFO_FLAGS_40_MHZ_WIDTH |
-		RATE_INFO_FLAGS_80_MHZ_WIDTH |
-		RATE_INFO_FLAGS_80P80_MHZ_WIDTH |
-		RATE_INFO_FLAGS_160_MHZ_WIDTH;
-
-	info->flags &= ~all_bws;
-	info->flags |= hdd_map_hdd_bw_to_os(hdd_bw);
-}
-#endif
-
-#if defined(CFG80211_EXTERNAL_DH_UPDATE_SUPPORT) || \
-(LINUX_VERSION_CODE > KERNEL_VERSION(5, 2, 0))
 
 #ifdef WLAN_MLD_AP_OWE_INFO_SUPPORT
 static void
@@ -24988,7 +24661,6 @@ hdd_ml_sap_owe_fill_ml_info(struct hdd_adapter *adapter,
 	wlan_objmgr_peer_release_ref(peer, WLAN_HDD_ID_OBJ_MGR);
 }
 #else
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0))
 static void
 hdd_ml_sap_owe_fill_ml_info(struct hdd_adapter *adapter,
 			    struct cfg80211_update_owe_info *owe_info,
@@ -24996,14 +24668,6 @@ hdd_ml_sap_owe_fill_ml_info(struct hdd_adapter *adapter,
 {
 	owe_info->assoc_link_id = -1;
 }
-#else
-static void
-hdd_ml_sap_owe_fill_ml_info(struct hdd_adapter *adapter,
-			    struct cfg80211_update_owe_info *owe_info,
-			    uint8_t *peer_mac)
-{
-}
-#endif
 #endif
 
 void hdd_send_update_owe_info_event(struct hdd_adapter *adapter,
@@ -25026,7 +24690,6 @@ void hdd_send_update_owe_info_event(struct hdd_adapter *adapter,
 
 	hdd_exit();
 }
-#endif
 
 static int __wlan_hdd_cfg80211_set_chainmask(struct wiphy *wiphy,
 					     uint32_t tx_mask,
@@ -25067,16 +24730,10 @@ static int __wlan_hdd_cfg80211_set_chainmask(struct wiphy *wiphy,
 	return ret;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0))
 static int wlan_hdd_cfg80211_set_chainmask(struct wiphy *wiphy,
 					   int radio_idx,
 					   uint32_t tx_mask,
 					   uint32_t rx_mask)
-#else
-static int wlan_hdd_cfg80211_set_chainmask(struct wiphy *wiphy,
-					   uint32_t tx_mask,
-					   uint32_t rx_mask)
-#endif
 {
 	struct osif_psoc_sync *psoc_sync;
 	int errno;
@@ -25120,16 +24777,10 @@ static int __wlan_hdd_cfg80211_get_chainmask(struct wiphy *wiphy,
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0))
 static int wlan_hdd_cfg80211_get_chainmask(struct wiphy *wiphy,
 					   int radio_idx,
 					   uint32_t *tx_mask,
 					   uint32_t *rx_mask)
-#else
-static int wlan_hdd_cfg80211_get_chainmask(struct wiphy *wiphy,
-					   uint32_t *tx_mask,
-					   uint32_t *rx_mask)
-#endif
 {
 	struct osif_psoc_sync *psoc_sync;
 	int errno;
@@ -25364,9 +25015,7 @@ static int __wlan_hdd_cfg80211_set_bitrate_mask(struct wiphy *wiphy,
 	struct hdd_context *hdd_ctx = wiphy_priv(wiphy);
 	uint8_t vdev_id;
 	uint8_t gi_val;
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(5, 4, 0))
 	uint8_t auto_rate_he_gi = 0;
-#endif
 
 	if (QDF_GLOBAL_FTM_MODE == hdd_get_conparam() ||
 	    QDF_GLOBAL_MONITOR_MODE == hdd_get_conparam()) {
@@ -25442,7 +25091,6 @@ configure_fw:
 		}
 
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(5, 4, 0))
 		if (NL80211_RATE_INFO_HE_GI_0_8 == mask->control[band].he_gi) {
 			auto_rate_he_gi = AUTO_RATE_GI_800NS;
 			gi_val = 1;
@@ -25474,7 +25122,6 @@ configure_fw:
 					gi_val, errno);
 			}
 		} else
-#endif
 		if (mask->control[band].gi) {
 			if (NL80211_TXRATE_FORCE_SGI == mask->control[band].gi)
 				gi_val = 0;
@@ -25526,17 +25173,10 @@ static int wlan_hdd_cfg80211_set_bitrate_mask(struct wiphy *wiphy,
 	return errno;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
 static void wlan_hdd_select_queue(struct net_device *dev, struct sk_buff *skb)
 {
 	hdd_select_queue(dev, skb, NULL);
 }
-#else
-static void wlan_hdd_select_queue(struct net_device *dev, struct sk_buff *skb)
-{
-	hdd_select_queue(dev, skb, NULL, NULL);
-}
-#endif
 
 static int __wlan_hdd_cfg80211_tx_control_port(struct wiphy *wiphy,
 					       struct net_device *dev,
@@ -25604,8 +25244,6 @@ static int _wlan_hdd_cfg80211_tx_control_port(struct wiphy *wiphy,
 	return errno;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 41) || \
-	defined(CFG80211_TX_CONTROL_PORT_LINK_SUPPORT))
 static int wlan_hdd_cfg80211_tx_control_port(struct wiphy *wiphy,
 					     struct net_device *dev,
 					     const u8 *buf,
@@ -25621,37 +25259,9 @@ static int wlan_hdd_cfg80211_tx_control_port(struct wiphy *wiphy,
 						  dest, proto, unencrypted,
 						  link_id);
 }
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0))
-static int wlan_hdd_cfg80211_tx_control_port(struct wiphy *wiphy,
-					     struct net_device *dev,
-					     const u8 *buf, size_t len,
-					     const u8 *dest, __be16 proto,
-					     bool unencrypted, u64 *cookie)
-{
-	struct hdd_adapter *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
-
-	return _wlan_hdd_cfg80211_tx_control_port(wiphy, dev, buf, len,
-						  adapter->mac_addr.bytes,
-						  dest, proto, unencrypted, -1);
-}
-#else
-static int wlan_hdd_cfg80211_tx_control_port(struct wiphy *wiphy,
-					     struct net_device *dev,
-					     const u8 *buf, size_t len,
-					     const u8 *dest, __be16 proto,
-					     bool unencrypted)
-{
-	struct hdd_adapter *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
-
-	return _wlan_hdd_cfg80211_tx_control_port(wiphy, dev, buf, len,
-						  adapter->mac_addr.bytes,
-						  dest, proto, unencrypted, -1);
-}
-#endif
 
 #if defined(CFG80211_CTRL_FRAME_SRC_ADDR_TA_ADDR)
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 41))
 bool wlan_hdd_cfg80211_rx_control_port(struct net_device *dev,
 				       u8 *ta_addr,
 				       struct sk_buff *skb,
@@ -25660,15 +25270,6 @@ bool wlan_hdd_cfg80211_rx_control_port(struct net_device *dev,
 	return cfg80211_rx_control_port(dev, skb, unencrypted, -1);
 }
 
-#else
-bool wlan_hdd_cfg80211_rx_control_port(struct net_device *dev,
-				       u8 *ta_addr,
-				       struct sk_buff *skb,
-				       bool unencrypted)
-{
-	return cfg80211_rx_control_port(dev, ta_addr, skb, unencrypted);
-}
-#endif
 
 #else
 bool wlan_hdd_cfg80211_rx_control_port(struct net_device *dev,
@@ -25733,7 +25334,6 @@ bool wlan_hdd_cfg80211_rx_control_port(struct net_device *dev,
  * @key_mgmt_set_pmk = Set pmk key management
  * @update_connect_params = Update connect params
  */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
 /* 6.17+ cfg80211 passes a wireless_dev to these ops */
 static int hdd618_change_station(struct wiphy *wiphy, struct wireless_dev *wdev,
 		const u8 *mac, struct station_parameters *params)
@@ -25760,14 +25360,11 @@ static int hdd618_set_default_mgmt_key(struct wiphy *wiphy, struct wireless_dev 
 {
 	return wlan_hdd_set_default_mgmt_key(wiphy, wdev->netdev, link_id, key_index);
 }
-#if defined (CFG80211_BIGTK_CONFIGURATION_SUPPORT) || \
-	    (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
 static int hdd618_set_default_beacon_key(struct wiphy *wiphy, struct wireless_dev *wdev,
 		int link_id, u8 key_index)
 {
 	return wlan_hdd_cfg80211_set_default_beacon_key(wiphy, wdev->netdev, link_id, key_index);
 }
-#endif
 static int hdd618_dump_station(struct wiphy *wiphy, struct wireless_dev *wdev,
 		int idx, u8 *mac, struct station_info *sinfo)
 {
@@ -25795,9 +25392,6 @@ static int hdd618_remain_on_channel(struct wiphy *wiphy, struct wireless_dev *wd
 	return wlan_hdd_cfg80211_remain_on_channel(wiphy, wdev, chan, duration, cookie);
 }
 #define HDD618(op, fn) hdd618_##op
-#else
-#define HDD618(op, fn) fn
-#endif
 
 static struct cfg80211_ops wlan_hdd_cfg80211_ops = {
 	.add_virtual_intf = wlan_hdd_add_virtual_intf,
@@ -25823,10 +25417,7 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops = {
 	.mgmt_tx = wlan_hdd_mgmt_tx,
 	.mgmt_tx_cancel_wait = wlan_hdd_cfg80211_mgmt_tx_cancel_wait,
 	.set_default_mgmt_key = HDD618(set_default_mgmt_key, wlan_hdd_set_default_mgmt_key),
-#if defined (CFG80211_BIGTK_CONFIGURATION_SUPPORT) || \
-	    (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
 	.set_default_beacon_key = HDD618(set_default_beacon_key, wlan_hdd_cfg80211_set_default_beacon_key),
-#endif
 	.set_txq_params = wlan_hdd_set_txq_params,
 	.dump_station = HDD618(dump_station, wlan_hdd_cfg80211_dump_station),
 	.get_station = HDD618(get_station, wlan_hdd_cfg80211_get_station),
@@ -25839,10 +25430,7 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops = {
 #if defined(KERNEL_SUPPORT_11R_CFG80211)
 	.update_ft_ies = wlan_hdd_cfg80211_update_ft_ies,
 #endif
-#if defined(CFG80211_EXTERNAL_DH_UPDATE_SUPPORT) || \
-(LINUX_VERSION_CODE > KERNEL_VERSION(5, 2, 0))
 	.update_owe_info = wlan_hdd_cfg80211_update_owe_info,
-#endif
 #ifdef FEATURE_WLAN_TDLS
 	.tdls_mgmt = wlan_hdd_cfg80211_tdls_mgmt,
 	.tdls_oper = wlan_hdd_cfg80211_tdls_oper,
@@ -25870,21 +25458,12 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops = {
 #ifdef FEATURE_MONITOR_MODE_SUPPORT
 	.set_monitor_channel = wlan_hdd_cfg80211_set_mon_ch,
 #endif
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0)) || \
-	defined(CFG80211_ABORT_SCAN)
 	.abort_scan = wlan_hdd_cfg80211_abort_scan,
-#endif
-#if defined(CFG80211_UPDATE_CONNECT_PARAMS) || \
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
 	.update_connect_params = wlan_hdd_cfg80211_update_connect_params,
-#endif
-#if defined(WLAN_FEATURE_SAE) && \
-		(defined(CFG80211_EXTERNAL_AUTH_SUPPORT) || \
-		LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0))
+#if defined(WLAN_FEATURE_SAE)
 	.external_auth = wlan_hdd_cfg80211_external_auth,
 #endif
-#if defined(WLAN_FEATURE_NAN) && \
-	   (KERNEL_VERSION(4, 9, 0) <= LINUX_VERSION_CODE)
+#if defined(WLAN_FEATURE_NAN)
 	.start_nan = wlan_hdd_cfg80211_start_nan,
 	.stop_nan = wlan_hdd_cfg80211_stop_nan,
 	.add_nan_func = wlan_hdd_cfg80211_add_nan_func,

@@ -84,7 +84,6 @@ void hdd_cleanup_ndi(struct hdd_context *hdd_ctx,
  */
 int hdd_ndi_start(char *iface_name, uint16_t transaction_id);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0))
 /**
  * hdd_ndi_set_mode(): set the adapter mode to NDI
  * @iface_name: NDI interface name
@@ -95,12 +94,6 @@ int hdd_ndi_start(char *iface_name, uint16_t transaction_id);
  * Return: 0 upon success
  */
 int hdd_ndi_set_mode(const char *iface_name);
-#else
-static inline int hdd_ndi_set_mode(const char *iface_name)
-{
-	return 0;
-}
-#endif /* LINUX_VERSION_CODE  */
 
 #else
 #define WLAN_HDD_IS_NDI(adapter)	(false)

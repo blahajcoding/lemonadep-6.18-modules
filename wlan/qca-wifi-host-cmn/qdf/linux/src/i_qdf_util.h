@@ -38,13 +38,9 @@
 #include <qdf_types.h>
 #include <asm/byteorder.h>
 
-#if LINUX_VERSION_CODE  <= KERNEL_VERSION(3, 3, 8)
-#include <asm/system.h>
-#else
 #if defined(__LINUX_MIPS32_ARCH__) || defined(__LINUX_MIPS64_ARCH__)
 #include <asm/dec/system.h>
 #else
-#endif
 #endif
 
 #include <qdf_types.h>
@@ -179,23 +175,11 @@ static inline bool __qdf_is_macaddr_equal(struct qdf_mac_addr *mac_addr1,
  * Setting it to blank as feature is not intended to be supported
  * on linux version less than 4.3
  */
-#if LINUX_VERSION_CODE  < KERNEL_VERSION(4, 3, 0)
-#define __QDF_DECLARE_EWMA(name, _factor, _weight)
-
-#define __qdf_ewma_tx_lag int
-#define __qdf_ewma_rx_rssi int
-#else
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
 #define __QDF_DECLARE_EWMA(name, _factor, _weight) \
 	DECLARE_EWMA(name, ilog2(_factor), _weight)
-#else
-#define __QDF_DECLARE_EWMA(name, _factor, _weight) \
-	DECLARE_EWMA(name, _factor, _weight)
-#endif
 
 #define __qdf_ewma_tx_lag struct ewma_tx_lag
 #define __qdf_ewma_rx_rssi struct ewma_rx_rssi
-#endif
 
 #define __qdf_ffz(mask) (~(mask) == 0 ? -1 : ffz(mask))
 
@@ -267,15 +251,6 @@ static inline bool __qdf_is_macaddr_equal(struct qdf_mac_addr *mac_addr1,
 #define __qdf_roundup(x, y) roundup(x, y)
 #define __qdf_ceil(x, y) DIV_ROUND_UP(x, y)
 
-#if LINUX_VERSION_CODE  < KERNEL_VERSION(4, 3, 0)
-#define  __qdf_ewma_tx_lag_init(tx_lag)
-#define  __qdf_ewma_tx_lag_add(tx_lag, value)
-#define  __qdf_ewma_tx_lag_read(tx_lag)
-
-#define  __qdf_ewma_rx_rssi_init(rx_rssi)
-#define  __qdf_ewma_rx_rssi_add(rx_rssi, value)
-#define  __qdf_ewma_rx_rssi_read(rx_rssi)
-#else
 #define  __qdf_ewma_tx_lag_init(tx_lag) \
 	ewma_tx_lag_init(tx_lag)
 
@@ -293,7 +268,6 @@ static inline bool __qdf_is_macaddr_equal(struct qdf_mac_addr *mac_addr1,
 
 #define  __qdf_ewma_rx_rssi_read(rx_rssi) \
 	ewma_rx_rssi_read(rx_rssi)
-#endif
 
 #define __qdf_prefetch(x)     prefetch(x)
 
@@ -383,7 +357,6 @@ unsigned long __qdf_rounddown_pow_of_two(unsigned long n)
 	return __rounddown_pow_of_two(n);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 13, 0)
 
 /**
  * __qdf_set_dma_coherent_mask() - set max number of bits allowed in dma addr
@@ -400,23 +373,6 @@ int __qdf_set_dma_coherent_mask(struct device *dev, uint8_t addr_bits)
 	return dma_set_mask_and_coherent(dev, DMA_BIT_MASK(addr_bits));
 }
 
-#else
-
-/**
- * __qdf_set_dma_coherent_mask() - set max number of bits allowed in dma addr
- * @dev: device pointer
- * @addr_bits: max number of bits allowed in dma address
- *
- * This API sets the maximum allowed number of bits in the dma address.
- *
- * Return: 0 - success, non zero - failure
- */
-static inline
-int __qdf_set_dma_coherent_mask(struct device *dev, uint8_t addr_bits)
-{
-	return dma_set_coherent_mask(dev, DMA_BIT_MASK(addr_bits));
-}
-#endif
 /**
  * qdf_get_random_bytes() - returns nbytes bytes of random
  * data

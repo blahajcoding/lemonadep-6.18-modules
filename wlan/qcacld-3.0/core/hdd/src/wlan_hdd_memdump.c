@@ -37,14 +37,6 @@
 #define PROCFS_DRIVER_DUMP_NAME "driverdump"
 #define PROCFS_DRIVER_DUMP_PERM 0444
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0))
-/*
- * Commit 359745d78351 ("proc: remove PDE_DATA() completely")
- * Replaced PDE_DATA() with pde_data()
- */
-#define pde_data(inode) PDE_DATA(inode)
-#endif
-
 static struct proc_dir_entry *proc_file_driver, *proc_dir_driver;
 
 /** memdump_get_file_data() - get data available in proc file
@@ -210,15 +202,9 @@ static ssize_t hdd_driver_memdump_read(struct file *file, char __user *buf,
  * This structure initialize the file operation handle for memory
  * dump feature
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
 static const struct proc_ops driver_dump_fops = {
 	.proc_read = hdd_driver_memdump_read,
 };
-#else
-static const struct file_operations driver_dump_fops = {
-	.read = hdd_driver_memdump_read,
-};
-#endif
 
 /**
  * hdd_driver_memdump_procfs_init() - Initialize procfs for driver memory dump

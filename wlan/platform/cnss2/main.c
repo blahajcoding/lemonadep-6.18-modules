@@ -20,9 +20,7 @@
 #include <linux/timer.h>
 #include <linux/thermal.h>
 #include <linux/version.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 #include <linux/panic_notifier.h>
-#endif
 #if IS_ENABLED(CONFIG_QCOM_MINIDUMP)
 #include <soc/qcom/minidump.h>
 #endif
@@ -1032,13 +1030,6 @@ int cnss_wlan_disable(struct device *dev, enum cnss_driver_mode mode)
 }
 EXPORT_SYMBOL(cnss_wlan_disable);
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0))
-int cnss_iommu_map(struct iommu_domain *domain,
-		   unsigned long iova, phys_addr_t paddr, size_t size, int prot)
-{
-	return iommu_map(domain, iova, paddr, size, prot);
-}
-#else
 int cnss_iommu_map(struct iommu_domain *domain,
 		   unsigned long iova, phys_addr_t paddr, size_t size, int prot)
 {
@@ -1049,7 +1040,6 @@ int cnss_iommu_map(struct iommu_domain *domain,
 
 	return iommu_map(domain, iova, paddr, size, prot, gfp);
 }
-#endif
 
 int cnss_audio_smmu_map(struct device *dev, phys_addr_t paddr,
 			dma_addr_t iova, size_t size)
@@ -8200,11 +8190,7 @@ out:
 	return ret;
 }
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0))
-static int cnss_remove(struct platform_device *plat_dev)
-#else
 static void cnss_remove(struct platform_device *plat_dev)
-#endif
 {
 	struct cnss_plat_data *plat_priv = platform_get_drvdata(plat_dev);
 	const struct of_device_id *of_id;
@@ -8255,11 +8241,7 @@ static void cnss_remove(struct platform_device *plat_dev)
 	cnss_clear_plat_priv(plat_priv);
 
 out:
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0))
-	return ret;
-#else
 	return;
-#endif
 }
 
 #ifdef CONFIG_CNSS_SHUTDOWN_CALLBACK

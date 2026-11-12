@@ -39,9 +39,7 @@
 #include <linux/platform_device.h>
 #include <linux/device.h>
 #include <linux/of.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0)
 #include <linux/reset.h>
-#endif
 
 /**
  * clk_enable_disable() -  Enable/disable clock
@@ -120,7 +118,6 @@ int hif_ahb_clk_enable_disable(struct device *dev, int enable)
  *
  * Return : zero on success, non-zero incase of error.
  */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0)
 int hif_ahb_enable_radio(struct hif_pci_softc *sc,
 		struct platform_device *pdev,
 		const struct platform_device_id *id)
@@ -256,16 +253,6 @@ int hif_ahb_enable_radio(struct hif_pci_softc *sc,
 err_reset:
 	return -EIO;
 }
-#else
-int hif_ahb_enable_radio(struct hif_pci_softc *sc,
-		struct platform_device *pdev,
-		const struct platform_device_id *id)
-{
-	qdf_print("%s:%d:Reset routines not available in kernel version.",
-		  __func__, __LINE__);
-	return -EIO;
-}
-#endif
 
 /* "wifi_core_warm" is the other reset type */
 #define AHB_RESET_TYPE "wifi_core_cold"
@@ -279,7 +266,6 @@ int hif_ahb_enable_radio(struct hif_pci_softc *sc,
  *
  * Return : n/a.
  */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0)
 void hif_ahb_device_reset(struct hif_softc *scn)
 {
 	struct reset_control *resetctl = NULL;
@@ -416,13 +402,6 @@ void hif_ahb_device_reset(struct hif_softc *scn)
 	iounmap(mem_tcsr);
 	hif_info("Reset complete for wifi core id: %d", wifi_core_id);
 }
-#else
-void hif_ahb_device_reset(struct hif_softc *scn)
-{
-	qdf_print("%s:%d:Reset routines not available in kernel version.",
-		  __func__, __LINE__);
-}
-#endif
 
 
 

@@ -110,12 +110,8 @@ end:
 	return;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
 static void epping_tx_queue_timeout(struct net_device *dev,
 				    unsigned int txqueue)
-#else
-static void epping_tx_queue_timeout(struct net_device *dev)
-#endif
 {
 	epping_adapter_t *adapter;
 
@@ -367,9 +363,7 @@ epping_adapter_t *epping_add_adapter(epping_context_t *pEpping_ctx,
 	epping_adapter_t *adapter;
 
 	dev = alloc_netdev(sizeof(epping_adapter_t), "wifi%d",
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0))
 			   NET_NAME_UNKNOWN,
-#endif
 			   ether_setup);
 	if (!dev) {
 		EPPING_LOG(QDF_TRACE_LEVEL_FATAL,

@@ -203,9 +203,7 @@ static const int beacon_filter_table[] = {
 #define HE_OPERATION_BSS_COL_DISABLED_POS 31
 #endif
 
-#if defined(WLAN_FEATURE_SAE) && \
-		(defined(CFG80211_EXTERNAL_AUTH_SUPPORT) || \
-		LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0))
+#if defined(WLAN_FEATURE_SAE)
 /**
  * wlan_hdd_sae_callback() - Sends SAE info to supplicant
  * @adapter: pointer adapter context
@@ -856,21 +854,12 @@ void hdd_copy_ht_operation(struct hdd_station_ctx *hdd_sta_ctx,
 			ht_ops->basicMCSSet[i];
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
 static void hdd_copy_vht_center_freq(struct ieee80211_vht_operation *ieee_ops,
 				     tDot11fIEVHTOperation *roam_ops)
 {
 	ieee_ops->center_freq_seg0_idx = roam_ops->chan_center_freq_seg0;
 	ieee_ops->center_freq_seg1_idx = roam_ops->chan_center_freq_seg1;
 }
-#else
-static void hdd_copy_vht_center_freq(struct ieee80211_vht_operation *ieee_ops,
-				     tDot11fIEVHTOperation *roam_ops)
-{
-	ieee_ops->center_freq_seg1_idx = roam_ops->chan_center_freq_seg0;
-	ieee_ops->center_freq_seg2_idx = roam_ops->chan_center_freq_seg1;
-}
-#endif /* KERNEL_VERSION(4, 12, 0) */
 
 void hdd_copy_vht_operation(struct hdd_station_ctx *hdd_sta_ctx,
 			    tDot11fIEVHTOperation *vht_ops)
@@ -885,8 +874,7 @@ void hdd_copy_vht_operation(struct hdd_station_ctx *hdd_sta_ctx,
 	hdd_vht_ops->basic_mcs_set = vht_ops->basicMCSSet;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)) && \
-     defined(WLAN_FEATURE_11AX)
+#if defined(WLAN_FEATURE_11AX)
 void hdd_copy_he_operation(struct hdd_station_ctx *hdd_sta_ctx,
 			   tDot11fIEhe_op *he_operation)
 {
@@ -1571,7 +1559,6 @@ QDF_STATUS hdd_roam_register_tdlssta(struct hdd_adapter *adapter,
 
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0))
 
 static void hdd_rx_unprot_disassoc(struct net_device *dev,
 				   const u8 *buf, size_t len)
@@ -1585,21 +1572,6 @@ static void hdd_rx_unprot_deauth(struct net_device *dev,
 	cfg80211_rx_unprot_mlme_mgmt(dev, buf, len);
 }
 
-#else
-
-static void hdd_rx_unprot_disassoc(struct net_device *dev,
-				   const u8 *buf, size_t len)
-{
-	cfg80211_send_unprot_disassoc(dev, buf, len);
-}
-
-static void hdd_rx_unprot_deauth(struct net_device *dev,
-				 const u8 *buf, size_t len)
-{
-	cfg80211_send_unprot_deauth(dev, buf, len);
-}
-
-#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0)) */
 
 /**
  * hdd_indicate_unprot_mgmt_frame() - indicate unprotected management frame

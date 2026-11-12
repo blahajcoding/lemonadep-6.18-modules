@@ -1691,7 +1691,6 @@ void hif_pci_close(struct hif_softc *hif_sc)
 
 #define BAR_NUM 0
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0))
 static inline int hif_pci_set_dma_mask(struct pci_dev *pci_dev, u64 mask)
 {
 	return dma_set_mask(&pci_dev->dev, mask);
@@ -1702,18 +1701,6 @@ static inline int hif_pci_set_coherent_dma_mask(struct pci_dev *pci_dev,
 {
 	return dma_set_coherent_mask(&pci_dev->dev, mask);
 }
-#else /* (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)) */
-static inline int hif_pci_set_dma_mask(struct pci_dev *pci_dev, u64 mask)
-{
-	return pci_set_dma_mask(pci_dev, mask);
-}
-
-static inline int hif_pci_set_coherent_dma_mask(struct pci_dev *pci_dev,
-						u64 mask)
-{
-	return pci_set_consistent_dma_mask(pci_dev, mask);
-}
-#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)) */
 
 static int hif_enable_pci_nopld(struct hif_pci_softc *sc,
 				struct pci_dev *pdev,

@@ -82,8 +82,6 @@ rel_lock:
 	return status;
 }
 
-#if defined(CFG80211_DISCONNECTED_V2) || \
-(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0))
 #ifdef WLAN_FEATURE_11BE_MLO
 #ifdef WLAN_FEATURE_11BE_MLO_ADV_FEATURE
 static void
@@ -143,17 +141,6 @@ osif_cm_indicate_disconnect(struct wlan_objmgr_vdev *vdev,
 	cfg80211_disconnected(dev, reason, ie, ie_len, locally_generated, gfp);
 }
 #endif /* WLAN_FEATURE_11BE_MLO */
-#else
-static void
-osif_cm_indicate_disconnect(struct wlan_objmgr_vdev *vdev,
-			    struct net_device *dev,
-			    enum ieee80211_reasoncode reason,
-			    bool locally_generated, const u8 *ie,
-			    size_t ie_len, gfp_t gfp)
-{
-	cfg80211_disconnected(dev, reason, ie, ie_len, gfp);
-}
-#endif
 
 static enum ieee80211_reasoncode
 osif_cm_get_disconnect_reason(struct vdev_osif_priv *osif_priv, uint16_t reason)

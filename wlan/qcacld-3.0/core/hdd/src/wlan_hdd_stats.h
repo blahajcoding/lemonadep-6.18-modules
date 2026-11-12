@@ -337,15 +337,9 @@ int wlan_hdd_cfg80211_stats_ext_request(struct wiphy *wiphy,
  *
  * Return: 0 for success, non-zero for failure
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
 int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
 				  struct net_device *dev, const uint8_t *mac,
 				  struct station_info *sinfo);
-#else
-int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
-				  struct net_device *dev, uint8_t *mac,
-				  struct station_info *sinfo);
-#endif
 
 /**
  * wlan_hdd_cfg80211_dump_station() - dump station statistics

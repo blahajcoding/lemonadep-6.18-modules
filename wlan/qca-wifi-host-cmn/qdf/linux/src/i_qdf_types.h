@@ -42,11 +42,7 @@
 
 #ifdef __KERNEL__
 #include <generated/autoconf.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 #include <linux/stdarg.h>
-#else
-#include <stdarg.h>
-#endif
 #include <linux/list.h>
 #include <linux/mutex.h>
 #include <linux/types.h>
@@ -151,7 +147,7 @@ typedef unsigned long __sgtable_t;
 #error  "Please fix <asm/byteorder.h>"
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20) || !defined(__KERNEL__)
+#if !defined(__KERNEL__)
 #ifndef __bool_already_defined__
 #define __bool_already_defined__
 
@@ -270,13 +266,7 @@ struct __qdf_device {
 	enum qdf_bus_type bus_type;
 	const struct hif_bus_id *bid;
 	bool smmu_s1_enabled;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
 	struct iommu_domain *domain;
-#else
-#ifdef ENABLE_SMMU_S1_TRANSLATION
-	struct dma_iommu_mapping *iommu_mapping;
-#endif
-#endif
 };
 typedef struct __qdf_device *__qdf_device_t;
 

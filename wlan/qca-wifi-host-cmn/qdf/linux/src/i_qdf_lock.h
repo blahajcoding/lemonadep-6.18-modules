@@ -31,11 +31,7 @@
 #include <linux/spinlock.h>
 #include <linux/sched.h>
 #include <linux/device.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
-#include <asm/semaphore.h>
-#else
 #include <linux/semaphore.h>
-#endif
 #include <linux/interrupt.h>
 #include <linux/pm_wakeup.h>
 
@@ -103,25 +99,11 @@ typedef struct qdf_runtime_lock {
 
 /* Function declarations and documenation */
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 37)
-/**
- * __qdf_semaphore_init() - initialize the semaphore
- * @m: Semaphore object
- *
- * Return: QDF_STATUS_SUCCESS
- */
-static inline QDF_STATUS __qdf_semaphore_init(struct semaphore *m)
-{
-	init_MUTEX(m);
-	return QDF_STATUS_SUCCESS;
-}
-#else
 static inline QDF_STATUS __qdf_semaphore_init(struct semaphore *m)
 {
 	sema_init(m, 1);
 	return QDF_STATUS_SUCCESS;
 }
-#endif
 
 /**
  * __qdf_semaphore_acquire() - acquire semaphore

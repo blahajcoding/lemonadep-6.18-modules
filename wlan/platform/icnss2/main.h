@@ -30,9 +30,7 @@
 #include <linux/timer.h>
 #include <linux/sched_clock.h>
 #include <linux/version.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0))
 #include <linux/sched/clock.h>
-#endif
 #include <linux/iommu.h>
 #include <linux/version.h>
 
@@ -56,9 +54,7 @@
 /* Consecutive SOC wake request failures to trigger recovery */
 #define ICNSS_SOC_WAKE_RECOVERY_COUNT 5
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0))
 #define from_timer timer_container_of
-#endif
 
 extern uint64_t dynamic_feature_mask;
 
@@ -853,16 +849,9 @@ void icnss_recovery_timeout_hdlr(struct timer_list *t);
 void icnss_wpss_ssr_timeout_hdlr(struct timer_list *t);
 void icnss_xo_trim_deinit(struct icnss_priv *priv);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0))
 static inline int icnss_timer_delete(struct timer_list *timer)
 {
 	return timer_delete(timer);
 }
-#else
-static inline int icnss_timer_delete(struct timer_list *timer)
-{
-	return del_timer(timer);
-}
-#endif
 #endif
 

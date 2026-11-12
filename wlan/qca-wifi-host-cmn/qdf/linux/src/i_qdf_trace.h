@@ -32,8 +32,7 @@
  * beginning with kernel version msm-4.19 since that is
  * when msm_minidump_removerefion() was added.
  */
-#if defined(CONFIG_QCOM_MINIDUMP) && \
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
+#if defined(CONFIG_QCOM_MINIDUMP)
 #define WLAN_QCOM_MINIDUMP
 #endif
 /* older kernels have a bug in kallsyms, so ensure module.h is included */

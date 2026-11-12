@@ -178,13 +178,8 @@ static void cnss_plat_ipc_debug_log_print(void *log_ctx, char *process, const ch
 		cnss_plat_ipc_debug_log_print((void *)NULL, _x)
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 19, 0))
-#define proc_name (in_hardirq() ? "irq" : \
-		   (in_softirq() ? "soft_irq" : current->comm))
-#else
 #define proc_name (in_irq() ? "irq" : \
 		   (in_softirq() ? "soft_irq" : current->comm))
-#endif
 
 #define cnss_plat_ipc_err(_fmt, ...) \
 		cnss_plat_ipc_log_print(proc_name, __func__, \

@@ -27,51 +27,11 @@
 #include "linux/notifier.h"
 #include "linux/version.h"
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
 #include "linux/cpuhotplug.h"
-#endif
 
 static __qdf_cpuhp_emit __qdf_cpuhp_on_up;
 static __qdf_cpuhp_emit __qdf_cpuhp_on_down;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
-static int qdf_cpuhp_legacy_handler(struct notifier_block *block,
-				    unsigned long state,
-				    void *hcpu)
-{
-	unsigned long cpu = (unsigned long)hcpu;
-
-	switch (state) {
-	case CPU_ONLINE:
-		__qdf_cpuhp_on_up(cpu);
-		break;
-
-	case CPU_DOWN_PREPARE:
-	case CPU_DOWN_PREPARE_FROZEN:
-		__qdf_cpuhp_on_down(cpu);
-		break;
-
-	default:
-		break;
-	}
-
-	return NOTIFY_OK;
-}
-
-static struct notifier_block qdf_cpuhp_notifier_block = {
-	.notifier_call = qdf_cpuhp_legacy_handler,
-};
-
-static inline void qdf_cpuhp_register_callbacks(void)
-{
-	register_hotcpu_notifier(&qdf_cpuhp_notifier_block);
-}
-
-static inline void qdf_cpuhp_unregister_callbacks(void)
-{
-	unregister_hotcpu_notifier(&qdf_cpuhp_notifier_block);
-}
-#else
 static enum cpuhp_state registered_hotplug_state;
 
 static int qdf_cpuhp_up_handler(unsigned int cpu)
@@ -102,7 +62,6 @@ static inline void qdf_cpuhp_unregister_callbacks(void)
 	if (registered_hotplug_state)
 		cpuhp_remove_state(registered_hotplug_state);
 }
-#endif /* KERNEL_VERSION(4, 6, 0) */
 
 void __qdf_cpuhp_os_init(__qdf_cpuhp_emit on_up, __qdf_cpuhp_emit on_down)
 {

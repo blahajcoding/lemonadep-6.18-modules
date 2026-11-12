@@ -31,9 +31,7 @@
 #include <linux/of_gpio.h>
 #include <linux/clk.h>
 #include <linux/platform_device.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0)
 #include <linux/reset.h>
-#endif
 
 struct qdf_vbus_resource;
 struct qdf_vbus_rstctl;
@@ -125,13 +123,7 @@ __qal_vbus_get_dev_rstctl(struct qdf_pfm_hndl *pfhndl, const char *state,
 			  struct qdf_vbus_rstctl **rstctl)
 {
 	struct reset_control *rsctl;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
 	rsctl = devm_reset_control_get_optional((struct device *)pfhndl, state);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0)
-	rsctl = reset_control_get_optional((struct device *)pfhndl, state);
-#else
-	rsctl = NULL;
-#endif
 	*rstctl = (struct qdf_vbus_rstctl *)rsctl;
 	return QDF_STATUS_SUCCESS;
 }
@@ -273,7 +265,6 @@ __qal_vbus_deregister_driver(struct qdf_pfm_drv *pfdev)
  *
  * Return: QDF_STATUS_SUCCESS on success
  */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0)
 static inline QDF_STATUS
 __qal_vbus_gpio_set_value_cansleep(unsigned int gpio, int value)
 {
@@ -281,13 +272,6 @@ __qal_vbus_gpio_set_value_cansleep(unsigned int gpio, int value)
 
 	return QDF_STATUS_SUCCESS;
 }
-#else
-static inline QDF_STATUS
-__qal_vbus_gpio_set_value_cansleep(unsigned int gpio, int value)
-{
-	return QDF_STATUS_SUCCESS;
-}
-#endif
 
 /**
  * __qal_vbus_rcu_read_lock() - mark the beginning of an RCU read-side critical

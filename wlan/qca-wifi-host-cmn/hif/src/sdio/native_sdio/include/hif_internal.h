@@ -434,55 +434,16 @@ int func0_cmd52_write_byte(struct mmc_card *card,
 int func0_cmd52_read_byte(struct mmc_card *card,
 			  unsigned int address,
 			  unsigned char *byte);
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 16, 0))
-/**
- * sdio_card_highspeed() - check if high speed supported
- * @card: pointer to mmc card struct
- *
- * Return: non zero if card supports high speed.
- */
-static inline int sdio_card_highspeed(struct mmc_card *card)
-{
-	return mmc_card_highspeed(card);
-}
-#else
 static inline int sdio_card_highspeed(struct mmc_card *card)
 {
 	return mmc_card_hs(card);
 }
-#endif
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 16, 0))
-/**
- * sdio_card_set_highspeed() - set high speed
- * @card: pointer to mmc card struct
- *
- * Return: none.
- */
-static inline void sdio_card_set_highspeed(struct mmc_card *card)
-{
-	mmc_card_set_highspeed(card);
-}
-#else
 static inline void sdio_card_set_highspeed(struct mmc_card *card)
 {
 }
-#endif
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 16, 0))
-/**
- * sdio_card_state() - set card state
- * @card: pointer to mmc card struct
- *
- * Return: none.
- */
-static inline void sdio_card_state(struct mmc_card *card)
-{
-	card->state &= ~MMC_STATE_HIGHSPEED;
-}
-#else
 static inline void sdio_card_state(struct mmc_card *card)
 {
 }
-#endif
 #endif /* _HIF_INTERNAL_H_ */

@@ -787,7 +787,6 @@ static void populate_dot11f_tdls_ht_vht_cap(struct mac_context *mac,
 }
 
 #ifdef WLAN_FEATURE_11AX
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
 static void
 lim_tdls_populate_dot11f_6hgz_he_caps(struct mac_context *mac,
 				      struct tdls_add_sta_req *add_sta_req,
@@ -831,20 +830,6 @@ static void lim_populate_tdls_setup_6g_cap(struct mac_context *mac,
 		populate_dot11f_he_6ghz_cap(mac, session, hecap_6g);
 }
 
-#else
-static void
-lim_tdls_populate_dot11f_6hgz_he_caps(struct mac_context *mac,
-				      struct tdls_add_sta_req *add_sta_req,
-				      tDot11fIEhe_6ghz_band_cap *pDot11f)
-{
-}
-
-static void lim_populate_tdls_setup_6g_cap(struct mac_context *mac,
-					   tDot11fIEhe_6ghz_band_cap *hecap_6g,
-					   struct pe_session *session)
-{
-}
-#endif
 
 static void lim_tdls_set_he_chan_width(tDot11fIEhe_cap *heCap,
 				       struct pe_session *session)

@@ -24,7 +24,6 @@
 #include "qdf_trace.h"
 #include "qdf_types.h"
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0))
 static inline
 int qdf_firmware_request_nowarn(const struct firmware **fw,
 				const char *name,
@@ -32,15 +31,6 @@ int qdf_firmware_request_nowarn(const struct firmware **fw,
 {
 	return firmware_request_nowarn(fw, name, device);
 }
-#else
-static inline
-int qdf_firmware_request_nowarn(const struct firmware **fw,
-				const char *name,
-				struct device *device)
-{
-	return request_firmware(fw, name, device);
-}
-#endif
 
 
 QDF_STATUS qdf_file_read(const char *path, char **out_buf)

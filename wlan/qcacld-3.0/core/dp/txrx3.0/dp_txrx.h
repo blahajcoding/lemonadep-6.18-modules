@@ -28,9 +28,7 @@
 #include <linux/netdevice.h>
 #include "qdf_list.h"
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0))
 #include <net/gro.h>
-#endif
 
 /**
  * struct dp_txrx_config - dp txrx configuration passed to dp txrx modules
@@ -55,7 +53,6 @@ struct dp_txrx_handle {
 	struct dp_txrx_config config;
 };
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0))
 static inline void osif_dp_napi_flush(struct napi_struct *napi)
 {
 	if (napi->gro.rx_count) {
@@ -64,18 +61,7 @@ static inline void osif_dp_napi_flush(struct napi_struct *napi)
 		napi->gro.rx_count = 0;
 	}
 }
-#else
-static inline void osif_dp_napi_flush(struct napi_struct *napi)
-{
-	if (napi->rx_count) {
-		netif_receive_skb_list(&napi->rx_list);
-		qdf_init_list_head(&napi->rx_list);
-		napi->rx_count = 0;
-	}
-}
-#endif /* KERNEL_VERSION(6, 15, 0)*/
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
 /**
  * dp_rx_napi_gro_flush() - do gro flush
  * @napi: napi used to do gro flush
@@ -97,17 +83,6 @@ static inline void dp_rx_napi_gro_flush(struct napi_struct *napi,
 		osif_dp_napi_flush(napi);
 	}
 }
-#else
-static inline void dp_rx_napi_gro_flush(struct napi_struct *napi,
-					enum dp_rx_gro_flush_code flush_code)
-{
-	if (napi->poll) {
-		/* Skipping GRO flush in low TPUT */
-		if (flush_code != DP_RX_GRO_LOW_TPUT_FLUSH)
-			napi_gro_flush(napi, false);
-	}
-}
-#endif
 
 #ifdef FEATURE_WLAN_DP_RX_THREADS
 /**

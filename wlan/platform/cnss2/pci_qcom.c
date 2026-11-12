@@ -527,40 +527,6 @@ int cnss_pci_get_msi_assignment(struct cnss_pci_data *pci_priv)
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)) && \
-    (LINUX_VERSION_CODE < KERNEL_VERSION(6, 9, 0))
-static int
-cnss_pci_smmu_dev_fault_handler(struct iommu_fault *fault,  void *data)
-{
-	struct cnss_pci_data *pci_priv = data;
-
-	cnss_fatal_err("SMMU fault happened with IOVA 0x%llx\n",
-		       fault->event.addr);
-
-	if (!pci_priv) {
-		cnss_pr_err("pci_priv is NULL\n");
-		return -ENODEV;
-	}
-
-	pci_priv->is_smmu_fault = true;
-	cnss_pci_update_status(pci_priv, CNSS_FW_DOWN);
-	if (cnss_force_fw_assert(&pci_priv->pci_dev->dev) == -EOPNOTSUPP)
-		CNSS_ASSERT(0);
-
-	/* IOMMU driver requires -ENOSYS to print debug info. */
-	return -ENOSYS;
-}
-
-static
-void cnss_register_iommu_fault_handler(struct cnss_pci_data *pci_priv)
-{
-	struct pci_dev *pci_dev = pci_priv->pci_dev;
-
-	iommu_register_device_fault_handler(&pci_dev->dev,
-					    cnss_pci_smmu_dev_fault_handler,
-					    pci_priv);
-}
-#else
 static int cnss_pci_smmu_fault_handler(struct iommu_domain *domain,
 				       struct device *dev, unsigned long iova,
 				       int flags, void *handler_token)
@@ -584,24 +550,13 @@ static int cnss_pci_smmu_fault_handler(struct iommu_domain *domain,
 }
 
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0))
 static
 void cnss_register_iommu_fault_handler(struct cnss_pci_data *pci_priv)
 {
 	qcom_iommu_set_fault_handler(pci_priv->iommu_domain,
 				     cnss_pci_smmu_fault_handler, pci_priv);
 }
-#else
-static
-void cnss_register_iommu_fault_handler(struct cnss_pci_data *pci_priv)
-{
-	iommu_set_fault_handler(pci_priv->iommu_domain,
-				cnss_pci_smmu_fault_handler, pci_priv);
-}
-#endif
-#endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0))
 int cnss_pci_get_iommu_addr(struct cnss_pci_data *pci_priv,
 			    struct device_node *iommu_group_node)
 {
@@ -678,23 +633,6 @@ int cnss_pci_get_iommu_addr(struct cnss_pci_data *pci_priv,
 	return (pci_priv->smmu_iova_start && pci_priv->smmu_iova_len) ?
 		0 : -EINVAL;
 }
-#else
-int cnss_pci_get_iommu_addr(struct cnss_pci_data *pci_priv,
-			    struct device_node *iommu_group_node)
-{
-	u32 addr_win[2];
-	int ret;
-
-	ret = of_property_read_u32_array(iommu_group_node,
-					 "qcom,iommu-dma-addr-pool",
-					 addr_win, ARRAY_SIZE(addr_win));
-
-	pci_priv->smmu_iova_start = addr_win[0];
-	pci_priv->smmu_iova_len = addr_win[1];
-
-	return ret;
-}
-#endif
 
 static int cnss_pci_init_smmuv3(struct cnss_pci_data *pci_priv)
 {

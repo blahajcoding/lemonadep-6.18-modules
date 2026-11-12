@@ -202,7 +202,6 @@ enum pld_uevent {
 	PLD_SMMU_FAULT,
 };
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
 /**
  * enum pld_device_config - Get PLD device config
  * @PLD_IPA_DISABLD: IPA is disabled
@@ -210,7 +209,6 @@ enum pld_uevent {
 enum pld_device_config {
 	PLD_IPA_DISABLED,
 };
-#endif
 
 /**
  * enum pld_bus_event - PLD bus event types
@@ -902,11 +900,7 @@ int pld_athdiag_read(struct device *dev, uint32_t offset, uint32_t memtype,
 		     uint32_t datalen, uint8_t *output);
 int pld_athdiag_write(struct device *dev, uint32_t offset, uint32_t memtype,
 		      uint32_t datalen, uint8_t *input);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
 void *pld_smmu_get_domain(struct device *dev);
-#else
-void *pld_smmu_get_mapping(struct device *dev);
-#endif
 int pld_smmu_map(struct device *dev, phys_addr_t paddr,
 		 uint32_t *iova_addr, size_t size);
 #ifdef CONFIG_SMMU_S1_UNMAP
@@ -1162,7 +1156,6 @@ const char *pld_bus_width_type_to_str(enum pld_bus_width_type level);
 int pld_get_thermal_state(struct device *dev, unsigned long *thermal_state,
 			  int mon_id);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
 /**
  * pld_is_ipa_offload_disabled() - Check if IPA offload is enabled or not
  * @dev: The device structure
@@ -1170,12 +1163,6 @@ int pld_get_thermal_state(struct device *dev, unsigned long *thermal_state,
  * Return: Non-zero code for IPA offload disable; zero for IPA offload enable
  */
 int pld_is_ipa_offload_disabled(struct device *dev);
-#else
-int pld_is_ipa_offload_disabled(struct device *dev);
-{
-	return 0;
-}
-#endif
 
 #if defined(CNSS_MEM_PRE_ALLOC) && defined(FEATURE_SKB_PRE_ALLOC)
 

@@ -75,17 +75,10 @@ uint8_t cds_get_mmie_size(void)
 	return sizeof(struct ieee80211_mmie);
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
 uint8_t cds_get_gmac_mmie_size(void)
 {
 	return sizeof(struct ieee80211_mmie_16);
 }
-#else
-uint8_t cds_get_gmac_mmie_size(void)
-{
-	return 0;
-}
-#endif
 
 uint32_t cds_chan_to_freq(uint8_t chan)
 {

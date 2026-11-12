@@ -438,7 +438,7 @@ static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
 				bool initiator, const uint8_t *buf,
 				size_t len, int link_id)
 
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0))
+#else
 static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
 				struct net_device *dev,
 				const u8 *peer, int link_id,
@@ -447,43 +447,11 @@ static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
 				bool initiator, const u8 *buf,
 				size_t len)
 
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0))
-static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
-				struct net_device *dev, const uint8_t *peer,
-				uint8_t action_code, uint8_t dialog_token,
-				uint16_t status_code, uint32_t peer_capability,
-				bool initiator, const uint8_t *buf,
-				size_t len)
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
-static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
-				struct net_device *dev, const uint8_t *peer,
-				uint8_t action_code, uint8_t dialog_token,
-				uint16_t status_code, uint32_t peer_capability,
-				const uint8_t *buf, size_t len)
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)) || defined(TDLS_MGMT_VERSION2)
-static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
-				struct net_device *dev, uint8_t *peer,
-				uint8_t action_code, uint8_t dialog_token,
-				uint16_t status_code, uint32_t peer_capability,
-				const uint8_t *buf, size_t len)
-#else
-static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
-				struct net_device *dev, uint8_t *peer,
-				uint8_t action_code, uint8_t dialog_token,
-				uint16_t status_code, const uint8_t *buf,
-				size_t len)
 #endif
 {
 	struct hdd_adapter *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
 	struct hdd_context *hdd_ctx = wiphy_priv(wiphy);
 	bool tdls_support;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0))
-#if !(TDLS_MGMT_VERSION2)
-	u32 peer_capability;
-
-	peer_capability = 0;
-#endif
-#endif
 
 	if (QDF_GLOBAL_FTM_MODE == hdd_get_conparam()) {
 		hdd_err("Command not allowed in FTM mode");
@@ -553,7 +521,7 @@ int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
 					u32 peer_capability, bool initiator,
 					const u8 *buf, size_t len, int link_id)
 
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0))
+#else
 int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
 					struct net_device *dev,
 					const u8 *peer, int link_id,
@@ -562,34 +530,6 @@ int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
 					bool initiator, const u8 *buf,
 					size_t len)
 
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)) || defined(WITH_BACKPORTS)
-int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
-					struct net_device *dev,
-					const u8 *peer, u8 action_code,
-					u8 dialog_token, u16 status_code,
-					u32 peer_capability, bool initiator,
-					const u8 *buf, size_t len)
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
-int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
-					struct net_device *dev,
-					const u8 *peer, u8 action_code,
-					u8 dialog_token, u16 status_code,
-					u32 peer_capability, const u8 *buf,
-					size_t len)
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)) || defined(TDLS_MGMT_VERSION2)
-int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
-					struct net_device *dev,
-					u8 *peer, u8 action_code,
-					u8 dialog_token,
-					u16 status_code, u32 peer_capability,
-					const u8 *buf, size_t len)
-#else
-int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
-					struct net_device *dev,
-					u8 *peer, u8 action_code,
-					u8 dialog_token,
-					u16 status_code, const u8 *buf,
-					size_t len)
 #endif
 {
 	int errno;
@@ -604,28 +544,11 @@ int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
 					      dialog_token, status_code,
 					      peer_capability, initiator,
 					      buf, len, link_id);
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0))
+#else
 	errno = __wlan_hdd_cfg80211_tdls_mgmt(wiphy, dev, peer, link_id,
 					      action_code, dialog_token,
 					      status_code, peer_capability,
 					      initiator, buf, len);
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)) || defined(WITH_BACKPORTS)
-	errno = __wlan_hdd_cfg80211_tdls_mgmt(wiphy, dev, peer, action_code,
-					      dialog_token, status_code,
-					      peer_capability, initiator,
-					      buf, len);
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
-	errno = __wlan_hdd_cfg80211_tdls_mgmt(wiphy, dev, peer, action_code,
-					      dialog_token, status_code,
-					      peer_capability, buf, len);
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)) || defined(TDLS_MGMT_VERSION2)
-	errno = __wlan_hdd_cfg80211_tdls_mgmt(wiphy, dev, peer, action_code,
-					      dialog_token, status_code,
-					      peer_capability, buf, len);
-#else
-	errno = __wlan_hdd_cfg80211_tdls_mgmt(wiphy, dev, peer, action_code,
-					      dialog_token, status_code,
-					      buf, len);
 #endif
 
 	osif_vdev_sync_op_stop(vdev_sync);
@@ -709,17 +632,10 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
  *
  * Return: 0 on success; negative errno otherwise
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
 int wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
 				struct net_device *dev,
 				const uint8_t *peer,
 				enum nl80211_tdls_operation oper)
-#else
-int wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
-				struct net_device *dev,
-				uint8_t *peer,
-				enum nl80211_tdls_operation oper)
-#endif
 {
 	int errno;
 	struct osif_vdev_sync *vdev_sync;

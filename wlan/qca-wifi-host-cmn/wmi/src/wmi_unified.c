@@ -110,7 +110,6 @@ typedef PREPACK struct {
 #define RX_DIAG_EVENT_WORK_PROCESS_MAX_COUNT 500
 
 #ifdef WMI_INTERFACE_EVENT_LOGGING
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 3, 0))
 /* TODO Cleanup this backported function */
 static int wmi_bp_seq_printf(qdf_debugfs_file_t m, const char *f, ...)
 {
@@ -122,9 +121,6 @@ static int wmi_bp_seq_printf(qdf_debugfs_file_t m, const char *f, ...)
 
 	return 0;
 }
-#else
-#define wmi_bp_seq_printf(m, fmt, ...) seq_printf((m), fmt, ##__VA_ARGS__)
-#endif
 
 #ifndef MAX_WMI_INSTANCES
 #define CUSTOM_MGMT_CMD_DATA_SIZE 4

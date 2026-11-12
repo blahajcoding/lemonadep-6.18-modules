@@ -1249,7 +1249,6 @@ int wlan_hdd_pm_qos_notify(struct notifier_block *nb, unsigned long curr_val,
 	return NOTIFY_DONE;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 bool wlan_hdd_is_cpu_pm_qos_in_progress(struct hdd_context *hdd_ctx)
 {
 	long long curr_val_ns;
@@ -1274,7 +1273,6 @@ bool wlan_hdd_is_cpu_pm_qos_in_progress(struct hdd_context *hdd_ctx)
 	else
 		return false;
 }
-#endif
 #endif
 
 /**
@@ -2267,19 +2265,11 @@ void wlan_hdd_inc_suspend_stats(struct hdd_context *hdd_ctx,
 	wlan_hdd_print_suspend_fail_stats(hdd_ctx);
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0)
-static inline void
-hdd_sched_scan_results(struct wiphy *wiphy, uint64_t reqid)
-{
-	cfg80211_sched_scan_results(wiphy);
-}
-#else
 static inline void
 hdd_sched_scan_results(struct wiphy *wiphy, uint64_t reqid)
 {
 	cfg80211_sched_scan_results(wiphy, reqid);
 }
-#endif
 
 #ifdef FEATURE_WLAN_FULL_POWER_DOWN_SUPPORT
 bool wlan_hdd_is_full_power_down_enable(struct hdd_context *hdd_ctx)
@@ -3051,18 +3041,11 @@ static int __wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0))
 int wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
 				  struct wireless_dev *wdev,
 				  int radio_idx,
 				  enum nl80211_tx_power_setting type,
 				  int mbm)
-#else
-int wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
-				  struct wireless_dev *wdev,
-				  enum nl80211_tx_power_setting type,
-				  int mbm)
-#endif
 {
 	struct osif_psoc_sync *psoc_sync;
 	int errno;
@@ -3280,22 +3263,11 @@ static int __wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0))
 int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
 				  struct wireless_dev *wdev,
 				  int radio_idx,
 				  unsigned int link_id,
 				  int *dbm)
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0))
-int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
-				  struct wireless_dev *wdev,
-				  unsigned int link_id,
-				  int *dbm)
-#else
-int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
-				  struct wireless_dev *wdev,
-				  int *dbm)
-#endif
 {
 	struct osif_psoc_sync *psoc_sync;
 	int errno;

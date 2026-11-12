@@ -115,13 +115,7 @@ struct pktlog_dev_t {
 	uint32_t invalid_packets;
 };
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
 #define PKTLOG_SYSCTL_SIZE	9
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0))
-#define PKTLOG_SYSCTL_SIZE	10
-#else
-#define PKTLOG_SYSCTL_SIZE      14
-#endif
 
 #define PKTLOG_MAX_SEND_QUEUE_DEPTH 64
 

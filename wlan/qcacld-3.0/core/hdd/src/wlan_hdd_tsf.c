@@ -2229,92 +2229,6 @@ int wlan_get_ts_info(struct net_device *dev, struct ethtool_ts_info *info)
 	return 0;
 }
 
-#if (KERNEL_VERSION(4, 1, 0) > LINUX_VERSION_CODE)
-/**
- * wlan_ptp_gettime() - return fw ts info to uplayer
- * @ptp: pointer to ptp_clock_info.
- * @ts: pointer to timespec.
- *
- * Return: Describe the execute result of this routine
- */
-static int wlan_ptp_gettime(struct ptp_clock_info *ptp, struct timespec *ts)
-{
-	uint64_t host_time, target_time = 0;
-	struct hdd_context *hdd_ctx;
-	struct hdd_adapter *adapter;
-	uint32_t tsf_reg_read_enabled;
-	struct osif_psoc_sync *psoc_sync;
-	int errno, status = 0;
-
-	hdd_ctx = qdf_container_of(ptp, struct hdd_context, ptp_cinfo);
-	errno = wlan_hdd_validate_context(hdd_ctx);
-	if (errno)
-		return -EINVAL;
-
-	errno = osif_psoc_sync_op_start(hdd_ctx->parent_dev, &psoc_sync);
-	if (errno)
-		return -EAGAIN;
-
-	adapter = hdd_get_adapter(hdd_ctx, QDF_P2P_GO_MODE);
-	if (!adapter) {
-		adapter = hdd_get_adapter(hdd_ctx, QDF_P2P_CLIENT_MODE);
-		if (!adapter) {
-			adapter = hdd_get_adapter(hdd_ctx, QDF_SAP_MODE);
-			if (!adapter)
-				adapter = hdd_get_adapter(hdd_ctx,
-							  QDF_STA_MODE);
-				if (!adapter) {
-					status = -EOPNOTSUPP;
-					goto end;
-				}
-		}
-	}
-
-	host_time = hdd_get_monotonic_host_time(hdd_ctx);
-	if (hdd_get_targettime_from_hosttime(adapter, host_time,
-					     &target_time)) {
-		hdd_err("get invalid target timestamp");
-		status = -EINVAL;
-		goto end;
-	}
-	*ts = ns_to_timespec(target_time * NSEC_PER_USEC);
-
-end:
-	osif_psoc_sync_op_stop(psoc_sync);
-	return status;
-}
-
-/**
- * wlan_hdd_phc_init() - phc init
- * @hdd_ctx: pointer to the hdd_contex.
- *
- * Return: NULL
- */
-static void wlan_hdd_phc_init(struct hdd_context *hdd_ctx)
-{
-	hdd_ctx->ptp_cinfo.gettime = wlan_ptp_gettime;
-
-	hdd_ctx->ptp_clock = ptp_clock_register(&hdd_ctx->ptp_cinfo,
-						hdd_ctx->parent_dev);
-}
-
-/**
- * wlan_hdd_phc_deinit() - phc deinit
- * @hdd_ctx: pointer to the hdd_contex.
- *
- * Return: NULL
- */
-static void wlan_hdd_phc_deinit(struct hdd_context *hdd_ctx)
-{
-	hdd_ctx->ptp_cinfo.gettime = NULL;
-
-	if (hdd_ctx->ptp_clock) {
-		ptp_clock_unregister(hdd_ctx->ptp_clock);
-		hdd_ctx->ptp_clock = NULL;
-	}
-}
-
-#else
 static int wlan_ptp_gettime(struct ptp_clock_info *ptp, struct timespec64 *ts)
 {
 	uint64_t host_time, target_time = 0;
@@ -2378,7 +2292,6 @@ static void wlan_hdd_phc_deinit(struct hdd_context *hdd_ctx)
 	}
 }
 
-#endif
 #else
 
 static void wlan_hdd_phc_init(struct hdd_context *hdd_ctx)

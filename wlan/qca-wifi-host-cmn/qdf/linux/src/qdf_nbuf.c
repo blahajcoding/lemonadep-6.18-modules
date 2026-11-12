@@ -25,9 +25,7 @@
 #include <linux/hashtable.h>
 #include <linux/kernel.h>
 #include <linux/version.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0))
 #include <linux/skbuff_ref.h>
-#endif
 #include <linux/skbuff.h>
 #include <linux/module.h>
 #include <linux/proc_fs.h>
@@ -54,18 +52,10 @@
 #include <linux/ip.h>
 #endif /* FEATURE_TSO */
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
-
-#define qdf_nbuf_users_inc atomic_inc
-#define qdf_nbuf_users_dec atomic_dec
-#define qdf_nbuf_users_set atomic_set
-#define qdf_nbuf_users_read atomic_read
-#else
 #define qdf_nbuf_users_inc refcount_inc
 #define qdf_nbuf_users_dec refcount_dec
 #define qdf_nbuf_users_set refcount_set
 #define qdf_nbuf_users_read refcount_read
-#endif /* KERNEL_VERSION(4, 13, 0) */
 
 #define IEEE80211_RADIOTAP_VHT_BW_20	0
 #define IEEE80211_RADIOTAP_VHT_BW_40	1
@@ -616,7 +606,6 @@ struct sk_buff *__qdf_nbuf_alloc(qdf_device_t osdev, size_t size, int reserve,
 
 	if (in_interrupt() || irqs_disabled() || in_atomic()) {
 		flags = GFP_ATOMIC;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
 		/*
 		 * Observed that kcompactd burns out CPU to make order-3 page.
 		 *__netdev_alloc_skb has 4k page fallback option just in case of
@@ -624,7 +613,6 @@ struct sk_buff *__qdf_nbuf_alloc(qdf_device_t osdev, size_t size, int reserve,
 		 * hard. Make kcompactd rest in piece.
 		 */
 		flags = flags & ~__GFP_KSWAPD_RECLAIM;
-#endif
 	}
 
 	skb = __netdev_alloc_skb(NULL, size, flags);
@@ -4427,7 +4415,6 @@ __qdf_nbuf_sync_for_cpu(qdf_device_t osdev,
 }
 qdf_export_symbol(__qdf_nbuf_sync_for_cpu);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0))
 /**
  * qdf_nbuf_update_radiotap_vht_flags() - Update radiotap header VHT flags
  * @rx_status: Pointer to rx_status.
@@ -5114,39 +5101,6 @@ unsigned int qdf_nbuf_update_radiotap(struct mon_rx_status *rx_status,
 	qdf_mem_copy(qdf_nbuf_data(nbuf), rtap_buf, rtap_len);
 	return rtap_len;
 }
-#else
-static unsigned int qdf_nbuf_update_radiotap_vht_flags(
-					struct mon_rx_status *rx_status,
-					int8_t *rtap_buf,
-					uint32_t rtap_len)
-{
-	qdf_err("ERROR: struct ieee80211_radiotap_header not supported");
-	return 0;
-}
-
-unsigned int qdf_nbuf_update_radiotap_he_flags(struct mon_rx_status *rx_status,
-				      int8_t *rtap_buf, uint32_t rtap_len)
-{
-	qdf_err("ERROR: struct ieee80211_radiotap_header not supported");
-	return 0;
-}
-
-static unsigned int qdf_nbuf_update_radiotap_ampdu_flags(
-					struct mon_rx_status *rx_status,
-					uint8_t *rtap_buf,
-					uint32_t rtap_len)
-{
-	qdf_err("ERROR: struct ieee80211_radiotap_header not supported");
-	return 0;
-}
-
-unsigned int qdf_nbuf_update_radiotap(struct mon_rx_status *rx_status,
-				      qdf_nbuf_t nbuf, uint32_t headroom_sz)
-{
-	qdf_err("ERROR: struct ieee80211_radiotap_header not supported");
-	return 0;
-}
-#endif
 qdf_export_symbol(qdf_nbuf_update_radiotap);
 
 /**
@@ -5237,7 +5191,6 @@ void __qdf_nbuf_mod_exit(void)
 }
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
 QDF_STATUS __qdf_nbuf_move_frag_page_offset(__qdf_nbuf_t nbuf, uint8_t idx,
 					    int offset)
 {
@@ -5258,27 +5211,6 @@ QDF_STATUS __qdf_nbuf_move_frag_page_offset(__qdf_nbuf_t nbuf, uint8_t idx,
 	return QDF_STATUS_SUCCESS;
 }
 
-#else
-QDF_STATUS __qdf_nbuf_move_frag_page_offset(__qdf_nbuf_t nbuf, uint8_t idx,
-					    int offset)
-{
-	uint16_t frag_offset;
-	skb_frag_t *frag;
-
-	if (qdf_unlikely(idx >= __qdf_nbuf_get_nr_frags(nbuf)))
-		return QDF_STATUS_E_FAILURE;
-
-	frag = &skb_shinfo(nbuf)->frags[idx];
-	frag_offset = frag->page_offset;
-
-	frag_offset += offset;
-	frag->page_offset = frag_offset;
-
-	__qdf_nbuf_trim_add_frag_size(nbuf, idx, -(offset), 0);
-
-	return QDF_STATUS_SUCCESS;
-}
-#endif
 
 qdf_export_symbol(__qdf_nbuf_move_frag_page_offset);
 

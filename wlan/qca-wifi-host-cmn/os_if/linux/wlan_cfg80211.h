@@ -256,69 +256,17 @@ enum qca_nl80211_vendor_subcmds_index {
 	QCA_NL80211_VENDOR_SUBCMD_PEER_FLUSH_PENDING_INDEX,
 };
 
-#if !defined(SUPPORT_WDEV_CFG80211_VENDOR_EVENT_ALLOC) && \
-	(LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)) && \
-	!defined(WITH_BACKPORTS)
-
-static inline struct sk_buff *
-backported_cfg80211_vendor_event_alloc(struct wiphy *wiphy,
-				       struct wireless_dev *wdev,
-				       int approxlen,
-				       int event_idx, gfp_t gfp)
-{
-	struct sk_buff *skb;
-
-	skb = cfg80211_vendor_event_alloc(wiphy, approxlen, event_idx, gfp);
-
-	if (skb && wdev) {
-		struct nlattr *attr;
-		u32 ifindex = wdev->netdev->ifindex;
-
-		nla_nest_cancel(skb, ((void **)skb->cb)[2]);
-		if (nla_put_u32(skb, NL80211_ATTR_IFINDEX, ifindex))
-			goto nla_fail;
-
-		attr = nla_nest_start(skb, NL80211_ATTR_VENDOR_DATA);
-		((void **)skb->cb)[2] = attr;
-	}
-
-	return skb;
-
-nla_fail:
-	kfree_skb(skb);
-
-	return NULL;
-}
-
-#define cfg80211_vendor_event_alloc backported_cfg80211_vendor_event_alloc
-#endif
-
 /* For kernel version >= 5.2, driver needs to provide policy */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0))
 #define vendor_command_policy(__policy, __maxattr) \
 	.policy = __policy,                        \
 	.maxattr = __maxattr
 #define VENDOR_NLA_POLICY_NESTED(__policy) \
 	NLA_POLICY_NESTED(__policy)
-#else
-#define vendor_command_policy(__policy, __maxattr)
-#define VENDOR_NLA_POLICY_NESTED(__policy) {.type = NLA_NESTED}
-#endif /*End of (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0) */
 
 /* For kernel version <= 4.20, driver needs to provide policy */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 20, 0))
 #define VENDOR_NLA_POLICY_MAC_ADDR NLA_POLICY_ETH_ADDR
 #define VENDOR_NLA_POLICY_IPV4_ADDR NLA_POLICY_EXACT_LEN(QDF_IPV4_ADDR_SIZE)
 #define VENDOR_NLA_POLICY_IPV6_ADDR NLA_POLICY_EXACT_LEN(QDF_IPV6_ADDR_SIZE)
-#else
-#define VENDOR_NLA_POLICY_MAC_ADDR \
-	{.type = NLA_UNSPEC, .len = QDF_MAC_ADDR_SIZE}
-#define NLA_EXACT_LEN NLA_UNSPEC
-#define VENDOR_NLA_POLICY_IPV4_ADDR \
-	{.type = NLA_EXACT_LEN, .len = QDF_IPV4_ADDR_SIZE}
-#define VENDOR_NLA_POLICY_IPV6_ADDR \
-	{.type = NLA_EXACT_LEN, .len = QDF_IPV6_ADDR_SIZE}
-#endif /*End of (LINUX_VERSION_CODE <= KERNEL_VERSION(4, 20, 0) */
 
 #if defined(NBUF_MEMORY_DEBUG) && defined(NETLINK_BUF_TRACK)
 #define wlan_cfg80211_vendor_free_skb(skb) \
@@ -410,25 +358,6 @@ static inline QDF_STATUS wlan_cfg80211_qal_devcfg_send_response( qdf_nbuf_t skb)
 
 #undef nla_parse
 #undef nla_parse_nested
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0)
-static inline int wlan_cfg80211_nla_parse(struct nlattr **tb,
-					  int maxtype,
-					  const struct nlattr *head,
-					  int len,
-					  const struct nla_policy *policy)
-{
-	return nla_parse(tb, maxtype, head, len, policy);
-}
-
-static inline int
-wlan_cfg80211_nla_parse_nested(struct nlattr *tb[],
-			       int maxtype,
-			       const struct nlattr *nla,
-			       const struct nla_policy *policy)
-{
-	return nla_parse_nested(tb, maxtype, nla, policy);
-}
-#else
 static inline int wlan_cfg80211_nla_parse(struct nlattr **tb,
 					  int maxtype,
 					  const struct nlattr *head,
@@ -446,61 +375,30 @@ wlan_cfg80211_nla_parse_nested(struct nlattr *tb[],
 {
 	return nla_parse_nested(tb, maxtype, nla, policy, NULL);
 }
-#endif
 #define nla_parse(...) (obsolete, use wlan_cfg80211_nla_parse)
 #define nla_parse_nested(...) (obsolete, use wlan_cfg80211_nla_parse_nested)
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 7, 0))
-static inline int
-wlan_cfg80211_nla_put_u64(struct sk_buff *skb, int attrtype, u64 value)
-{
-	return nla_put_u64(skb, attrtype, value);
-}
-#else
 static inline int
 wlan_cfg80211_nla_put_u64(struct sk_buff *skb, int attrtype, u64 value)
 {
 	return nla_put_u64_64bit(skb, attrtype, value, NL80211_ATTR_PAD);
 }
-#endif
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0))
-static inline ssize_t
-wlan_cfg80211_nla_strscpy(char *dst, const struct nlattr *nla, size_t dstsize)
-{
-	return nla_strlcpy(dst, nla, dstsize);
-}
-#else
 static inline ssize_t
 wlan_cfg80211_nla_strscpy(char *dst, const struct nlattr *nla, size_t dstsize)
 {
 	return nla_strscpy(dst, nla, dstsize);
 }
-#endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
 static inline int wlan_cfg80211_register_netdevice(struct net_device *dev)
 {
 	return cfg80211_register_netdevice(dev);
 }
-#else
-static inline int wlan_cfg80211_register_netdevice(struct net_device *dev)
-{
-	return register_netdevice(dev);
-}
-#endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
 static inline void wlan_cfg80211_unregister_netdevice(struct net_device *dev)
 {
 	cfg80211_unregister_netdevice(dev);
 }
-#else
-static inline void wlan_cfg80211_unregister_netdevice(struct net_device *dev)
-{
-	unregister_netdevice(dev);
-}
-#endif
 
 #ifdef CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT
 #ifdef CFG80211_RU_PUNCT_NOTIFY

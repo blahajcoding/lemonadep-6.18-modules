@@ -720,7 +720,6 @@ int hdd_ndi_open(const char *iface_name, bool is_add_virtual_iface)
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0))
 int hdd_ndi_set_mode(const char *iface_name)
 {
 	struct hdd_adapter *adapter;
@@ -757,7 +756,6 @@ int hdd_ndi_set_mode(const char *iface_name)
 
 	return 0;
 }
-#endif
 
 int hdd_ndi_start(char *iface_name, uint16_t transaction_id)
 {
@@ -815,7 +813,6 @@ err_handler:
 	return ret;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0))
 static int hdd_delete_ndi_intf(struct wiphy *wiphy, struct wireless_dev *wdev)
 {
 	struct net_device *dev = wdev->netdev;
@@ -833,21 +830,6 @@ static int hdd_delete_ndi_intf(struct wiphy *wiphy, struct wireless_dev *wdev)
 
 	return 0;
 }
-#else
-static int hdd_delete_ndi_intf(struct wiphy *wiphy, struct wireless_dev *wdev)
-{
-	int ret;
-
-	ret = __wlan_hdd_del_virtual_intf(wiphy, wdev);
-
-	if (ret)
-		hdd_err("NDI delete request failed");
-	else
-		hdd_err("NDI delete request successfully issued");
-
-	return ret;
-}
-#endif
 
 int hdd_ndi_delete(uint8_t vdev_id, char *iface_name, uint16_t transaction_id)
 {

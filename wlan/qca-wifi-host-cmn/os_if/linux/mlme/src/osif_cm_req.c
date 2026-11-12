@@ -50,36 +50,12 @@ static void osif_cm_free_wep_key_params(struct wlan_cm_connect_req *connect_req)
 	}
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0) && \
-LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0) && \
-!defined(CFG80211_CRYPTO_WEP_KEYS_REMOVED)
-static QDF_STATUS
-osif_cm_update_wep_seq_info(struct wlan_cm_connect_req *connect_req,
-			    const struct cfg80211_connect_params *req)
-{
-	if (req->crypto.wep_keys->seq_len) {
-		connect_req->crypto.wep_keys.seq_len =
-						req->crypto.wep_keys->seq_len;
-		connect_req->crypto.wep_keys.seq =
-			qdf_mem_malloc(connect_req->crypto.wep_keys.seq_len);
-		if (!connect_req->crypto.wep_keys.seq) {
-			osif_cm_free_wep_key_params(connect_req);
-			return QDF_STATUS_E_NOMEM;
-		}
-		qdf_mem_copy(connect_req->crypto.wep_keys.seq,
-			     req->crypto.wep_keys->seq,
-			     connect_req->crypto.wep_keys.seq_len);
-	}
-	return QDF_STATUS_SUCCESS;
-}
-#else
 static inline QDF_STATUS
 osif_cm_update_wep_seq_info(struct wlan_cm_connect_req *connect_req,
 			    const struct cfg80211_connect_params *req)
 {
 	return QDF_STATUS_SUCCESS;
 }
-#endif
 
 #if !defined(CFG80211_CRYPTO_WEP_KEYS_REMOVED)
 static QDF_STATUS
@@ -422,7 +398,6 @@ QDF_STATUS osif_cm_set_fils_info(struct wlan_objmgr_vdev *vdev,
 }
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
 static inline void
 osif_cm_set_prev_bssid(struct wlan_cm_connect_req *connect_req,
 		       const struct cfg80211_connect_params *req)
@@ -440,19 +415,6 @@ void osif_cm_dump_prev_bssid(const struct cfg80211_connect_params *req)
 				QDF_MAC_ADDR_REF(req->prev_bssid));
 }
 
-#else
-static inline void
-osif_cm_set_prev_bssid(struct wlan_cm_connect_req *connect_req,
-		       const struct cfg80211_connect_params *req)
-{
-}
-
-static inline
-void osif_cm_dump_prev_bssid(const struct cfg80211_connect_params *req)
-{
-}
-
-#endif
 
 static inline void
 osif_cm_dump_connect_req(struct net_device *dev, uint8_t vdev_id,

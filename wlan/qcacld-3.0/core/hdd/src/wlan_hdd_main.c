@@ -336,7 +336,6 @@ static qdf_wake_lock_t wlan_wake_lock;
 #define HDD_FW_VER_REL_ID(tgt_fw_ver_ext) \
 ((tgt_fw_ver_ext &  0xf800000) >> 23)
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0))
 static const struct wiphy_wowlan_support wowlan_support_reg_init = {
 	.flags = WIPHY_WOWLAN_ANY |
 		 WIPHY_WOWLAN_MAGIC_PKT |
@@ -350,7 +349,6 @@ static const struct wiphy_wowlan_support wowlan_support_reg_init = {
 	.pattern_min_len = WOW_MIN_PATTERN_SIZE,
 	.pattern_max_len = WOW_MAX_PATTERN_SIZE,
 };
-#endif
 
 static const struct category_info cinfo[MAX_SUPPORTED_CATEGORY] = {
 	[QDF_MODULE_ID_TLSHIM] = {QDF_TRACE_LEVEL_ALL},
@@ -1003,19 +1001,12 @@ enum phy_ch_width hdd_get_adapter_width(struct hdd_adapter *adapter)
 	return width;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0))
 static inline struct net_device *hdd_net_dev_from_notifier(void *context)
 {
 	struct netdev_notifier_info *info = context;
 
 	return info->dev;
 }
-#else
-static inline struct net_device *hdd_net_dev_from_notifier(void *context)
-{
-	return context;
-}
-#endif
 
 static int __hdd_netdev_notifier_call(struct net_device *net_dev,
 				      unsigned long state)
@@ -1272,8 +1263,7 @@ enum phy_ch_width hdd_map_nl_chan_width(enum nl80211_chan_width ch_width)
 	}
 }
 
-#if defined(WLAN_FEATURE_NAN) && \
-	   (KERNEL_VERSION(4, 9, 0) <= LINUX_VERSION_CODE)
+#if defined(WLAN_FEATURE_NAN)
 /**
  * wlan_hdd_convert_nan_type() - Convert nl type to qdf type
  * @nl_type: NL80211 interface type
@@ -2397,9 +2387,7 @@ static void hdd_extract_fw_version_info(struct hdd_context *hdd_ctx)
 			HDD_FW_VER_REL_ID(hdd_ctx->target_fw_vers_ext);
 }
 
-#if defined(WLAN_FEATURE_11AX) && \
-	(defined(CFG80211_SBAND_IFTYPE_DATA_BACKPORT) || \
-	 (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)))
+#if defined(WLAN_FEATURE_11AX)
 
 #if defined(CONFIG_BAND_6GHZ) && (defined(IEEE80211_HE_6GHZ_CAP_MIN_MPDU_START))
 static void hdd_update_wiphy_he_6ghz_capa(struct hdd_context *hdd_ctx)
@@ -2436,8 +2424,7 @@ static inline void hdd_update_wiphy_he_6ghz_capa(struct hdd_context *hdd_ctx)
 }
 #endif
 
-#if defined(CONFIG_BAND_6GHZ) && (defined(CFG80211_6GHZ_BAND_SUPPORTED) || \
-      (KERNEL_VERSION(5, 4, 0) <= LINUX_VERSION_CODE))
+#if defined(CONFIG_BAND_6GHZ)
 static void
 hdd_update_wiphy_he_caps_6ghz(struct hdd_context *hdd_ctx,
 			      tDot11fIEhe_cap *he_cap_cfg)
@@ -4195,7 +4182,6 @@ static int hdd_wlan_register_ip6_notifier(struct hdd_context *hdd_ctx)
 #endif
 
 #ifdef FEATURE_RUNTIME_PM
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
 static int hdd_pm_qos_add_notifier(struct hdd_context *hdd_ctx)
 {
 	return dev_pm_qos_add_notifier(hdd_ctx->parent_dev,
@@ -4209,19 +4195,6 @@ static int hdd_pm_qos_remove_notifier(struct hdd_context *hdd_ctx)
 					  &hdd_ctx->pm_qos_notifier,
 					  DEV_PM_QOS_RESUME_LATENCY);
 }
-#else
-static int hdd_pm_qos_add_notifier(struct hdd_context *hdd_ctx)
-{
-	return pm_qos_add_notifier(PM_QOS_CPU_DMA_LATENCY,
-				   &hdd_ctx->pm_qos_notifier);
-}
-
-static int hdd_pm_qos_remove_notifier(struct hdd_context *hdd_ctx)
-{
-	return pm_qos_remove_notifier(PM_QOS_CPU_DMA_LATENCY,
-				      &hdd_ctx->pm_qos_notifier);
-}
-#endif
 
 /**
  * hdd_wlan_register_pm_qos_notifier() - register PM QOS notifier
@@ -5201,25 +5174,14 @@ exit:
 
 static int hdd_open_cesium_nl_sock(void)
 {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0))
 	struct netlink_kernel_cfg cfg = {
 		.groups = WLAN_NLINK_MCAST_GRP_ID,
 		.input = NULL
 	};
-#endif
 	int ret = 0;
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0))
 	cesium_nl_srv_sock = netlink_kernel_create(&init_net, WLAN_NLINK_CESIUM,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 7, 0))
-						   THIS_MODULE,
-#endif
 						   &cfg);
-#else
-	cesium_nl_srv_sock = netlink_kernel_create(&init_net, WLAN_NLINK_CESIUM,
-						   WLAN_NLINK_MCAST_GRP_ID,
-						   NULL, NULL, THIS_MODULE);
-#endif
 
 	if (!cesium_nl_srv_sock) {
 		hdd_err("NLINK:  cesium netlink_kernel_create failed");
@@ -6085,15 +6047,10 @@ static const struct net_device_ops wlan_drv_ops = {
 	.ndo_set_features = hdd_set_features,
 	.ndo_tx_timeout = hdd_tx_timeout,
 	.ndo_get_stats = hdd_get_stats,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
-	.ndo_do_ioctl = hdd_ioctl,
-#endif
 	.ndo_set_mac_address = hdd_set_mac_address,
 	.ndo_select_queue = hdd_select_queue,
 	.ndo_set_rx_mode = hdd_set_multicast_list,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 	.ndo_siocdevprivate = hdd_dev_private_ioctl,
-#endif
 };
 
 #ifdef FEATURE_MONITOR_MODE_SUPPORT
@@ -6225,9 +6182,7 @@ hdd_alloc_station_adapter(struct hdd_context *hdd_ctx, tSirMacAddr mac_addr,
 
 	/* cfg80211 initialization and registration */
 	dev = alloc_netdev_mqs(sizeof(*adapter), name,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)) || defined(WITH_BACKPORTS)
 			      name_assign_type,
-#endif
 			      ((cds_get_conparam() == QDF_GLOBAL_MONITOR_MODE ||
 			       wlan_hdd_is_session_type_monitor(session_type)) ?
 			       hdd_mon_mode_ether_setup : ether_setup),
@@ -6317,7 +6272,6 @@ free_net_dev:
 	return NULL;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
 static int
 hdd_register_netdevice(struct hdd_adapter *adapter, struct net_device *dev,
 		       struct hdd_adapter_create_param *params)
@@ -6331,14 +6285,6 @@ hdd_register_netdevice(struct hdd_adapter *adapter, struct net_device *dev,
 
 	return ret;
 }
-#else
-static int
-hdd_register_netdevice(struct hdd_adapter *adapter, struct net_device *dev,
-		       struct hdd_adapter_create_param *params)
-{
-	return register_netdevice(dev);
-}
-#endif
 
 static QDF_STATUS
 hdd_register_interface(struct hdd_adapter *adapter, bool rtnl_held,
@@ -7039,8 +6985,7 @@ void hdd_deinit_adapter(struct hdd_context *hdd_ctx,
 	hdd_exit();
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)) && \
-     defined(WLAN_FEATURE_11AX)
+#if defined(WLAN_FEATURE_11AX)
 /**
  * hdd_cleanup_he_operation_info() - cleanup he operation info
  * @adapter: Adapter structure
@@ -7127,7 +7072,6 @@ static void hdd_sta_destroy_ctx_all(struct hdd_context *hdd_ctx)
 	}
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
 static void
 hdd_unregister_netdevice(struct hdd_adapter *adapter, struct net_device *dev)
 {
@@ -7138,13 +7082,6 @@ hdd_unregister_netdevice(struct hdd_adapter *adapter, struct net_device *dev)
 		unregister_netdevice(dev);
 	}
 }
-#else
-static void
-hdd_unregister_netdevice(struct hdd_adapter *adapter, struct net_device *dev)
-{
-	unregister_netdevice(dev);
-}
-#endif
 
 static void hdd_cleanup_adapter(struct hdd_context *hdd_ctx,
 				struct hdd_adapter *adapter,
@@ -9060,26 +8997,6 @@ int wlan_hdd_set_mon_chan(struct hdd_adapter *adapter, qdf_freq_t freq,
 }
 #endif
 
-#if defined MSM_PLATFORM && (LINUX_VERSION_CODE <= KERNEL_VERSION(4, 19, 0))
-/**
- * hdd_stop_p2p_go() - call cfg80211 API to stop P2P GO
- * @adapter: pointer to adapter
- *
- * This function calls cfg80211 API to stop P2P GO
- *
- * Return: None
- */
-static void hdd_stop_p2p_go(struct hdd_adapter *adapter)
-{
-	hdd_debug("[SSR] send stop ap to supplicant");
-	cfg80211_ap_stopped(adapter->dev, GFP_KERNEL);
-}
-
-static inline void hdd_delete_sta(struct hdd_adapter *adapter)
-{
-}
-
-#else
 static void hdd_stop_p2p_go(struct hdd_adapter *adapter)
 {
 	hdd_debug("[SSR] send stop iface ap to supplicant");
@@ -9105,7 +9022,6 @@ static void hdd_delete_sta(struct hdd_adapter *adapter)
 			 (const u8 *)&bcast_mac.bytes[0],
 			 GFP_KERNEL);
 }
-#endif
 
 QDF_STATUS hdd_start_all_adapters(struct hdd_context *hdd_ctx)
 {
@@ -10267,23 +10183,7 @@ static int hdd_wiphy_init(struct hdd_context *hdd_ctx)
 	}
 
 	if (ucfg_pmo_get_suspend_mode(hdd_ctx->psoc) == PMO_SUSPEND_WOW) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0))
 		wiphy->wowlan = &wowlan_support_reg_init;
-#else
-		wiphy->wowlan.flags = WIPHY_WOWLAN_ANY |
-				      WIPHY_WOWLAN_MAGIC_PKT |
-				      WIPHY_WOWLAN_DISCONNECT |
-				      WIPHY_WOWLAN_SUPPORTS_GTK_REKEY |
-				      WIPHY_WOWLAN_GTK_REKEY_FAILURE |
-				      WIPHY_WOWLAN_EAP_IDENTITY_REQ |
-				      WIPHY_WOWLAN_4WAY_HANDSHAKE |
-				      WIPHY_WOWLAN_RFKILL_RELEASE;
-
-		wiphy->wowlan.n_patterns = (WOW_MAX_FILTER_LISTS *
-				    WOW_MAX_FILTERS_PER_LIST);
-		wiphy->wowlan.pattern_min_len = WOW_MIN_PATTERN_SIZE;
-		wiphy->wowlan.pattern_max_len = WOW_MAX_PATTERN_SIZE;
-#endif
 	}
 
 	ucfg_mlme_get_channel_bonding_24ghz(hdd_ctx->psoc,
@@ -10311,10 +10211,7 @@ static int hdd_wiphy_init(struct hdd_context *hdd_ctx)
 	 * has support for processing user cell_base hints when wiphy is
 	 * self managed or check the backport flag for the same.
 	 */
-#if defined CFG80211_USER_HINT_CELL_BASE_SELF_MANAGED ||	\
-		(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0))
 	hdd_send_wiphy_regd_sync_event(hdd_ctx);
-#endif
 
 	pld_increment_driver_load_cnt(hdd_ctx->parent_dev);
 
@@ -11280,7 +11177,6 @@ void hdd_send_mscs_action_frame(struct hdd_context *hdd_ctx,
 #endif
 
 #ifdef WLAN_FEATURE_DYNAMIC_RX_AGGREGATION
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
 static enum qdisc_filter_status
 __hdd_check_for_prio_filter_in_clsact_qdisc(struct tcf_block *block,
 					    uint32_t prio)
@@ -11311,26 +11207,6 @@ __hdd_check_for_prio_filter_in_clsact_qdisc(struct tcf_block *block,
 
 	return ret;
 }
-#else
-static enum qdisc_filter_status
-__hdd_check_for_prio_filter_in_clsact_qdisc(struct tcf_block *block,
-					    uint32_t prio)
-{
-	struct tcf_chain *chain;
-	struct tcf_proto *tp;
-	enum qdisc_filter_status ret = QDISC_FILTER_PRIO_MISMATCH;
-
-	list_for_each_entry(chain, &block->chain_list, list) {
-		for (tp = rtnl_dereference(chain->filter_chain); tp;
-		     tp = rtnl_dereference(tp->next)) {
-			if (tp->prio == (prio << 16))
-				ret = QDISC_FILTER_PRIO_MATCH;
-		}
-	}
-
-	return ret;
-}
-#endif
 
 /**
  * hdd_check_for_prio_filter_in_clsact_qdisc() - Check if priority 3 filter
@@ -17392,23 +17268,6 @@ void hdd_bus_bw_compute_reset_prev_txrx_stats(struct hdd_adapter *adapter)
 
 #endif /*WLAN_FEATURE_DP_BUS_BANDWIDTH*/
 
-#if defined MSM_PLATFORM && (LINUX_VERSION_CODE <= KERNEL_VERSION(4, 19, 0))
-/**
- * hdd_inform_stop_sap() - call cfg80211 API to stop SAP
- * @adapter: pointer to adapter
- *
- * This function calls cfg80211 API to stop SAP
- *
- * Return: None
- */
-static void hdd_inform_stop_sap(struct hdd_adapter *adapter)
-{
-	hdd_debug("SAP stopped due to invalid channel vdev id %d",
-		  wlan_vdev_get_id(adapter->vdev));
-	cfg80211_ap_stopped(adapter->dev, GFP_KERNEL);
-}
-
-#else
 static void hdd_inform_stop_sap(struct hdd_adapter *adapter)
 {
 	hdd_debug("SAP stopped due to invalid channel vdev id %d",
@@ -17416,7 +17275,6 @@ static void hdd_inform_stop_sap(struct hdd_adapter *adapter)
 	cfg80211_stop_iface(adapter->hdd_ctx->wiphy, &adapter->wdev,
 			    GFP_KERNEL);
 }
-#endif
 
 /**
  * wlan_hdd_stop_sap() - This function stops bss of SAP.
@@ -17808,8 +17666,6 @@ static void hdd_inform_wifi_off(void)
 	osif_psoc_sync_op_stop(psoc_sync);
 }
 
-#if defined CFG80211_USER_HINT_CELL_BASE_SELF_MANAGED || \
-                    (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0))
 static void hdd_inform_wifi_on(void)
 {
 	int ret;
@@ -17832,11 +17688,6 @@ static void hdd_inform_wifi_on(void)
 
 	osif_psoc_sync_op_stop(psoc_sync);
 }
-#else
-static void hdd_inform_wifi_on(void)
-{
-}
-#endif
 
 static ssize_t wlan_hdd_state_ctrl_param_write(struct file *filp,
 						const char __user *user_buf,
@@ -17936,17 +17787,10 @@ const struct file_operations wlan_hdd_state_fops = {
 	.release = wlan_hdd_state_ctrl_param_release,
 };
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0))
-static struct class *wlan_hdd_class_create(const char *name)
-{
-	return class_create(THIS_MODULE, name);
-}
-#else
 static struct class *wlan_hdd_class_create(const char *name)
 {
 	return class_create(name);
 }
-#endif
 
 static int  wlan_hdd_state_ctrl_param_create(void)
 {

@@ -719,9 +719,7 @@ hdd_sendactionframe(struct hdd_adapter *adapter, const uint8_t *bssid,
 	struct hdd_context *hdd_ctx;
 	tpSirMacVendorSpecificFrameHdr vendor =
 		(tpSirMacVendorSpecificFrameHdr) payload;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
 	struct cfg80211_mgmt_tx_params params;
-#endif
 
 	if (payload_len < sizeof(tSirMacVendorSpecificFrameHdr)) {
 		hdd_warn("Invalid payload length: %d", payload_len);
@@ -816,7 +814,6 @@ hdd_sendactionframe(struct hdd_adapter *adapter, const uint8_t *bssid,
 	qdf_mem_copy(hdr->addr3, bssid, QDF_MAC_ADDR_SIZE);
 	qdf_mem_copy(hdr + 1, payload, payload_len);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
 	params.chan = &chan;
 	params.offchan = 0;
 	params.wait = dwell_time;
@@ -825,13 +822,6 @@ hdd_sendactionframe(struct hdd_adapter *adapter, const uint8_t *bssid,
 	params.no_cck = 1;
 	params.dont_wait_for_ack = 1;
 	ret = wlan_hdd_mgmt_tx(NULL, &adapter->wdev, &params, &cookie);
-#else
-	ret = wlan_hdd_mgmt_tx(NULL,
-			       &(adapter->wdev),
-			       &chan, 0,
-
-			       dwell_time, frame, frame_len, 1, 1, &cookie);
-#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0) */
 
 	qdf_mem_free(frame);
 exit:

@@ -28,11 +28,7 @@
 #include <wlan_spectral_public_structs.h>
 
 /* NETLINK related declarations */
-#if (KERNEL_VERSION(2, 6, 31) > LINUX_VERSION_CODE)
-void os_if_spectral_nl_data_ready(struct sock *sk, int len);
-#else
 void os_if_spectral_nl_data_ready(struct sk_buff *skb);
-#endif /* VERSION CHECK */
 
 #ifndef SPECTRAL_NETLINK
 #define SPECTRAL_NETLINK              (NETLINK_GENERIC + 1)

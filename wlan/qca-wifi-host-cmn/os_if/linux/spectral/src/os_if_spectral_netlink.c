@@ -52,20 +52,11 @@ static struct sock *os_if_spectral_nl_sock;
 static atomic_t spectral_nl_users = ATOMIC_INIT(0);
 #endif
 
-#if (KERNEL_VERSION(2, 6, 31) > LINUX_VERSION_CODE)
-void
-os_if_spectral_nl_data_ready(struct sock *sk, int len)
-{
-	spectral_debug("%d", __LINE__);
-}
-
-#else
 void
 os_if_spectral_nl_data_ready(struct sk_buff *skb)
 {
 	spectral_debug("%d", __LINE__);
 }
-#endif				/* VERSION */
 
 #ifndef CNSS_GENL
 /**
@@ -78,19 +69,12 @@ os_if_spectral_nl_data_ready(struct sk_buff *skb)
  *
  * Return: None
  */
-#if KERNEL_VERSION(3, 6, 0) <= LINUX_VERSION_CODE
 static void
 os_if_spectral_init_nl_cfg(struct netlink_kernel_cfg *cfg)
 {
 	cfg->groups = 1;
 	cfg->input = os_if_spectral_nl_data_ready;
 }
-#else
-static void
-os_if_spectral_init_nl_cfg(struct netlink_kernel_cfg *cfg)
-{
-}
-#endif
 /**
  * os_if_spectral_create_nl_sock() - Create Netlink socket
  * @cfg : Pointer to netlink_kernel_cfg
@@ -99,7 +83,6 @@ os_if_spectral_init_nl_cfg(struct netlink_kernel_cfg *cfg)
  *
  * Return: None
  */
-#if KERNEL_VERSION(3, 7, 0) <= LINUX_VERSION_CODE
 static void
 os_if_spectral_create_nl_sock(struct netlink_kernel_cfg *cfg)
 {
@@ -107,50 +90,6 @@ os_if_spectral_create_nl_sock(struct netlink_kernel_cfg *cfg)
 	    (struct sock *)netlink_kernel_create(&init_net,
 						 SPECTRAL_NETLINK, cfg);
 }
-#elif KERNEL_VERSION(3, 6, 0) <= LINUX_VERSION_CODE
-static void
-os_if_spectral_create_nl_sock(struct netlink_kernel_cfg *cfg)
-{
-	os_if_spectral_nl_sock =
-	    (struct sock *)netlink_kernel_create(&init_net,
-						 SPECTRAL_NETLINK,
-						 THIS_MODULE, cfg);
-}
-#elif (KERNEL_VERSION(2, 6, 31) > LINUX_VERSION_CODE)
-static void
-os_if_spectral_create_nl_sock(struct netlink_kernel_cfg *cfg)
-{
-	os_if_spectral_nl_sock =
-	    (struct sock *)netlink_kernel_create(
-		SPECTRAL_NETLINK, 1,
-		&os_if_spectral_nl_data_ready,
-		THIS_MODULE);
-}
-#else
-#if (KERNEL_VERSION(3, 10, 0) <= LINUX_VERSION_CODE)
-static void
-os_if_spectral_create_nl_sock(struct netlink_kernel_cfg *cfg)
-{
-	memset(cfg, 0, sizeof(*cfg));
-	cfg->groups = 1;
-	cfg->input = &os_if_spectral_nl_data_ready;
-	os_if_spectral_nl_sock =
-	    (struct sock *)netlink_kernel_create(&init_net,
-						 SPECTRAL_NETLINK, cfg);
-}
-#else
-static void
-os_if_spectral_create_nl_sock(struct netlink_kernel_cfg *cfg)
-{
-	os_if_spectral_nl_sock =
-	    (struct sock *)netlink_kernel_create(
-		&init_net,
-		SPECTRAL_NETLINK, 1,
-		&os_if_spectral_nl_data_ready,
-		NULL, THIS_MODULE);
-}
-#endif
-#endif
 
 /**
  * os_if_spectral_init_nl() - Initialize netlink data structures for
@@ -319,37 +258,18 @@ os_if_spectral_prep_skb(struct wlan_objmgr_pdev *pdev,
 	return buf;
 }
 
-#if (KERNEL_VERSION(2, 6, 31) > LINUX_VERSION_CODE)
-static inline void
-os_if_init_spectral_skb_dst_pid(
-	struct sk_buff *skb,
-	struct pdev_spectral *ps)
-{
-	NETLINK_CB(skb).dst_pid =
-	    ps->spectral_pid;
-}
-#else
 static inline void
 os_if_init_spectral_skb_dst_pid(
 	struct sk_buff *skb,
 	struct pdev_spectral *ps)
 {
 }
-#endif			/* VERSION - field deprecated by newer kernels */
 
-#if KERNEL_VERSION(3, 7, 0) > LINUX_VERSION_CODE
-static inline void
-os_if_init_spectral_skb_pid_portid(struct sk_buff *skb)
-{
-	NETLINK_CB(skb).pid = 0;  /* from kernel */
-}
-#else
 static inline void
 os_if_init_spectral_skb_pid_portid(struct sk_buff *skb)
 {
 	NETLINK_CB(skb).portid = 0;  /* from kernel */
 }
-#endif
 
 
 /**
@@ -476,15 +396,8 @@ static int
 os_if_spectral_nl_bcast_msg(struct wlan_objmgr_pdev *pdev,
 			    enum spectral_msg_type smsg_type)
 {
-#if (KERNEL_VERSION(2, 6, 31) >= LINUX_VERSION_CODE)
-	fd_set write_set;
-#endif
 	int status;
 	struct pdev_spectral *ps = NULL;
-
-#if (KERNEL_VERSION(2, 6, 31) >= LINUX_VERSION_CODE)
-	FD_ZERO(&write_set);
-#endif
 
 	if (!pdev) {
 		osif_err("PDEV is NULL!");

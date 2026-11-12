@@ -50,9 +50,6 @@
  * cead18552660 ("exit: Rename complete_and_exit to kthread_complete_and_exit")
  * Use the old name for kernels before 5.17
  */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0))
-#define kthread_complete_and_exit(c, s) complete_and_exit(c, s)
-#endif
 
 /* by default setup a bounce buffer for the data packets,
  * if the underlying host controller driver

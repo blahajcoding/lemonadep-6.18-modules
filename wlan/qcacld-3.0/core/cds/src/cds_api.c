@@ -37,7 +37,7 @@
 #include "wlan_hdd_power.h"
 #include "wlan_hdd_tsf.h"
 #include <linux/vmalloc.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)) && defined(MSM_PLATFORM)
+#if defined(MSM_PLATFORM)
 #include <linux/qcom-iommu-util.h>
 #endif
 #include <scheduler_core.h>
@@ -68,9 +68,6 @@
 #include "dp_txrx.h"
 #ifdef ENABLE_SMMU_S1_TRANSLATION
 #include "pld_common.h"
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0))
-#include <asm/dma-iommu.h>
-#endif
 #include <linux/iommu.h>
 #endif
 
@@ -2887,7 +2884,6 @@ cds_dp_get_vdev_stats(uint8_t vdev_id, struct cds_vdev_dp_stats *stats)
 #endif
 
 #ifdef ENABLE_SMMU_S1_TRANSLATION
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
 QDF_STATUS cds_smmu_mem_map_setup(qdf_device_t osdev, bool ipa_present)
 {
 	struct iommu_domain *domain;
@@ -2935,54 +2931,6 @@ exit_with_success:
 	return QDF_STATUS_SUCCESS;
 }
 
-#else
-QDF_STATUS cds_smmu_mem_map_setup(qdf_device_t osdev, bool ipa_present)
-{
-	struct dma_iommu_mapping *mapping;
-	bool ipa_smmu_enabled;
-	bool wlan_smmu_enabled;
-
-	mapping = pld_smmu_get_mapping(osdev->dev);
-	if (mapping) {
-		int attr = 0;
-		int errno = qdf_iommu_domain_get_attr(mapping->domain,
-						      QDF_DOMAIN_ATTR_S1_BYPASS,
-						      &attr);
-
-		wlan_smmu_enabled = !errno && !attr;
-	} else {
-		cds_info("No SMMU mapping present");
-		wlan_smmu_enabled = false;
-	}
-
-	if (!wlan_smmu_enabled) {
-		osdev->smmu_s1_enabled = false;
-		goto exit_with_success;
-	}
-
-	if (!ipa_present) {
-		osdev->smmu_s1_enabled = true;
-		goto exit_with_success;
-	}
-
-	ipa_smmu_enabled = qdf_get_ipa_smmu_enabled();
-
-	osdev->smmu_s1_enabled = ipa_smmu_enabled && wlan_smmu_enabled;
-	if (ipa_smmu_enabled != wlan_smmu_enabled) {
-		cds_err("SMMU mismatch; IPA:%s, WLAN:%s",
-			ipa_smmu_enabled ? "enabled" : "disabled",
-			wlan_smmu_enabled ? "enabled" : "disabled");
-		return QDF_STATUS_E_FAILURE;
-	}
-
-exit_with_success:
-	osdev->iommu_mapping = mapping;
-
-	cds_info("SMMU S1 %s", osdev->smmu_s1_enabled ? "enabled" : "disabled");
-
-	return QDF_STATUS_SUCCESS;
-}
-#endif
 
 #ifdef IPA_OFFLOAD
 int cds_smmu_map_unmap(bool map, uint32_t num_buf, qdf_mem_info_t *buf_arr)
@@ -2997,20 +2945,12 @@ int cds_smmu_map_unmap(bool map, uint32_t num_buf, qdf_mem_info_t *buf_arr)
 #endif
 
 #else
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
 QDF_STATUS cds_smmu_mem_map_setup(qdf_device_t osdev, bool ipa_present)
 {
 	osdev->smmu_s1_enabled = false;
 	osdev->domain = NULL;
 	return QDF_STATUS_SUCCESS;
 }
-#else
-QDF_STATUS cds_smmu_mem_map_setup(qdf_device_t osdev, bool ipa_present)
-{
-	osdev->smmu_s1_enabled = false;
-	return QDF_STATUS_SUCCESS;
-}
-#endif
 
 int cds_smmu_map_unmap(bool map, uint32_t num_buf, qdf_mem_info_t *buf_arr)
 {

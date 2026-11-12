@@ -79,38 +79,14 @@ void hdd_indicate_mgmt_frame_to_user(struct hdd_adapter *adapter,
 int wlan_hdd_check_remain_on_channel(struct hdd_adapter *adapter);
 void wlan_hdd_cancel_existing_remain_on_channel(struct hdd_adapter *adapter);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
 int wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
 		     struct cfg80211_mgmt_tx_params *params, u64 *cookie);
-#else
-int wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
-		     struct ieee80211_channel *chan, bool offchan,
-		     unsigned int wait,
-		     const u8 *buf, size_t len, bool no_cck,
-		     bool dont_wait_for_ack, u64 *cookie);
-#endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
 struct wireless_dev *wlan_hdd_add_virtual_intf(struct wiphy *wiphy,
 					       const char *name,
 					       unsigned char name_assign_type,
 					       enum nl80211_iftype type,
 					       struct vif_params *params);
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)) || defined(WITH_BACKPORTS)
-struct wireless_dev *wlan_hdd_add_virtual_intf(struct wiphy *wiphy,
-					       const char *name,
-					       unsigned char name_assign_type,
-					       enum nl80211_iftype type,
-					       u32 *flags,
-					       struct vif_params *params);
-#else
-struct wireless_dev *wlan_hdd_add_virtual_intf(struct wiphy *wiphy,
-					       const char *name,
-					       enum nl80211_iftype type,
-					       u32 *flags,
-					       struct vif_params *params);
-
-#endif
 
 /**
  * hdd_clean_up_interface() - clean up hdd interface

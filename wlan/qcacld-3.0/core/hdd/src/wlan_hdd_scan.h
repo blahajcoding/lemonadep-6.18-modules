@@ -60,27 +60,10 @@ int wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
 				       struct cfg80211_sched_scan_request
 				       *request);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0)
-/**
- * wlan_hdd_cfg80211_sched_scan_stop() - stop cfg80211 scheduled (PNO) scan
- * @wiphy: Pointer to wiphy
- * @dev: Pointer network device
- *
- * Note, this returns success if the driver is recovering or unloading to
- * prevent race conditions between PLD initiating an unload and kernel
- * initiating a scheduled scan stop via cfg80211. Unload is expected to stop
- * any pending scheduled scans in this case.
- *
- * Return: 0 for success, non zero for failure
- */
-int wlan_hdd_cfg80211_sched_scan_stop(struct wiphy *wiphy,
-				      struct net_device *dev);
-#else
 int wlan_hdd_cfg80211_sched_scan_stop(struct wiphy *wiphy,
 				      struct net_device *dev,
 				      uint64_t reqid);
 
-#endif /* KERNEL_VERSION(4, 12, 0) */
 
 /**
  * wlan_hdd_sched_scan_stop() - stop scheduled (PNO) scans
@@ -116,11 +99,8 @@ int wlan_hdd_vendor_abort_scan(
 	struct wiphy *wiphy, struct wireless_dev *wdev,
 	const void *data, int data_len);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0)) || \
-	defined(CFG80211_ABORT_SCAN)
 void wlan_hdd_cfg80211_abort_scan(struct wiphy *wiphy,
 				  struct wireless_dev *wdev);
-#endif
 
 /**
  * hdd_init_scan_reject_params() - init scan reject params

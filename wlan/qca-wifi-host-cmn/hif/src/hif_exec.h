@@ -136,11 +136,7 @@ struct hif_tasklet_exec_context {
  */
 struct hif_napi_exec_context {
 	struct hif_exec_context exec_ctx;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0))
 	struct net_device *netdev; /* dummy net_dev ptr */
-#else
-	struct net_device netdev; /* dummy net_dev */
-#endif
 	struct napi_struct napi;
 };
 

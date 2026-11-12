@@ -43,8 +43,6 @@ typedef struct qdf_evt {
 /* Preprocessor definitions and constants */
 #define LINUX_EVENT_COOKIE 0x12341234
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
 #define INIT_COMPLETION(event) reinit_completion(&event)
-#endif
 
 #endif /*__I_QDF_EVENT_H*/

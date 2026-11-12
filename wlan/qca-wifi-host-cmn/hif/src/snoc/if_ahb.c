@@ -38,9 +38,7 @@
 #include "qal_vbus_dev.h"
 #include "qdf_irq.h"
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
 #define IRQF_DISABLED 0x00000020
-#endif
 
 #define HIF_IC_CE0_IRQ_OFFSET 4
 #define HIF_IC_MAX_IRQ 52
@@ -605,17 +603,10 @@ QDF_STATUS hif_ahb_enable_bus(struct hif_softc *ol_sc,
 		}
 
 		/* Arrange for access to Target SoC registers. */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0)
 		status = pfrm_devm_ioremap_resource(
 					dev,
 					(struct qdf_vbus_resource *)memres,
 					&mem);
-#else
-		status = pfrm_devm_request_and_ioremap(
-					dev,
-					(struct qdf_vbus_resource *)memres,
-					&mem);
-#endif
 		if (QDF_IS_STATUS_ERROR(status)) {
 			hif_err("ath: ioremap error");
 			ret = PTR_ERR(mem);
@@ -634,11 +625,7 @@ QDF_STATUS hif_ahb_enable_bus(struct hif_softc *ol_sc,
 		goto err_cleanup1;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0)
 	ret = pfrm_dma_set_mask_and_coherent(dev, 32);
-#else
-	ret = pfrm_dma_set_coherent_mask(dev, 32);
-#endif
 	if (ret) {
 		hif_err("Failed to set dma mask error = %d", ret);
 		return QDF_STATUS_E_IO;

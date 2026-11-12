@@ -213,23 +213,12 @@ struct hdd_apf_context {
  * works properly on all architectures.
  *
  */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0))
-static inline bool in_compat_syscall(void) { return is_compat_task(); }
-#endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)) || \
-	defined(CFG80211_REMOVE_IEEE80211_BACKPORT)
 #define HDD_NL80211_BAND_2GHZ   NL80211_BAND_2GHZ
 #define HDD_NL80211_BAND_5GHZ   NL80211_BAND_5GHZ
 #define HDD_NUM_NL80211_BANDS   NUM_NL80211_BANDS
-#else
-#define HDD_NL80211_BAND_2GHZ   IEEE80211_BAND_2GHZ
-#define HDD_NL80211_BAND_5GHZ   IEEE80211_BAND_5GHZ
-#define HDD_NUM_NL80211_BANDS   ((enum nl80211_band)IEEE80211_NUM_BANDS)
-#endif
 
-#if defined(CONFIG_BAND_6GHZ) && (defined(CFG80211_6GHZ_BAND_SUPPORTED) || \
-	(KERNEL_VERSION(5, 4, 0) <= LINUX_VERSION_CODE))
+#if defined(CONFIG_BAND_6GHZ)
 #define HDD_NL80211_BAND_6GHZ   NL80211_BAND_6GHZ
 #endif
 
@@ -423,10 +412,6 @@ enum hdd_nb_cmd_id {
  * here if the Kernel version is less than 3.17 to avoid the interleave
  * conditional compilation.
  */
-#if !((LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)) ||\
-	defined(WITH_BACKPORTS))
-#define NET_NAME_UNKNOWN	0
-#endif
 
 #define PRE_CAC_SSID "pre_cac_ssid"
 
@@ -2047,13 +2032,10 @@ struct hdd_context {
 	struct ieee80211_channel *channels_2ghz;
 	struct ieee80211_channel *channels_5ghz;
 
-#if defined(WLAN_FEATURE_11AX) && \
-	(defined(CFG80211_SBAND_IFTYPE_DATA_BACKPORT) || \
-	 (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)))
+#if defined(WLAN_FEATURE_11AX)
 	struct ieee80211_sband_iftype_data *iftype_data_2g;
 	struct ieee80211_sband_iftype_data *iftype_data_5g;
-#if defined(CONFIG_BAND_6GHZ) && (defined(CFG80211_6GHZ_BAND_SUPPORTED) || \
-		(KERNEL_VERSION(5, 4, 0) <= LINUX_VERSION_CODE))
+#if defined(CONFIG_BAND_6GHZ)
 	struct ieee80211_sband_iftype_data *iftype_data_6g;
 #endif
 #endif
@@ -4193,19 +4175,11 @@ void wlan_hdd_set_restriction_mask(struct hdd_context *hdd_ctx);
  */
 uint32_t wlan_hdd_get_restriction_mask(struct hdd_context *hdd_ctx);
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 7, 0))
-static inline int
-hdd_wlan_nla_put_u64(struct sk_buff *skb, int attrtype, u64 value)
-{
-	return nla_put_u64(skb, attrtype, value);
-}
-#else
 static inline int
 hdd_wlan_nla_put_u64(struct sk_buff *skb, int attrtype, u64 value)
 {
 	return nla_put_u64_64bit(skb, attrtype, value, NL80211_ATTR_PAD);
 }
-#endif
 
 /**
  * hdd_roam_profile() - Get adapter's roam profile
@@ -4467,17 +4441,10 @@ int hdd_get_rssi_snr_by_bssid(struct hdd_adapter *adapter, const uint8_t *bssid,
  */
 int hdd_reset_limit_off_chan(struct hdd_adapter *adapter);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0)
-static inline void hdd_dev_setup_destructor(struct net_device *dev)
-{
-	dev->destructor = free_netdev;
-}
-#else
 static inline void hdd_dev_setup_destructor(struct net_device *dev)
 {
 	dev->needs_free_netdev = true;
 }
-#endif /* KERNEL_VERSION(4, 12, 0) */
 
 /**
  * hdd_dp_trace_init() - initialize DP Trace by calling the QDF API
@@ -5125,7 +5092,6 @@ static inline void hdd_beacon_latency_event_cb(uint32_t latency_level)
 #endif
 
 #if defined(CLD_PM_QOS) || defined(FEATURE_RUNTIME_PM)
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
 /**
  * wlan_hdd_get_default_pm_qos_cpu_latency() - get default PM QOS CPU latency
  *
@@ -5135,12 +5101,6 @@ static inline unsigned long wlan_hdd_get_default_pm_qos_cpu_latency(void)
 {
 	return PM_QOS_CPU_LATENCY_DEFAULT_VALUE;
 }
-#else
-static inline unsigned long wlan_hdd_get_default_pm_qos_cpu_latency(void)
-{
-	return PM_QOS_CPU_DMA_LAT_DEFAULT_VALUE;
-}
-#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0) */
 #endif /* defined(CLD_PM_QOS) || defined(FEATURE_RUNTIME_PM) */
 
 /**
