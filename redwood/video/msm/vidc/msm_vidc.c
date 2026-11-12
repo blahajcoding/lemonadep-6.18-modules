@@ -1292,23 +1292,7 @@ static void msm_vidc_buf_queue(struct vb2_buffer *vb2)
 	}
 }
 
-/*
- * The driver serializes its queues with its own buf_queue locks and never
- * gave vb2 a lock or wait hooks, which vb2 used to treat as no-ops. Since
- * 6.13 vb2_queue_init() wants one or the other: keep the old behaviour with
- * empty hooks.
- */
-static void msm_vidc_wait_prepare(struct vb2_queue *q)
-{
-}
-
-static void msm_vidc_wait_finish(struct vb2_queue *q)
-{
-}
-
 static const struct vb2_ops msm_vidc_vb2q_ops = {
-	.wait_prepare = msm_vidc_wait_prepare,
-	.wait_finish = msm_vidc_wait_finish,
 	.queue_setup = msm_vidc_queue_setup,
 	.start_streaming = msm_vidc_start_streaming,
 	.buf_queue = msm_vidc_buf_queue,
@@ -1319,17 +1303,21 @@ static const struct vb2_ops msm_vidc_vb2q_ops = {
 static inline int vb2_bufq_init(struct msm_vidc_inst *inst,
 		enum v4l2_buf_type type, enum session_type sess)
 {
-	struct vb2_queue *q = NULL;
+	struct buf_queue *bq;
+	struct vb2_queue *q;
 
 	if (type == OUTPUT_MPLANE) {
-		q = &inst->bufq[OUTPUT_PORT].vb2_bufq;
+		bq = &inst->bufq[OUTPUT_PORT];
 	} else if (type == INPUT_MPLANE) {
-		q = &inst->bufq[INPUT_PORT].vb2_bufq;
+		bq = &inst->bufq[INPUT_PORT];
 	} else {
 		s_vpr_e(inst->sid, "buf_type = %d not recognised\n", type);
 		return -EINVAL;
 	}
 
+	/* Every vb2 call on this queue is made with bq->lock held */
+	q = &bq->vb2_bufq;
+	q->lock = &bq->lock;
 	q->type = type;
 	q->io_modes = VB2_MMAP | VB2_USERPTR;
 	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_COPY;
