@@ -33,6 +33,8 @@ find $M -name "*.ko" > $W/all.txt
 RD=$W/rd; MD=$RD/lib/modules/$REL
 mkdir -p $MD $RD/dev $RD/proc $RD/sys
 cp ${INIT:-$R/bringup/init} $RD/init; chmod 755 $RD/init
+# RDEXTRA: a directory laid over the ramdisk (firmware, config files)
+[ -n "$RDEXTRA" ] && cp -a $RDEXTRA/. $RD/
 : > $W/missing.txt; : > $MD/modules.load
 while read -r m; do
 	f=$(grep -m1 "/$m$" $W/all.txt || true)

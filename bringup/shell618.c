@@ -5,10 +5,12 @@
  * Loads the first stage modules (dependencies first from modules.dep), saves
  * the kernel log to the empty logdump partition, then brings up a USB ACM
  * gadget through configfs and serves a small command shell on /dev/ttyGS0
- * (ttyACM0 on the computer). It never mounts /data or any other partition.
+ * (ttyACM0 on the computer). It mounts nothing on its own; the mount command
+ * is there for read-only firmware partitions.
  *
  * Commands: help, dmesg [n], cat <f>, ls <dir>, echo <text> > <f>,
- * insmod <f> [args], rmmod <name>, lsmod, mods, log, sync, rb, reboot, poweroff
+ * insmod <f> [args], rmmod <name>, mkdir <d>, mount <part> <dir> <type> [ro],
+ * umount <dir>, lsmod, mods, log, sync, rb, reboot, poweroff
  */
 #include "nolibc.h"
 #include <linux/reboot.h>
@@ -830,6 +832,7 @@ static void run(char *line)
 
 	if (!strcmp(argv[0], "help")) {
 		outs("help dmesg [n] | cat f | ls d | echo t > f | insmod f [args] | rmmod m | modprobe m | loadall\r\n"
+		     "mkdir d | mount <partname|/dev/x> dir type [ro] | umount dir\r\n"
 		     "lsmod | mods | log | icetest | sync | rb | reboot | poweroff\r\n");
 	} else if (!strcmp(argv[0], "dmesg")) {
 		size_t n = read_kmsg(logbuf, sizeof(logbuf) - 1), start = 0;
@@ -917,6 +920,27 @@ static void run(char *line)
 		}
 		free(txt);
 		outf("loadall: %d loaded, %d failed\r\n", ok, bad);
+	} else if (!strcmp(argv[0], "mkdir") && argc > 1) {
+		outf("mkdir: %d\r\n", mkdir(argv[1], 0755) ? errno : 0);
+	} else if (!strcmp(argv[0], "mount") && argc > 3) {
+		char dev[64];
+		const char *src = argv[1];
+		int r;
+
+		if (src[0] != '/') {
+			if (!find_part(src, dev, sizeof(dev))) {
+				outf("mount: no partition %s\r\n", src);
+				return;
+			}
+			src = dev;
+		}
+		mkdir(argv[2], 0755);
+		r = mount(src, argv[2], argv[3],
+			  argc > 4 && !strcmp(argv[4], "ro") ? MS_RDONLY : 0,
+			  NULL);
+		outf("mount %s on %s: %d\r\n", src, argv[2], r ? errno : 0);
+	} else if (!strcmp(argv[0], "umount") && argc > 1) {
+		outf("umount: %d\r\n", umount2(argv[1], 0) ? errno : 0);
 	} else if (!strcmp(argv[0], "lsmod")) {
 		size_t n;
 		char *t = slurp("/proc/modules", &n);
@@ -960,7 +984,20 @@ static void shell(void)
 		ssize_t n = read(tty, &c, 1);
 
 		if (n <= 0) {
+			/*
+			 * A module that resets the controller (loadall) makes the
+			 * host enumerate the gadget again and hangs up ttyGS0:
+			 * open it again instead of reading a dead port forever.
+			 */
+			int t;
+
 			sleep(1);
+			t = open("/dev/ttyGS0", O_RDWR | O_NOCTTY);
+			if (t >= 0) {
+				close(tty);
+				tty = t;
+				klog("reopened ttyGS0\n");
+			}
 			continue;
 		}
 		if (c == '\r' || c == '\n') {
