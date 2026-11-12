@@ -913,12 +913,7 @@ static void _qcrypto_ahash_cra_exit(struct crypto_tfm *tfm)
 	}
 }
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 static void _crypto_sha_hmac_ahash_req_complete(void *data, int err);
-#else
-static void _crypto_sha_hmac_ahash_req_complete(
-	    struct crypto_async_request *req, int err);
-#endif
 
 static int _qcrypto_ahash_hmac_cra_init(struct crypto_tfm *tfm)
 {
@@ -1343,11 +1338,7 @@ static void _qcrypto_remove_engine(struct crypto_engine *pengine)
 	cancel_work_sync(&pengine->bw_reaper_ws);
 	cancel_work_sync(&pengine->bw_allocate_ws);
 
-	#if (KERNEL_VERSION(6, 15, 0) > LINUX_VERSION_CODE)
 	timer_delete_sync(&pengine->bw_reaper_timer);
-	#else
-	timer_delete_sync(&pengine->bw_reaper_timer);
-	#endif
 
 	if (pengine->icc_path)
 		icc_put(pengine->icc_path);
@@ -1370,13 +1361,8 @@ static void _qcrypto_remove_engine(struct crypto_engine *pengine)
 	}
 }
 
-#if (KERNEL_VERSION(6, 10, 0) >= LINUX_VERSION_CODE)
-#define QCRYPTO_REMOVE_RETURN_VAL 0
-static int _qcrypto_remove(struct platform_device *pdev)
-#else
 #define QCRYPTO_REMOVE_RETURN_VAL
 static void _qcrypto_remove(struct platform_device *pdev)
-#endif
 {
 	struct crypto_engine *pengine;
 	struct crypto_priv *cp;
@@ -3149,22 +3135,13 @@ static void _qcrypto_aead_aes_192_fb_a_cb(struct qcrypto_cipher_req_ctx *rctx,
 	areq->complete(areq, res);
 }
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 static void _aead_aes_fb_stage2_ahash_complete(void *data, int err)
-#else
-static void _aead_aes_fb_stage2_ahash_complete(
-		struct crypto_async_request *base, int err)
-#endif
 {
 	struct qcrypto_cipher_req_ctx *rctx;
 	struct aead_request *req;
 	struct qcrypto_cipher_ctx *ctx;
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 	rctx = data;
-#else
-	rctx = base->data;
-#endif
 	req = rctx->aead_req;
 	ctx = crypto_tfm_ctx(req->base.tfm);
 	/* copy icv */
@@ -3187,20 +3164,11 @@ static int _start_aead_aes_fb_stage2_hmac(struct qcrypto_cipher_req_ctx *rctx)
 	return crypto_ahash_digest(ahash_req);
 }
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 static void _aead_aes_fb_stage2_decrypt_complete(void *data, int err)
-#else
-static void _aead_aes_fb_stage2_decrypt_complete(
-		struct crypto_async_request *base, int err)
-#endif
 {
 	struct qcrypto_cipher_req_ctx *rctx;
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 	rctx = data;
-#else
-	rctx = base->data;
-#endif
 	_qcrypto_aead_aes_192_fb_a_cb(rctx, err);
 }
 
@@ -3215,22 +3183,13 @@ static int _start_aead_aes_fb_stage2_decrypt(
 	return crypto_skcipher_decrypt(aes_req);
 }
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 static void _aead_aes_fb_stage1_ahash_complete(void *data, int err)
-#else
-static void _aead_aes_fb_stage1_ahash_complete(
-		struct crypto_async_request *base, int err)
-#endif
 {
 	struct qcrypto_cipher_req_ctx *rctx;
 	struct aead_request *req;
 	struct qcrypto_cipher_ctx *ctx;
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 	rctx = data;
-#else
-	rctx = base->data;
-#endif
 	req = rctx->aead_req;
 	ctx = crypto_tfm_ctx(req->base.tfm);
 
@@ -3260,22 +3219,13 @@ ret:
 
 }
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 static void _aead_aes_fb_stage1_encrypt_complete(void *data, int err)
-#else
-static void _aead_aes_fb_stage1_encrypt_complete(
-		struct crypto_async_request *base, int err)
-#endif
 {
 	struct qcrypto_cipher_req_ctx *rctx;
 	struct aead_request *req;
 	struct qcrypto_cipher_ctx *ctx;
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 	rctx = data;
-#else
-	rctx = base->data;
-#endif
 	req = rctx->aead_req;
 	ctx = crypto_tfm_ctx(req->base.tfm);
 
@@ -3972,16 +3922,9 @@ static int _sha256_digest(struct ahash_request *req)
 	return _sha_digest(req);
 }
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 static void _crypto_sha_hmac_ahash_req_complete(void *data, int err)
 {
 	struct completion *ahash_req_complete = data;
-#else
-static void _crypto_sha_hmac_ahash_req_complete(
-		struct crypto_async_request *req, int err)
-{
-	struct completion *ahash_req_complete = req->data;
-#endif
 
 	if (err == -EINPROGRESS)
 		return;
@@ -5319,11 +5262,7 @@ static int _qcrypto_engine_in_use(struct crypto_engine *pengine)
 
 static void _qcrypto_do_suspending(struct crypto_engine *pengine)
 {
-	#if (KERNEL_VERSION(6, 15, 0) > LINUX_VERSION_CODE)
 	timer_delete_sync(&pengine->bw_reaper_timer);
-	#else
-	timer_delete_sync(&pengine->bw_reaper_timer);
-	#endif
 	qcrypto_ce_set_bus(pengine, false);
 }
 

@@ -43,10 +43,8 @@ struct test_cb_obj_ctx {
 
 enum ta_load_mem_type {
 	MEM_BUFFER,
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE)
 	MEM_CMA_REGION,
 	MEM_SCATTER_REGION,
-#endif
 };
 
 static inline int sg_page_count(struct scatterlist *sg)

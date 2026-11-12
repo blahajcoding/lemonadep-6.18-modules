@@ -282,11 +282,7 @@ static int __init seccam_init(void)
 		goto exit;
 	}
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 	class_seccamtest = class_create("char");
-#else
-	class_seccamtest = class_create(THIS_MODULE, "char");
-#endif
 	if (IS_ERR_OR_NULL(class_seccamtest)) {
 		cdev_del(&cdev_seccamtest);
 		unregister_chrdev_region(dev_seccamtest, SCMTEST_MINOR_CNT);
@@ -345,8 +341,4 @@ module_exit(seccam_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("SECURITY SECCAM TEST");
-#if (KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE)
 MODULE_IMPORT_NS("DMA_BUF");
-#elif (KERNEL_VERSION(5, 15, 0) <= LINUX_VERSION_CODE)
-MODULE_IMPORT_NS("DMA_BUF");
-#endif

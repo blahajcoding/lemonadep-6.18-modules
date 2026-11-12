@@ -189,11 +189,7 @@ static int __init tornado_init(void)
 		goto exit;
 	}
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 	class_tornado = class_create("char");
-#else
-	class_tornado = class_create(THIS_MODULE, "char");
-#endif
 	if (IS_ERR_OR_NULL(class_tornado)) {
 		cdev_del(&cdev_tornado);
 		unregister_chrdev_region(dev_tornado, TORNADO_MINOR_CNT);

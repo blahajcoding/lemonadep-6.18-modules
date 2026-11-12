@@ -674,11 +674,7 @@ static int qcota_probe(struct platform_device *pdev)
 		goto exit_free_pqce;
 	}
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 	driver_class = class_create(QCOTA_DEV);
-#else
-	driver_class = class_create(THIS_MODULE, QCOTA_DEV);
-#endif
 	if (IS_ERR(driver_class)) {
 		rc = -ENOMEM;
 		pr_err("class_create failed %d\n", rc);
@@ -770,13 +766,8 @@ exit_free_pqce:
 	return rc;
 }
 
-#if (KERNEL_VERSION(6, 10, 0) >= LINUX_VERSION_CODE)
-#define QCRYPTO_REMOVE_RETURN_VAL 0
-static int qcota_remove(struct platform_device *pdev)
-#else
 #define QCRYPTO_REMOVE_RETURN_VAL
 static void qcota_remove(struct platform_device *pdev)
-#endif
 {
 	struct ota_dev_control *podev;
 	struct ota_qce_dev *pqce;

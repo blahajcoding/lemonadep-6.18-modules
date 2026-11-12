@@ -75,7 +75,6 @@ struct heap_info {
 
 static struct si_object_invoke_ctx oic;
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE)
 
 static int get_test_obj(struct si_object_invoke_ctx *oic, struct si_object *app_obj,
 		u32 uid_val, struct si_object **test_obj)
@@ -101,7 +100,6 @@ static int get_test_obj(struct si_object_invoke_ctx *oic, struct si_object *app_
 	return 0;
 }
 
-#endif
 
 static int query_heap_info(struct si_object_invoke_ctx *oic, struct si_object *service,
 							struct heap_info *heap_info)
@@ -123,7 +121,6 @@ static int query_heap_info(struct si_object_invoke_ctx *oic, struct si_object *s
 	return 0;
 }
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE)
 
 static void release_ta_scatter_mem(void *priv)
 {
@@ -286,7 +283,6 @@ err_sg_alloc:
 	return NULL;
 }
 
-#endif
 
 static int load_app(struct si_object *app_loader, void *file, int len,
 						struct si_object **app_controller,
@@ -307,7 +303,6 @@ static int load_app(struct si_object *app_loader, void *file, int len,
 	struct si_arg args[3] = { 0 };
 
 	switch (from_region) {
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE)
 	case MEM_SCATTER_REGION:
 
 		memobj = load_ta_scatter_mem(file, length);
@@ -340,7 +335,6 @@ static int load_app(struct si_object *app_loader, void *file, int len,
 		/* IAppLoader_OP_loadFromRegion is 1. */
 		app_loader_op = 1;
 		break;
-#endif
 	case MEM_BUFFER:
 
 		buffer = file;
@@ -506,7 +500,6 @@ out_client:
 	return ret;
 }
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE)
 
 static int si_core_kernel_test_cbo_smo(struct si_object_invoke_ctx *oic, void *file, int len)
 {
@@ -588,7 +581,6 @@ out_client:
 	return ret;
 }
 
-#endif
 
 static int create_firmware_buffer(char **firmware_buffer, size_t *buffer_size,
 			const char *app, bool align)
@@ -630,9 +622,7 @@ static ssize_t device_write(struct file *file, const char __user *buf, size_t co
 	bool success = true;
 
 	const char *smcinvokeapp = "smcinvoke_example_ta64";
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE)
 	const char *tzecotestapp = "tzecotestapp";
-#endif
 	int rc = 0;
 
 	pr_info("Running test case 1: Direct Path\n");
@@ -659,7 +649,6 @@ static ssize_t device_write(struct file *file, const char __user *buf, size_t co
 
 	kfree(firmware_buffer);
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE)
 
 	pr_info("Running test case 3: Loading TA (from region)/Sending command\n");
 	rc = create_firmware_buffer(&firmware_buffer, &buffer_size, smcinvokeapp, true);
@@ -709,7 +698,6 @@ static ssize_t device_write(struct file *file, const char __user *buf, size_t co
 		pr_info("SI_CORE_KERNEL_TEST_COMPAT_RETRY_SHUTDOWN succeed.\n");
 	}
 
-#endif
 
 	if (success)
 		pr_info("SI_CORE_KERNEL_TEST all test cases succeed.\n");

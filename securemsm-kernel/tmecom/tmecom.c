@@ -293,13 +293,8 @@ err:
 #endif /* CONFIG_DEBUG_FS */
 }
 
-#if (KERNEL_VERSION(6, 10, 0) >= LINUX_VERSION_CODE)
-#define TMECOM_REMOVE_RETURN_VAL 0
-#define TMECOM_REMOVE_RETURN_TYPE int
-#else
 #define TMECOM_REMOVE_RETURN_VAL
 #define TMECOM_REMOVE_RETURN_TYPE void
-#endif
 static TMECOM_REMOVE_RETURN_TYPE tmecom_remove(struct platform_device *pdev)
 {
 	struct tmecom *tdev = platform_get_drvdata(pdev);

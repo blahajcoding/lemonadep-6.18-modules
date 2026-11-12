@@ -328,11 +328,7 @@ static int msm_rng_probe(struct platform_device *pdev)
 		goto err_reg_chrdev;
 	}
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 	msm_rng_class = class_create("msm-rng");
-#else
-	msm_rng_class = class_create(THIS_MODULE, "msm-rng");
-#endif
 	if (IS_ERR(msm_rng_class)) {
 		pr_err("class_create failed\n");
 		error = PTR_ERR(msm_rng_class);
@@ -370,13 +366,8 @@ err_exit:
 	return error;
 }
 
-#if (KERNEL_VERSION(6, 10, 0) >= LINUX_VERSION_CODE)
-#define MSM_RNG_REMOVE_RETURN_VAL 0
-static int msm_rng_remove(struct platform_device *pdev)
-#else
 #define MSM_RNG_REMOVE_RETURN_VAL
 static void msm_rng_remove(struct platform_device *pdev)
-#endif
 {
 	struct msm_rng_device *msm_rng_dev = platform_get_drvdata(pdev);
 

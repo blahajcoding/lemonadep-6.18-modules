@@ -1759,24 +1759,6 @@ static long process_invoke_req(struct file *filp, unsigned int cmd, unsigned lon
 		pr_err("si_object_do_invoke failed %d, %d.\n", ret, u_req.result);
 
 /* Don't compile for 6.11.x+ versions */
-#if KERNEL_VERSION(6, 11, 0) > LINUX_VERSION_CODE
-		if (u_req.result) {
-			if (ret == -EINVAL || ret == -ENOMEM ||	ret == -ENOSPC) {
-
-				/* SI-CORE did not even starts the invocation. */
-
-				marshal_in_req_cleanup(u, 0);
-
-				for (int i = 0; u[i].type; i++) {
-					if (u[i].type == SI_AT_IO &&
-						typeof_si_object(u[i].o) != SI_OT_USER)
-						put_si_object(u[i].o);
-				}
-
-				goto out_failed;
-			}
-		}
-#endif
 		/* SI-CORE made an unsuccessful invocation. */
 		/* ret == -EINVAL || ret == -ENOMEM && !u_req.result: Marshal out failed.
 		 * ret == -EAGAIN || ret == -ENODEV: QTEE communication failed.
@@ -1980,11 +1962,7 @@ static int smcinvoke_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-#if  (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 	driver_class = class_create(SMCI_DEVICE_NAME);
-#else
-	driver_class = class_create(THIS_MODULE, SMCI_DEVICE_NAME);
-#endif
 	if (IS_ERR(driver_class)) {
 		ret = PTR_ERR(driver_class);
 		pr_err("class_create failed %d.\n", ret);
@@ -2045,11 +2023,6 @@ module_platform_driver(smcinvoke_plat_driver);
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("smcinvoke driver");
-#if (KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE)
 MODULE_IMPORT_NS("VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver");
 MODULE_IMPORT_NS("DMA_BUF");
-#else
-MODULE_IMPORT_NS("VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver");
-MODULE_IMPORT_NS("DMA_BUF");
-#endif
 MODULE_SOFTDEP("pre: si_core_module");

@@ -417,11 +417,7 @@ static int __init hdcptest_mod_init(void)
 		pr_err("alloc_chrdev_region failed %d\n", rc);
 		return rc;
 	}
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 	hdcptest_class = class_create(HDCPTEST_DRV);
-#else
-	hdcptest_class = class_create(THIS_MODULE, HDCPTEST_DRV);
-#endif
 	if (IS_ERR(hdcptest_class)) {
 		rc = -ENOMEM;
 		pr_err("class_create failed %d\n", rc);

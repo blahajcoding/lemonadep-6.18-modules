@@ -26,11 +26,7 @@
 #include <linux/of_platform.h>
 #include <linux/firmware.h>
 #include <linux/version.h>
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 #include <linux/firmware/qcom/qcom_scm.h>
-#else
-#include <linux/qcom_scm.h>
-#endif
 #include <linux/freezer.h>
 #include <linux/ratelimit.h>
 #include <asm/cacheflush.h>
@@ -887,13 +883,8 @@ static void del_mem_map_obj_locked(struct kref *kref)
 	mem_obj->p_addr = 0;
 	if (mem_obj->sgt) {
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 		dma_buf_unmap_attachment_unlocked(mem_obj->buf_attach,
 				mem_obj->sgt, DMA_BIDIRECTIONAL);
-#else
-		dma_buf_unmap_attachment(mem_obj->buf_attach,
-				mem_obj->sgt, DMA_BIDIRECTIONAL);
-#endif
 	}
 	if (mem_obj->buf_attach)
 		dma_buf_detach(mem_obj->dma_buf, mem_obj->buf_attach);
@@ -1206,11 +1197,7 @@ static int32_t smcinvoke_map_mem_region_locked(struct smcinvoke_mem_obj* mem_obj
 		}
 		mem_obj->buf_attach = buf_attach;
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 		sgt = dma_buf_map_attachment_unlocked(buf_attach, DMA_BIDIRECTIONAL);
-#else
-		sgt = dma_buf_map_attachment(buf_attach, DMA_BIDIRECTIONAL);
-#endif
 		if (IS_ERR(sgt)) {
 			pr_err("mapping dma buffers failed, ret: %ld\n",
 					PTR_ERR(sgt));
@@ -3217,11 +3204,7 @@ static int smcinvoke_probe(struct platform_device *pdev)
 		pr_err("chrdev_region failed %d for %s\n", rc, SMCINVOKE_DEV);
 		goto exit_destroy_wkthread;
 	}
-#if  (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 	driver_class = class_create(SMCINVOKE_DEV);
-#else
-	driver_class = class_create(THIS_MODULE, SMCINVOKE_DEV);
-#endif
 	if (IS_ERR(driver_class)) {
 		rc = -ENOMEM;
 		pr_err("class_create failed %d\n", rc);
@@ -3268,11 +3251,7 @@ exit_destroy_wkthread:
 	return rc;
 }
 
-#if KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE
-static int smcinvoke_remove(struct platform_device *pdev)
-#else
 static void smcinvoke_remove(struct platform_device *pdev)
-#endif
 {
 	int count = 1;
 
@@ -3281,9 +3260,6 @@ static void smcinvoke_remove(struct platform_device *pdev)
 	device_destroy(driver_class, smcinvoke_device_no);
 	class_destroy(driver_class);
 	unregister_chrdev_region(smcinvoke_device_no, count);
-#if KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE
-	return 0;
-#endif
 }
 
 static int __maybe_unused smcinvoke_suspend(struct platform_device *pdev,

@@ -2974,11 +2974,7 @@ static void qce_multireq_timeout(struct timer_list *data)
 	cmpxchg(&pce_dev->owner, QCE_OWNER_TIMEOUT, QCE_OWNER_NONE);
 	pce_dev->mode = IN_INTERRUPT_MODE;
 	local_irq_restore(flags);
-	#if (KERNEL_VERSION(6, 15, 0) > LINUX_VERSION_CODE)
 	timer_delete(&(pce_dev->timer));
-	#else
-	timer_delete(&(pce_dev->timer));
-	#endif
 	pce_dev->qce_stats.no_of_timeouts++;
 	pr_debug("pcedev %d mode switch to INTR\n", pce_dev->dev_no);
 }

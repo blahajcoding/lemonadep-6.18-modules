@@ -288,11 +288,7 @@ static int qce_fe_close(struct inode *i, struct file *f)
 	return 0;
 }
 
-#if (KERNEL_VERSION(2, 6, 35) > LINUX_VERSION_CODE)
-static int gce_fe_ioctl(struct inode *i, struct file *f, unsigned int cmd, unsigned long arg)
-#else
 static long gce_fe_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
-#endif
 {
 	int err = 0;
 	struct qcedev_fe_handle *handle;
@@ -402,11 +398,7 @@ static const struct file_operations qce_fe_fops = {
 	.owner = THIS_MODULE,
 	.open = qce_fe_open,
 	.release = qce_fe_close,
-#if (KERNEL_VERSION(2, 6, 35) > LINUX_VERSION_CODE)
-	.ioctl = gce_fe_ioctl
-#else
 	.unlocked_ioctl = gce_fe_ioctl
-#endif
 };
 
 static int qce_fe_hab_open(uint32_t *handle)
@@ -507,11 +499,7 @@ static int __init qce_fe_init(void)
 		goto unregister_chrdev_region_error;
 	}
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 	class_qce_fe = class_create("qce");
-#else
-	class_qce_fe = class_create(THIS_MODULE, "qce");
-#endif
 	if (IS_ERR_OR_NULL(class_qce_fe)) {
 		pr_err("%s: class_create() failed\n", __func__);
 		ret = -EFAULT;

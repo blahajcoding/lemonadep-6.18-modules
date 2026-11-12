@@ -515,11 +515,7 @@ static struct qseecom_key_id_usage_desc key_id_array[] = {
 };
 
 struct qseecom_dma_buf_vmap_data {
-#if (KERNEL_VERSION(6, 0, 0) <= LINUX_VERSION_CODE)
 	struct iosys_map map;
-#elif (KERNEL_VERSION(5, 15, 0) <= LINUX_VERSION_CODE)
-	struct dma_buf_map map;
-#endif
 	void *vaddr;
 };
 
@@ -640,13 +636,7 @@ static void __qseecom_free_tzbuf(struct qtee_shm *shm)
 static void qseecom_dma_buf_map_init_vaddr_wrapper(void *vaddr,
 				struct qseecom_dma_buf_vmap_data *vmap)
 {
-#if (KERNEL_VERSION(6, 0, 0) <= LINUX_VERSION_CODE)
 	vmap->map = (struct iosys_map) IOSYS_MAP_INIT_VADDR(vaddr);
-#elif (KERNEL_VERSION(5, 15, 0) <= LINUX_VERSION_CODE)
-	vmap->map = (struct dma_buf_map) DMA_BUF_MAP_INIT_VADDR(vaddr);
-#else
-	pr_info("not required to initialize\n");
-#endif
 }
 
 static int qseecom_dma_buf_vmap_wrapper(struct dma_buf *dmabuf,
@@ -654,30 +644,15 @@ static int qseecom_dma_buf_vmap_wrapper(struct dma_buf *dmabuf,
 {
 	int ret = 0;
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 	ret = dma_buf_vmap_unlocked(dmabuf, &vmap->map);
 	vmap->vaddr = vmap->map.vaddr;
-#elif (KERNEL_VERSION(5, 15, 0) <= LINUX_VERSION_CODE)
-	ret = dma_buf_vmap(dmabuf, &vmap->map);
-	vmap->vaddr = vmap->map.vaddr;
-#else
-	vmap->vaddr = dma_buf_vmap(dmabuf);
-	if (!vmap->vaddr)
-		ret = -EINVAL;
-#endif
 	return ret;
 }
 
 static void qseecom_dma_buf_vunmap_wrapper(struct dma_buf *dmabuf,
 				struct qseecom_dma_buf_vmap_data *vmap)
 {
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 	dma_buf_vunmap_unlocked(dmabuf, &vmap->map);
-#elif (KERNEL_VERSION(5, 15, 0) <= LINUX_VERSION_CODE)
-	dma_buf_vunmap(dmabuf, &vmap->map);
-#else
-	dma_buf_vunmap(dmabuf, vmap->vaddr);
-#endif
 }
 
 static struct sg_table *qseecom_dma_buf_map_attachment_wrapper(
@@ -685,11 +660,7 @@ static struct sg_table *qseecom_dma_buf_map_attachment_wrapper(
 				enum dma_data_direction  direction)
 {
 	struct sg_table *sg_table;
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 	sg_table = dma_buf_map_attachment_unlocked(attachment, direction);
-#else
-	sg_table = dma_buf_map_attachment(attachment, direction);
-#endif
 	return sg_table;
 }
 
@@ -697,11 +668,7 @@ static void qseecom_dma_buf_unmap_attachment_wrapper(struct dma_buf_attachment *
 				struct sg_table *sg_table,
 				enum dma_data_direction direction)
 {
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 	dma_buf_unmap_attachment_unlocked(attach, sg_table, direction);
-#else
-	dma_buf_unmap_attachment(attach, sg_table, direction);
-#endif
 }
 
 static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
@@ -2083,11 +2050,7 @@ static int qseecom_scale_bus_bandwidth_timer(uint32_t mode)
 			pr_err("Failed to decrease clk ref count.\n");
 			goto err_scale_timer;
 		}
-		#if (KERNEL_VERSION(6, 15, 0) > LINUX_VERSION_CODE)
 		timer_delete_sync(&(qseecom.bw_scale_down_timer));
-		#else
-		timer_delete_sync(&(qseecom.bw_scale_down_timer));
-		#endif
 		qseecom.timer_running = false;
 	}
 err_scale_timer:
@@ -9665,11 +9628,7 @@ static void qseecom_deinit_bus(void)
 	qseecom_bus_scale_update_request(qseecom.qsee_perf_client, 0);
 	icc_put(qseecom.icc_path);
 	cancel_work_sync(&qseecom.bw_inactive_req_ws);
-	#if (KERNEL_VERSION(6, 15, 0) > LINUX_VERSION_CODE)
 	timer_delete_sync(&qseecom.bw_scale_down_timer);
-	#else
-	timer_delete_sync(&qseecom.bw_scale_down_timer);
-	#endif
 }
 
 static int qseecom_send_app_region(struct platform_device *pdev)
@@ -9787,11 +9746,7 @@ static int qseecom_register_reboot_notifier(void)
 static int qseecom_create_device(struct platform_device *pdev)
 {
 	int rc = 0;
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 	qseecom.driver_class = class_create(QSEECOM_DEV);
-#else
-	qseecom.driver_class = class_create(THIS_MODULE, QSEECOM_DEV);
-#endif
 	if (IS_ERR(qseecom.driver_class)) {
 		rc = PTR_ERR(qseecom.driver_class);
 		pr_err("class_create failed %x\n", rc);
@@ -10140,11 +10095,7 @@ exit_unregister_bridge:
 	return rc;
 }
 
-#if KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE
-static int qseecom_remove(struct platform_device *pdev)
-#else
 static void qseecom_remove(struct platform_device *pdev)
-#endif
 {
 	struct qseecom_registered_kclient_list *kclient = NULL;
 	struct qseecom_registered_kclient_list *kclient_tmp = NULL;
@@ -10188,9 +10139,6 @@ static void qseecom_remove(struct platform_device *pdev)
 	qseecom_deinit_clk();
 	qseecom_release_ce_data();
 	qseecom_deinit_dev();
-#if KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE
-	return ret;
-#endif
 }
 
 static int qseecom_suspend(struct platform_device *pdev, pm_message_t state)
@@ -10225,11 +10173,7 @@ static int qseecom_suspend(struct platform_device *pdev, pm_message_t state)
 			else
 				qseecom.current_mode = INACTIVE;
 		}
-		#if (KERNEL_VERSION(6, 15, 0) > LINUX_VERSION_CODE)
 		timer_delete_sync(&(qseecom.bw_scale_down_timer));
-		#else
-		timer_delete_sync(&(qseecom.bw_scale_down_timer));
-		#endif
 		qseecom.timer_running = false;
 
 		mutex_unlock(&qsee_bw_mutex);
@@ -10351,11 +10295,7 @@ static void qseecom_exit(void)
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("QTI Secure Execution Environment Communicator");
 
-#if (KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE)
 MODULE_IMPORT_NS("DMA_BUF");
-#else
-MODULE_IMPORT_NS("DMA_BUF");
-#endif
 
 module_init(qseecom_init);
 module_exit(qseecom_exit);

@@ -34,11 +34,7 @@
 #include <linux/types.h>
 #include <linux/uaccess.h>
 #include <linux/version.h>
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 #include <linux/firmware/qcom/qcom_scm.h>
-#else
-#include <linux/qcom_scm.h>
-#endif
 #include <linux/wait.h>
 
 
@@ -539,7 +535,7 @@ static uint64_t qseelog_shmbridge_handle;
 static struct encrypted_log_info enc_qseelog_info;
 static struct encrypted_log_info enc_tzlog_info;
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE) && defined(CONFIG_TZLOG_TIME_CONSOLIDATE)
+#if defined(CONFIG_TZLOG_TIME_CONSOLIDATE)
 static bool g_realtime_consolidation_enable;
 static uint64_t g_tz_ticks_baseline;
 static uint64_t g_tz_ticks_frequency;
@@ -826,7 +822,7 @@ static uint32_t _copy_to_dispbuf(struct tzdbg_log_t *log, struct tzdbg_log_pos_t
 	return len;
 }
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE) && defined(CONFIG_TZLOG_TIME_CONSOLIDATE)
+#if defined(CONFIG_TZLOG_TIME_CONSOLIDATE)
 /*
  * Calculate the length of log based on the end label "\r\n"
  *
@@ -1103,7 +1099,7 @@ static int _disp_log_stats(struct tzdbg_log_t *log,
 	pr_debug("diag_buf wrap = %u, offset = %u\n",
 		log->log_pos.wrap, log->log_pos.offset);
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE) && defined(CONFIG_TZLOG_TIME_CONSOLIDATE)
+#if defined(CONFIG_TZLOG_TIME_CONSOLIDATE)
 	if (g_realtime_consolidation_enable)
 		len = _copy_to_dispbuf_with_realtime(log, log_start, log_len, max_len,
 			tzdbg.disp_buf, 0);
@@ -1142,7 +1138,7 @@ static uint32_t _copy_to_dispbuf_v2(struct tzdbg_log_v2_t *log,
 	return len;
 }
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE) && defined(CONFIG_TZLOG_TIME_CONSOLIDATE)
+#if defined(CONFIG_TZLOG_TIME_CONSOLIDATE)
 /*
  * Parse log data, enhance it with additional time information and copy it into disp buffer.
  *
@@ -1312,7 +1308,7 @@ static int _disp_log_stats_v2(struct tzdbg_log_v2_t *log,
 		log->log_pos.wrap, log->log_pos.offset);
 	mutex_lock(&tzdbg_mutex);
 	atomic_set(&is_rd_locked, 1);
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE) && defined(CONFIG_TZLOG_TIME_CONSOLIDATE)
+#if defined(CONFIG_TZLOG_TIME_CONSOLIDATE)
 	if (g_realtime_consolidation_enable)
 		len = _copy_to_dispbuf_with_realtime_v2(log, log_start, log_len, max_len,
 			tzdbg.disp_buf, 0);
@@ -1501,7 +1497,7 @@ static int _disp_encrpted_log_stats(struct encrypted_log_info *enc_log_info,
 			TZBSP_TAG_LEN,
 			tzdbg.disp_buf + len, display_buf_size - len);
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE) && defined(CONFIG_TZLOG_TIME_CONSOLIDATE)
+#if defined(CONFIG_TZLOG_TIME_CONSOLIDATE)
 	len += scnprintf(tzdbg.disp_buf + len, (display_buf_size - 1) - len,
 			"\nHlos_Real_Time_Baseline :\n%llx\n\nHlos_Uptime_Baseline :\n%llx\n\n"
 			"\nTZ_Uptime_Ticks_Baseline :\n%llx\n\nTZ_Tick_Frequency :\n%llx\n",
@@ -2076,11 +2072,7 @@ static int tzdbg_procfs_open(struct inode *inode, struct file *file)
 	int ret = 0;
 	void *data = NULL;
 
-#if KERNEL_VERSION(6, 0, 0) >= LINUX_VERSION_CODE
-	data = PDE_DATA(inode);
-#else
 	data = pde_data(inode);
-#endif
 
 	if (!data)
 		return -EINVAL;
@@ -2557,7 +2549,6 @@ static void tzdbg_query_log_status(void)
 	u64 status = 0;
 	bool entry = false;
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE)
 	entry = true;
 	ret_query_log = qcom_scm_query_log_status(&status);
 	if (!ret_query_log) {
@@ -2577,7 +2568,6 @@ static void tzdbg_query_log_status(void)
 		tzdbg.tz_qsee_plain_log_enabled = (status >> 1) & 1;
 	} else
 		pr_err("scm_call query_log_status failed, ret: %d\n", ret_query_log);
-#endif
 	if (!entry || ret_query_log == -EIO) {
 		ret_encrypt_log = qcom_scm_query_encrypted_log_feature(&status);
 		if (!ret_encrypt_log)
@@ -2599,7 +2589,7 @@ static void tzdbg_query_log_status(void)
 		tzdbg.is_encrypted_log_enabled, tzdbg.tz_qsee_plain_log_enabled, status, entry);
 }
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE) && defined(CONFIG_TZLOG_TIME_CONSOLIDATE)
+#if defined(CONFIG_TZLOG_TIME_CONSOLIDATE)
 static bool tzdbg_query_tz_time(void)
 {
 	int ret = 0;
@@ -2791,7 +2781,7 @@ static int tz_log_probe(struct platform_device *pdev)
 		goto exit_free_encr_log_buf;
 	}
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE) && defined(CONFIG_TZLOG_TIME_CONSOLIDATE)
+#if defined(CONFIG_TZLOG_TIME_CONSOLIDATE)
 	tzdbg_enable_tz_time();
 #endif
 
@@ -2811,11 +2801,7 @@ exit_free_qsee_log_buf:
 	return -ENXIO;
 }
 
-#if KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE
-static int tz_log_remove(struct platform_device *pdev)
-#else
 static void tz_log_remove(struct platform_device *pdev)
-#endif
 {
 	tzdbg_fs_exit(pdev);
 	dma_free_coherent(&pdev->dev, display_buf_size,
@@ -2825,9 +2811,6 @@ static void tz_log_remove(struct platform_device *pdev)
 	if (!tzdbg.is_encrypted_log_enabled)
 		kfree(tzdbg.diag_buf);
 
-#if KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE
-	return 0;
-#endif
 }
 
 static int tz_log_pm_freeze(struct device *dev)
@@ -2847,7 +2830,7 @@ static int tz_log_pm_restore(struct device *dev)
 	if (ret)
 		goto exit;
 
-#if (KERNEL_VERSION(6, 12, 0) <= LINUX_VERSION_CODE) && defined(CONFIG_TZLOG_TIME_CONSOLIDATE)
+#if defined(CONFIG_TZLOG_TIME_CONSOLIDATE)
 	tzdbg_enable_tz_time();
 #endif
 	return ret;
