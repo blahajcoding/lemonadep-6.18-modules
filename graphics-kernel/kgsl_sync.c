@@ -211,11 +211,7 @@ static bool kgsl_is_input_hw_fence(struct dma_fence *fence)
 
 #else
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 #include <msm_hw_fence.h>
-#else
-#include <linux/soc/qcom/msm_hw_fence.h>
-#endif
 
 static struct msm_hw_fence_descriptor {
 	/** @handle: Handle for hardware fences */

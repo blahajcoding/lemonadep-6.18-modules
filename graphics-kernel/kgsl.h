@@ -21,12 +21,7 @@
 
 #define KGSL_L3_DEVICE "kgsl-l3"
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0))
-#include <soc/qcom/boot_stats.h>
-#define KGSL_BOOT_MARKER(str)          place_marker("M - DRIVER " str)
-#else
 #define KGSL_BOOT_MARKER(str)          pr_info("boot_kpi: M - DRIVER " str)
-#endif
 
 /*
  * --- kgsl drawobj flags ---

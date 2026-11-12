@@ -23,9 +23,7 @@
 #include <soc/qcom/dcvs.h>
 #include <soc/qcom/socinfo.h>
 #include <linux/suspend.h>
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 #include <linux/soc/qcom/socinfo.h>
-#endif
 
 #include "adreno.h"
 #include "adreno_a6xx.h"
@@ -1219,26 +1217,6 @@ static int adreno_probe_llcc(struct adreno_device *adreno_dev,
 				"Unable to get GPU HTW LLC slice: %d\n", ret);
 	} else
 		adreno_dev->gpuhtw_llc_slice_enable = true;
-
-#if (KERNEL_VERSION(6, 1, 0) == LINUX_VERSION_CODE)
-	if (adreno_is_a621(adreno_dev)) {
-		/* Get the system cache slice descriptor for GPU MV grid buffer */
-		adreno_dev->gpumv_llc_slice = llcc_slice_getd(LLCC_GPUMV);
-		ret = PTR_ERR_OR_ZERO(adreno_dev->gpumv_llc_slice);
-		if (ret) {
-			if (ret == -EPROBE_DEFER) {
-				llcc_slice_putd(adreno_dev->gpu_llc_slice);
-				llcc_slice_putd(adreno_dev->gpuhtw_llc_slice);
-				return ret;
-			}
-
-			if (ret != -ENOENT)
-				dev_warn(&pdev->dev, "Unable to get GPUMV buffer slice: %d\n", ret);
-		} else {
-			adreno_dev->gpumv_llc_slice_enable = true;
-		}
-	}
-#endif
 
 	return 0;
 }
@@ -4089,19 +4067,10 @@ static int adreno_probe(struct platform_device *pdev)
 			&adreno_ops, match);
 }
 
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 static void adreno_remove(struct platform_device *pdev)
 {
 	component_master_del(&pdev->dev, &adreno_ops);
 }
-#else
-static int adreno_remove(struct platform_device *pdev)
-{
-	component_master_del(&pdev->dev, &adreno_ops);
-
-	return 0;
-}
-#endif
 
 #if IS_ENABLED(CONFIG_QCOM_KGSL_HIBERNATION)
 #if IS_ENABLED(CONFIG_QCOM_SECURE_BUFFER)
@@ -4382,8 +4351,4 @@ module_exit(kgsl_3d_exit);
 MODULE_DESCRIPTION("3D Graphics driver");
 MODULE_LICENSE("GPL v2");
 MODULE_SOFTDEP("pre: arm_smmu nvmem_qfprom socinfo governor_msm_adreno_tz governor_gpubw_mon governor_msm_adreno_ro");
-#if (KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE)
 MODULE_IMPORT_NS("DMA_BUF");
-#elif (KERNEL_VERSION(5, 18, 0) <= LINUX_VERSION_CODE)
-MODULE_IMPORT_NS("DMA_BUF");
-#endif

@@ -165,14 +165,7 @@ int kgsl_clk_set_rate(struct clk_bulk_data *clks, int num_clks,
  * Return: 0 on success or negative on failure and EOPNOTSUPP if scm call
  * not supported
  */
-#if (KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE)
 int kgsl_scm_gpu_init_regs(struct device *dev, u32 gpu_req);
-#else
-static inline int kgsl_scm_gpu_init_regs(struct device *dev, u32 gpu_req)
-{
-	return -EOPNOTSUPP;
-}
-#endif
 
 /**
  * kgsl_zap_shader_load - Load a zap shader
@@ -266,17 +259,8 @@ static inline void kgsl_qcom_va_md_unregister(struct kgsl_device *device)
  */
 void isdb_write(void __iomem *base, u32 offset);
 
-#if KERNEL_VERSION(6, 15, 0) <= LINUX_VERSION_CODE
 #define kgsl_delete_timer(timer) timer_delete(timer)
 #define kgsl_delete_timer_sync(timer) timer_delete_sync(timer)
-#else
-#define kgsl_delete_timer(timer) timer_delete(timer)
-#define kgsl_delete_timer_sync(timer) timer_delete_sync(timer)
-#endif
 
-#if (KERNEL_VERSION(6, 16, 0) <= LINUX_VERSION_CODE)
 #define kgsl_timer_container_of timer_container_of
-#else
-#define kgsl_timer_container_of from_timer
-#endif
 #endif

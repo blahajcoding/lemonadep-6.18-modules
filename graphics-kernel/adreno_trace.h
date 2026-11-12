@@ -20,11 +20,7 @@
 #include "adreno_gen8.h"
 #include "adreno_hfi.h"
 
-#if (KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE)
-#define adreno_assign_str(dst, src) __assign_str(dst, src)
-#else
 #define adreno_assign_str(dst, src) __assign_str(dst)
-#endif
 
 #define ADRENO_FT_TYPES \
 	{ BIT(KGSL_FT_OFF), "off" }, \

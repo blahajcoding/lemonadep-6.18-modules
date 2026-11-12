@@ -721,20 +721,14 @@ static void _dma_cache_op(struct device *dev, struct page *page,
 	switch (op) {
 	case KGSL_CACHE_OP_FLUSH:
 		dma_sync_sg_for_device(dev, &sgl, 1, DMA_TO_DEVICE);
-#if (KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE)
 		dma_sync_sg_for_cpu(dev, &sgl, 1, DMA_FROM_DEVICE);
-#else
-		dma_sync_sg_for_device(dev, &sgl, 1, DMA_FROM_DEVICE);
-#endif
 		break;
 	case KGSL_CACHE_OP_CLEAN:
 		dma_sync_sg_for_device(dev, &sgl, 1, DMA_TO_DEVICE);
 		break;
 	case KGSL_CACHE_OP_INV:
 		dma_sync_sg_for_device(dev, &sgl, 1, DMA_FROM_DEVICE);
-#if (KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE)
 		dma_sync_sg_for_cpu(dev, &sgl, 1, DMA_FROM_DEVICE);
-#endif
 		break;
 	}
 }
@@ -1120,7 +1114,6 @@ static int kgsl_shmem_alloc_pages(struct kgsl_memdesc *memdesc)
 	return count;
 }
 
-#if (KERNEL_VERSION(6, 12, 18) <= LINUX_VERSION_CODE)
 static void kgsl_shmem_fill_page(void *ptr,
 	struct shmem_inode_info *inode, struct folio **folio, int order)
 {
@@ -1145,32 +1138,6 @@ static void kgsl_shmem_fill_page(void *ptr,
 	}
 	mutex_unlock(&memdesc->lock);
 }
-#else
-static void kgsl_shmem_fill_page(void *ptr,
-	struct shmem_inode_info *inode, struct folio **folio)
-{
-	struct kgsl_memdesc *memdesc = (struct kgsl_memdesc *)inode->android_vendor_data1;
-
-	if (IS_ERR_OR_NULL(memdesc))
-		return;
-
-	mutex_lock(&memdesc->lock);
-	if (list_empty(&memdesc->shmem_page_list)) {
-		int ret = kgsl_shmem_alloc_pages(memdesc);
-
-		if (ret <= 0) {
-			mutex_unlock(&memdesc->lock);
-			return;
-		}
-	}
-
-	if (!list_empty(&memdesc->shmem_page_list)) {
-		*folio = list_first_entry(&memdesc->shmem_page_list, struct folio, lru);
-		list_del(&(*folio)->lru);
-	}
-	mutex_unlock(&memdesc->lock);
-}
-#endif
 
 void kgsl_register_shmem_callback(void)
 {

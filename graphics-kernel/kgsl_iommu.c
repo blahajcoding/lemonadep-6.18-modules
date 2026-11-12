@@ -16,11 +16,7 @@
 #include <linux/delay.h>
 #include <linux/pm_runtime.h>
 #include <linux/version.h>
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 #include <linux/firmware/qcom/qcom_scm.h>
-#else
-#include <linux/qcom_scm.h>
-#endif
 #include <linux/random.h>
 #include <linux/regulator/consumer.h>
 #include <soc/qcom/secure_buffer.h>
@@ -256,13 +252,8 @@ static int _iopgtbl_unmap_pages(struct kgsl_iommu_pt *pt, u64 gpuaddr,
 				gpuaddr, gpuaddr, remaining, &pgcount);
 		if (size_to_unmap == 0)
 			break;
-#if (KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE)
 		ret = qcom_arm_lpae_unmap_pages(ops, gpuaddr, size_to_unmap,
 				pgcount, NULL);
-#else
-		ret = ops->unmap_pages(ops, gpuaddr, size_to_unmap,
-				pgcount, NULL);
-#endif
 		if (ret == 0)
 			break;
 
@@ -321,15 +312,9 @@ static size_t _iopgtbl_map_sg(struct kgsl_iommu_pt *pt, u64 gpuaddr,
 	u64 addr = gpuaddr;
 	int ret, i;
 
-#if (KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE)
 	if (IS_ENABLED(CONFIG_IOMMU_IO_PGTABLE_LPAE)) {
 		ret = qcom_arm_lpae_map_sg(ops, addr, sgt->sgl, sgt->nents, prot,
 			GFP_KERNEL, &mapped);
-#else
-	if (ops->map_sg) {
-		ret = ops->map_sg(ops, addr, sgt->sgl, sgt->nents, prot,
-			GFP_KERNEL, &mapped);
-#endif
 		if (ret) {
 			_iopgtbl_unmap(pt, gpuaddr, mapped);
 			return 0;
@@ -561,13 +546,8 @@ static size_t _iommu_map_page_to_range(struct iommu_domain *domain,
 
 
 	while (range) {
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 		int ret = iommu_map(domain, addr, page_to_phys(page),
 				    PAGE_SIZE, prot, GFP_KERNEL);
-#else
-		int ret = iommu_map(domain, addr, page_to_phys(page),
-				    PAGE_SIZE, prot);
-#endif
 		if (ret) {
 			iommu_unmap(domain, gpuaddr, mapped);
 			return 0;
@@ -2540,17 +2520,10 @@ static bool kgsl_iommu_addr_in_range(struct kgsl_pagetable *pagetable,
 	return false;
 }
 
-#if (KERNEL_VERSION(6, 13, 0) <= LINUX_VERSION_CODE)
 static struct iommu_domain *kgsl_iommu_domain_alloc(struct device *dev)
 {
 	return iommu_paging_domain_alloc(dev);
 }
-#else
-static struct iommu_domain *kgsl_iommu_domain_alloc(struct device *dev)
-{
-	return iommu_domain_alloc(&platform_bus_type);
-}
-#endif
 
 static int kgsl_iommu_setup_context(struct kgsl_mmu *mmu,
 		struct device_node *parent,

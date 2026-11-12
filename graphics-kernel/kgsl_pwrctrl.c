@@ -8,11 +8,7 @@
 #include <linux/interconnect.h>
 #include <linux/iopoll.h>
 #include <linux/version.h>
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 #include <linux/firmware/qcom/qcom_scm.h>
-#else
-#include <linux/qcom_scm.h>
-#endif
 #include <linux/of_device.h>
 #include <linux/pm_domain.h>
 #include <linux/pm_runtime.h>
@@ -1204,17 +1200,10 @@ static size_t trans_stat_print(char *buf, size_t count, loff_t off,
 	return written;
 }
 
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
 static ssize_t gpu_trans_stat_read(struct file *filp,
 				struct kobject *kobj,
 				const struct bin_attribute *attr,
 				char *buf, loff_t off, size_t count)
-#else
-static ssize_t gpu_trans_stat_read(struct file *filp,
-				struct kobject *kobj,
-				const struct bin_attribute *attr,
-				char *buf, loff_t off, size_t count)
-#endif
 {
 	struct device *dev = kobj_to_dev(kobj);
 	struct kgsl_device *device = dev_get_drvdata(dev);
@@ -1269,17 +1258,10 @@ static ssize_t gpu_trans_stat_read(struct file *filp,
 	return written;
 }
 
-#if (KERNEL_VERSION(6, 16, 0) > LINUX_VERSION_CODE)
 static ssize_t gpu_trans_stat_write(struct file *filp,
 				struct kobject *kobj,
 				const struct bin_attribute *attr,
 				char *buf, loff_t off, size_t count)
-#else
-static ssize_t gpu_trans_stat_write(struct file *filp,
-				struct kobject *kobj,
-				const struct bin_attribute *attr,
-				char *buf, loff_t off, size_t count)
-#endif
 {
 	struct device *dev = kobj_to_dev(kobj);
 	struct kgsl_device *device = dev_get_drvdata(dev);

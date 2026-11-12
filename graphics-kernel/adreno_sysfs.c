@@ -6,11 +6,7 @@
 
 #include <linux/sysfs.h>
 #include <linux/version.h>
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 #include <linux/firmware/qcom/qcom_scm.h>
-#else
-#include <linux/qcom_scm.h>
-#endif
 
 #include "adreno.h"
 #include "adreno_sysfs.h"
@@ -154,7 +150,6 @@ static u32 _rt_pwrlevel_hint_show(struct adreno_device *adreno_dev)
 /* Numbusy is the backoff from mingap to transition power level more quickly. */
 #define DCVS_TUNING_NUMBUSY 2
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 static int __dcvs_tuning_scm_entry(struct adreno_device *adreno_dev,
 		u32 param, u32 val)
 {
@@ -194,12 +189,6 @@ static int __dcvs_tuning_scm_entry(struct adreno_device *adreno_dev,
 
 	return ret;
 }
-#else
-static int __dcvs_tuning_scm_entry(struct adreno_device *adreno_dev, u32 param, u32 val)
-{
-	return -EOPNOTSUPP;
-}
-#endif
 
 static int _dcvs_tuning_mingap_store(struct adreno_device *adreno_dev,
 		unsigned int val)

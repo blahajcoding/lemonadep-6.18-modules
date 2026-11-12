@@ -32,7 +32,6 @@ struct work_struct reclaim_work;
 
 static atomic_t kgsl_nr_to_reclaim;
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 static void kgsl_memdesc_clear_unevictable(struct kgsl_process_private *process,
 		struct kgsl_memdesc *memdesc)
 {
@@ -82,51 +81,6 @@ static int kgsl_read_mapping(struct kgsl_memdesc *memdesc, struct page **page, i
 
 	return PTR_ERR(folio);
 }
-#else
-static void kgsl_memdesc_clear_unevictable(struct kgsl_process_private *process,
-		struct kgsl_memdesc *memdesc)
-{
-	struct pagevec pvec;
-	int i;
-
-	/*
-	 * Pages that are first allocated are by default added to
-	 * unevictable list. To reclaim them, we first clear the
-	 * AS_UNEVICTABLE flag of the shmem file address space thus
-	 * check_move_unevictable_pages() places them on the
-	 * evictable list.
-	 *
-	 * Once reclaim is done, hint that further shmem allocations
-	 * will have to be on the unevictable list.
-	 */
-	mapping_clear_unevictable(memdesc->shmem_filp->f_mapping);
-	pagevec_init(&pvec);
-	for (i = 0; i < memdesc->page_count; i++) {
-		set_page_dirty_lock(memdesc->pages[i]);
-		mutex_lock(&memdesc->lock);
-		pagevec_add(&pvec, memdesc->pages[i]);
-		memdesc->pages[i] = NULL;
-		atomic_inc(&process->unpinned_page_count);
-		mutex_unlock(&memdesc->lock);
-		if (pagevec_count(&pvec) == PAGEVEC_SIZE) {
-			check_move_unevictable_pages(&pvec);
-			__pagevec_release(&pvec);
-		}
-	}
-
-	if (pagevec_count(&pvec)) {
-		check_move_unevictable_pages(&pvec);
-		__pagevec_release(&pvec);
-	}
-}
-
-static int kgsl_read_mapping(struct kgsl_memdesc *memdesc, struct page **page, int i)
-{
-	*page = shmem_read_mapping_page_gfp(memdesc->shmem_filp->f_mapping,
-					   i, kgsl_gfp_mask(0));
-	return PTR_ERR_OR_ZERO(*page);
-}
-#endif
 
 static int kgsl_memdesc_get_reclaimed_pages(struct kgsl_mem_entry *entry)
 {
@@ -732,7 +686,6 @@ void kgsl_reclaim_proc_private_init(struct kgsl_process_private *process)
 	atomic_set(&process->migrated_page_count, 0);
 }
 
-#if (KERNEL_VERSION(6, 7, 0) <= LINUX_VERSION_CODE)
 static int kgsl_reclaim_shrinker_init(void)
 {
 	kgsl_driver.reclaim_shrinker = shrinker_alloc(0, "kgsl_reclaim_shrinker");
@@ -757,35 +710,6 @@ static void kgsl_reclaim_shrinker_close(void)
 
 	kgsl_driver.reclaim_shrinker = NULL;
 }
-#else
-/* Shrinker callback data*/
-static struct shrinker kgsl_reclaim_shrinker = {
-	.count_objects = kgsl_reclaim_shrink_count_objects,
-	.scan_objects = kgsl_reclaim_shrink_scan_objects,
-	.seeks = DEFAULT_SEEKS,
-	.batch = 0,
-};
-
-static int kgsl_reclaim_shrinker_init(void)
-{
-	int ret;
-
-	kgsl_driver.reclaim_shrinker = &kgsl_reclaim_shrinker;
-
-	/* Initialize shrinker */
-#if (KERNEL_VERSION(6, 0, 0) <= LINUX_VERSION_CODE)
-	ret = register_shrinker(kgsl_driver.reclaim_shrinker, "kgsl_reclaim_shrinker");
-#else
-	ret = register_shrinker(kgsl_driver.reclaim_shrinker);
-#endif
-	return ret;
-}
-
-static void kgsl_reclaim_shrinker_close(void)
-{
-	unregister_shrinker(kgsl_driver.reclaim_shrinker);
-}
-#endif
 
 int kgsl_reclaim_start(void)
 {

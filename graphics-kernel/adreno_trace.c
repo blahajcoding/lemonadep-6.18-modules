@@ -28,11 +28,7 @@ void adreno_fence_trace_array_init(struct kgsl_device *device)
 {
 	int i;
 
-#if (KERNEL_VERSION(6, 7, 0) >= LINUX_VERSION_CODE)
-	device->fence_trace_array = trace_array_get_by_name("kgsl-fence");
-#else
 	device->fence_trace_array = trace_array_get_by_name("kgsl-fence", NULL);
-#endif
 
 	if (!device->fence_trace_array)
 		return;

@@ -14,11 +14,7 @@
 #include <linux/of_address.h>
 #include <linux/pm_domain.h>
 #include <linux/version.h>
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 #include <linux/firmware/qcom/qcom_scm.h>
-#else
-#include <linux/qcom_scm.h>
-#endif
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
 #include <linux/soc/qcom/mdt_loader.h>
@@ -78,7 +74,6 @@ int kgsl_clk_set_rate(struct clk_bulk_data *clks, int num_clks,
 	return clk_set_rate(clk, rate);
 }
 
-#if (KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE)
 int kgsl_scm_gpu_init_regs(struct device *dev, u32 gpu_req)
 {
 	int ret;
@@ -93,7 +88,6 @@ int kgsl_scm_gpu_init_regs(struct device *dev, u32 gpu_req)
 
 	return ret;
 }
-#endif
 
 /*
  * The PASID has stayed consistent across all targets thus far so we are

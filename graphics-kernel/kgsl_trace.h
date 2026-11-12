@@ -20,11 +20,7 @@
 #include "kgsl_drawobj.h"
 #include "kgsl_sharedmem.h"
 
-#if (KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE)
-#define kgsl_assign_str(dst, src) __assign_str(dst, src)
-#else
 #define kgsl_assign_str(dst, src) __assign_str(dst)
-#endif
 
 #define KGSL_TRACE_GPU_FREQ(freq, gpu_id, ticks) \
 	do { \

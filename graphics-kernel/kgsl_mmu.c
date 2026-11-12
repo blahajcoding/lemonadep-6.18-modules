@@ -626,11 +626,7 @@ ssize_t kgsl_mmu_map_sg(struct iommu_domain *domain,
 				unsigned long iova, struct scatterlist *sg,
 				unsigned int nents, int prot)
 {
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 	return iommu_map_sg(domain, iova, sg, nents, prot, GFP_KERNEL);
-#else
-	return iommu_map_sg(domain, iova, sg, nents, prot);
-#endif
 }
 
 static int kgsl_mmu_cb_bind(struct device *dev, struct device *master, void *data)
@@ -725,18 +721,10 @@ static void _kgsl_mmu_dev_remove(struct platform_device *pdev)
 	of_platform_depopulate(&pdev->dev);
 }
 
-#if (KERNEL_VERSION(6, 10, 0) <= LINUX_VERSION_CODE)
 static void kgsl_mmu_dev_remove(struct platform_device *pdev)
 {
 	_kgsl_mmu_dev_remove(pdev);
 }
-#else
-static int kgsl_mmu_dev_remove(struct platform_device *pdev)
-{
-	_kgsl_mmu_dev_remove(pdev);
-	return 0;
-}
-#endif
 
 static const struct of_device_id mmu_match_table[] = {
 	{ .compatible = "qcom,kgsl-smmu-v2" },

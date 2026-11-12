@@ -96,21 +96,12 @@ static void kgsl_mem_entry_detach_process(struct kgsl_mem_entry *entry);
 
 static const struct vm_operations_struct kgsl_gpumem_vm_ops;
 
-#if (KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE)
-static unsigned long kgsl_mm_get_unmapped_area(struct mm_struct *mm, struct file *file,
-		     unsigned long addr, unsigned long len,
-		     unsigned long pgoff, unsigned long flags)
-{
-	return mm->get_unmapped_area(file, addr, len, pgoff, flags);
-}
-#else
 static unsigned long kgsl_mm_get_unmapped_area(struct mm_struct *mm, struct file *file,
 		     unsigned long addr, unsigned long len,
 		     unsigned long pgoff, unsigned long flags)
 {
 	return mm_get_unmapped_area(mm, file, addr, len, pgoff, flags);
 }
-#endif
 
 /*
  * The memfree list contains the last N blocks of memory that have been freed.
@@ -355,12 +346,8 @@ static void kgsl_destroy_ion(struct kgsl_memdesc *memdesc)
 
 	if (metadata != NULL) {
 		remove_dmabuf_list(metadata);
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 		dma_buf_unmap_attachment_unlocked(metadata->attach, memdesc->sgt,
 				DMA_BIDIRECTIONAL);
-#else
-		dma_buf_unmap_attachment(metadata->attach, memdesc->sgt, DMA_BIDIRECTIONAL);
-#endif
 		dma_buf_detach(metadata->dmabuf, metadata->attach);
 		dma_buf_put(metadata->dmabuf);
 		kfree(metadata);
@@ -3010,11 +2997,7 @@ static int memdesc_sg_virt(struct kgsl_device *device, struct kgsl_memdesc *memd
 		goto out;
 	}
 
-#if (KERNEL_VERSION(6, 4, 0) <= LINUX_VERSION_CODE)
 	npages = get_user_pages(useraddr, sglen, write, pages);
-#else
-	npages = get_user_pages(useraddr, sglen, write, pages, NULL);
-#endif
 
 	mmap_read_unlock(current->mm);
 
@@ -3464,11 +3447,7 @@ static int kgsl_setup_dma_buf(struct kgsl_device *device,
 	entry->memdesc.flags &= ~((uint64_t) KGSL_MEMFLAGS_USE_CPU_MAP);
 	entry->memdesc.flags |= (uint64_t)KGSL_MEMFLAGS_USERMEM_ION;
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 	sg_table = dma_buf_map_attachment_unlocked(attach, DMA_BIDIRECTIONAL);
-#else
-	sg_table = dma_buf_map_attachment(attach, DMA_BIDIRECTIONAL);
-#endif
 	if (IS_ERR_OR_NULL(sg_table)) {
 		ret = PTR_ERR(sg_table);
 		goto out;
@@ -3497,11 +3476,7 @@ static int kgsl_setup_dma_buf(struct kgsl_device *device,
 out:
 	if (ret) {
 		if (!IS_ERR_OR_NULL(sg_table))
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
 			dma_buf_unmap_attachment_unlocked(attach, sg_table, DMA_BIDIRECTIONAL);
-#else
-			dma_buf_unmap_attachment(attach, sg_table, DMA_BIDIRECTIONAL);
-#endif
 		if (!IS_ERR_OR_NULL(attach))
 			dma_buf_detach(dmabuf, attach);
 
@@ -4607,20 +4582,12 @@ static const struct vm_operations_struct kgsl_memstore_vm_ops = {
 
 static inline void kgsl_vm_flags_clear(struct vm_area_struct *vma, vm_flags_t flags)
 {
-#if (KERNEL_VERSION(6, 1, 25) <= LINUX_VERSION_CODE)
 	vm_flags_clear(vma, flags);
-#else
-	vma->vm_flags &= ~flags;
-#endif
 }
 
 static inline void kgsl_vm_flags_set(struct vm_area_struct *vma, vm_flags_t flags)
 {
-#if (KERNEL_VERSION(6, 1, 25) <= LINUX_VERSION_CODE)
 	vm_flags_set(vma, flags);
-#else
-	vma->vm_flags |= flags;
-#endif
 }
 
 static int
@@ -5452,11 +5419,7 @@ int __init kgsl_core_init(void)
 		goto err;
 	}
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 	kgsl_driver.class = class_create("kgsl");
-#else
-	kgsl_driver.class = class_create(THIS_MODULE, "kgsl");
-#endif
 	if (IS_ERR(kgsl_driver.class)) {
 		result = PTR_ERR(kgsl_driver.class);
 		pr_err("kgsl: failed to create class for kgsl\n");

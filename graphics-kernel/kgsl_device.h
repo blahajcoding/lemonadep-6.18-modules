@@ -27,11 +27,7 @@
 #define kgsl_mutex_unlock(mutex)	rt_mutex_unlock(mutex)
 #define kgsl_mutex_trylock(mutex)	rt_mutex_trylock(mutex)
 
-#if (KERNEL_VERSION(5, 10, 0) >= LINUX_VERSION_CODE)
-#define kgsl_mutex_is_locked(mutex)	rt_mutex_is_locked(mutex)
-#else
 #define kgsl_mutex_is_locked(mutex)	((mutex)->rtmutex.owner != NULL)
-#endif
 
 #else
 #define kgsl_mutex_init(mutex)		mutex_init(mutex)
