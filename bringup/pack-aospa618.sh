@@ -57,7 +57,17 @@ cp $W/rd/fstab.test $W/rd/first_stage_ramdisk/fstab.default
 # second stage reads it from a small ext4 image whose file is labeled like
 # the vendor's fstab (vendor_configs_file), which logsaver618 loop mounts
 rm -rf $W/img; mkdir -p $W/img; cp $W/rd/fstab.test $W/img/fstab.default
-mke2fs -q -t ext4 -O ^has_journal,^metadata_csum -b 4096 -L fstab618 -d $W/img $W/rd/fstab.img 1M
+# test properties logsaver618 appends to the system_ext build.prop: adb on,
+# and ro.gsid.image_running so gatekeeperd never wipes the TEE Gatekeeper
+# that the daily slot shares when this boot sees an empty /data
+cat > $W/img/system_ext.add <<PROPS
+
+# redwood 6.18 test boot
+ro.gsid.image_running=1
+ro.adb.secure=0
+persist.sys.usb.config=mtp,adb
+PROPS
+mke2fs -q -t ext4 -O ^has_journal,^metadata_csum -b 4096 -L fstab618 -d $W/img $W/rd/fstab.img 4M
 debugfs -w -R "ea_set /fstab.default security.selinux u:object_r:vendor_configs_file:s0" $W/rd/fstab.img 2>/dev/null
 debugfs -R "ea_list /fstab.default" $W/rd/fstab.img 2>/dev/null | grep -q vendor_configs_file || { echo "fstab.img not labeled"; exit 1; }
 grep -E "/data|/metadata|persist|qmcs" $W/rd/fstab.test

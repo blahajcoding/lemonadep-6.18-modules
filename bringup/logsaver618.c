@@ -67,6 +67,48 @@ static void to_bootloader(const char *why)
 		    LINUX_REBOOT_CMD_RESTART2, "bootloader");
 }
 
+/*
+ * The system_ext build.prop with the test properties (system_ext.add in the
+ * image) appended, written into the image with system_file in its xattr.
+ * Runs in first stage, before the policy is loaded, so the real file is
+ * readable and the label sticks.
+ */
+static int build_system_ext_prop(void)
+{
+	static const char label[] = "u:object_r:system_file:s0";
+	static char buf[512 << 10];
+	size_t n = 0;
+	ssize_t r;
+	int fd;
+
+	fd = open("/system_ext/etc/build.prop", O_RDONLY);
+	if (fd < 0)
+		return -1;
+	while ((r = read(fd, buf + n, sizeof(buf) - 1 - n)) > 0)
+		n += r;
+	close(fd);
+	if (n && buf[n - 1] != '\n')
+		buf[n++] = '\n';
+	fd = open(LOOP_DIR "/system_ext.add", O_RDONLY);
+	if (fd < 0)
+		return -2;
+	while ((r = read(fd, buf + n, sizeof(buf) - 1 - n)) > 0)
+		n += r;
+	close(fd);
+	fd = open(LOOP_DIR "/system_ext.build.prop", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if (fd < 0)
+		return -3;
+	if (write(fd, buf, n) != (ssize_t)n) {
+		close(fd);
+		return -4;
+	}
+	close(fd);
+	if (my_syscall5(__NR_setxattr, LOOP_DIR "/system_ext.build.prop", "security.selinux",
+			label, sizeof(label), 0))
+		return -5;
+	return 0;
+}
+
 /* 0: not yet (no /vendor in init's root), 1: placed */
 static int place_fstab(void)
 {
@@ -99,28 +141,46 @@ static int place_fstab(void)
 			exit(3);
 		snprintf(ldev, sizeof(ldev), LOOP_DIR "-loop%d", n);
 		mknod(ldev, S_IFBLK | 0600, makedev(7, n));
-		lfd = open(ldev, O_RDONLY);
+		lfd = open(ldev, O_RDWR);
 		memset(&lc, 0, sizeof(lc));
 		lc.fd = imgfd;
-		lc.info.lo_flags = LO_FLAGS_READ_ONLY;
 		if (lfd < 0 || ioctl(lfd, LOOP_CONFIGURE, &lc))
 			exit(5);
 		mkdir(LOOP_DIR, 0755);
-		if (mount(ldev, LOOP_DIR, "ext4", MS_RDONLY | MS_NOSUID | MS_NODEV | MS_NOEXEC, "noload"))
+		if (mount(ldev, LOOP_DIR, "ext4", MS_NOSUID | MS_NODEV | MS_NOEXEC, "noload"))
 			exit(6);
 		if (mount(LOOP_DIR "/fstab.default", DST_FSTAB, NULL, MS_BIND, NULL))
 			exit(4);
 		/*
-		 * Optional: a system_ext build.prop with adb on, for test boots
-		 * (system_ext is mounted before vendor, and init only reads the
-		 * properties in second stage). Not fatal if it fails.
+		 * Optional: the system_ext build.prop plus test properties (adb
+		 * on, Gatekeeper kept from wiping the TEE that both slots share).
+		 * system_ext is mounted before vendor, and init only reads the
+		 * properties in second stage. Without system_ext.add this is
+		 * optional; with it, a failure stops the boot.
 		 */
-		if (!access(LOOP_DIR "/system_ext.build.prop", F_OK)) {
+		if (!access(LOOP_DIR "/system_ext.add", F_OK)) {
+			int e = build_system_ext_prop();
+
+			/*
+			 * system_ext.add carries the Gatekeeper guard: never
+			 * boot Android without it.
+			 */
+			if (e) {
+				klog("building the test system_ext build.prop failed: %d\n", e);
+				exit(7);
+			}
+			if (mount(LOOP_DIR "/system_ext.build.prop", "/system_ext/etc/build.prop",
+				  NULL, MS_BIND, NULL)) {
+				klog("binding the test system_ext build.prop failed: %d\n", errno);
+				exit(8);
+			}
+			klog("test system_ext build.prop bound (Gatekeeper guarded)\n");
+		} else if (!access(LOOP_DIR "/system_ext.build.prop", F_OK)) {
 			if (mount(LOOP_DIR "/system_ext.build.prop", "/system_ext/etc/build.prop",
 				  NULL, MS_BIND, NULL))
 				klog("binding the test system_ext build.prop failed: %d\n", errno);
 			else
-				klog("test system_ext build.prop bound: adb on\n");
+				klog("test system_ext build.prop bound\n");
 		}
 		exit(0);
 	}
@@ -150,7 +210,7 @@ static void saver(void)
 	mknod("/ls/kmsg", S_IFCHR | 0600, makedev(1, 11));
 	kw = open("/ls/kmsg", O_WRONLY);
 
-	imgfd = open(SRC_IMG, O_RDONLY);
+	imgfd = open(SRC_IMG, O_RDWR);
 	if (imgfd < 0)
 		to_bootloader("no " SRC_IMG " in the ramdisk");
 	klog("started\n");
