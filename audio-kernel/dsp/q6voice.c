@@ -6878,6 +6878,25 @@ int voc_get_pp_enable(uint32_t session_id,
  *
  * Returns 0 on success or -EINVAL on failure
  */
+/*
+ * redwood: the earpiece calibration ignores the CVD volume steps, so the
+ * earpiece amp follows them instead. Listeners get the RX volume step
+ * (0 is the loudest) every time Android changes the call volume.
+ */
+static BLOCKING_NOTIFIER_HEAD(voc_rx_vol_notifier);
+
+int voc_register_rx_vol_notifier(struct notifier_block *nb)
+{
+	return blocking_notifier_chain_register(&voc_rx_vol_notifier, nb);
+}
+EXPORT_SYMBOL_GPL(voc_register_rx_vol_notifier);
+
+int voc_unregister_rx_vol_notifier(struct notifier_block *nb)
+{
+	return blocking_notifier_chain_unregister(&voc_rx_vol_notifier, nb);
+}
+EXPORT_SYMBOL_GPL(voc_unregister_rx_vol_notifier);
+
 int voc_set_rx_vol_step(uint32_t session_id, uint32_t dir, uint32_t vol_step,
 			uint32_t ramp_duration)
 {
@@ -6905,6 +6924,8 @@ int voc_set_rx_vol_step(uint32_t session_id, uint32_t dir, uint32_t vol_step,
 			break;
 		}
 	}
+
+	blocking_notifier_call_chain(&voc_rx_vol_notifier, vol_step, NULL);
 
 	return ret;
 }

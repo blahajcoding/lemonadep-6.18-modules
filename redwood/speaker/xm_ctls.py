@@ -62,6 +62,82 @@ static int aw88261_xm_switch_put(struct snd_kcontrol *kcontrol,
 }
 
 /*
+ * The earpiece (Receiver profile) follows the call volume: q6voice tells
+ * every listener the RX volume step, and the Receiver attenuation grows
+ * by receiver_step_att per step. Found with symbol_get(), so the amp still
+ * loads without q6voice.
+ */
+int voc_register_rx_vol_notifier(struct notifier_block *nb);
+int voc_unregister_rx_vol_notifier(struct notifier_block *nb);
+
+struct aw88261_xm_nb {
+	struct notifier_block nb;
+	struct aw88261 *aw88261;
+};
+
+static int aw88261_xm_vol_event(struct notifier_block *nb, unsigned long step,
+		void *data)
+{
+	struct aw88261_xm_nb *x = container_of(nb, struct aw88261_xm_nb, nb);
+	struct aw88261 *aw88261 = x->aw88261;
+	struct aw_device *aw_dev = aw88261->aw_pa;
+	struct aw_volume_desc *vd = &aw_dev->volume_desc;
+	unsigned int att;
+
+	WRITE_ONCE(xm_voice_rx_step, step);
+
+	mutex_lock(&aw88261->lock);
+	if (aw_dev->status == AW88261_DEV_PW_ON) {
+		att = aw88261_xm_att(aw_dev, vd->init_volume);
+		if (att != vd->init_volume) {
+			vd->init_volume = att;
+			aw88261_dev_set_volume(aw_dev, vd->ctl_volume);
+		}
+	}
+	mutex_unlock(&aw88261->lock);
+
+	return NOTIFY_OK;
+}
+
+static void aw88261_xm_vol_unregister(void *data)
+{
+	struct aw88261_xm_nb *x = data;
+	int (*unreg)(struct notifier_block *nb);
+
+	unreg = symbol_get(voc_unregister_rx_vol_notifier);
+	if (unreg) {
+		unreg(&x->nb);
+		symbol_put(voc_unregister_rx_vol_notifier);
+	}
+	symbol_put(voc_register_rx_vol_notifier);
+}
+
+static void aw88261_xm_vol_register(struct snd_soc_component *component)
+{
+	struct aw88261 *aw88261 = snd_soc_component_get_drvdata(component);
+	int (*reg)(struct notifier_block *nb);
+	struct aw88261_xm_nb *x;
+
+	reg = symbol_get(voc_register_rx_vol_notifier);
+	if (!reg) {
+		dev_info(component->dev, "no q6voice, earpiece volume stays fixed\\n");
+		return;
+	}
+	x = devm_kzalloc(component->dev, sizeof(*x), GFP_KERNEL);
+	if (!x) {
+		symbol_put(voc_register_rx_vol_notifier);
+		return;
+	}
+	x->aw88261 = aw88261;
+	x->nb.notifier_call = aw88261_xm_vol_event;
+	if (reg(&x->nb)) {
+		symbol_put(voc_register_rx_vol_notifier);
+		return;
+	}
+	devm_add_action_or_reset(component->dev, aw88261_xm_vol_unregister, x);
+}
+
+/*
  * Card-level controls, so the component's name prefix (AW_R, AW_L) isn't
  * added: the vendor mixer paths ask for exactly these names.
  */
@@ -85,7 +161,12 @@ static int aw88261_add_xm_controls(struct snd_soc_component *component)
 	if (ret)
 		return ret;
 
-	return snd_ctl_add(card, snd_ctl_new1(&sw, component));
+	ret = snd_ctl_add(card, snd_ctl_new1(&sw, component));
+	if (ret)
+		return ret;
+
+	aw88261_xm_vol_register(component);
+	return 0;
 }
 
 static int aw88261_codec_probe(struct snd_soc_component *component)
@@ -114,6 +195,13 @@ static int receiver_att = 24;
 module_param(receiver_att, int, 0644);
 MODULE_PARM_DESC(receiver_att, "Receiver profile attenuation in 1/8 dB, -1 keeps the ACF value");
 
+static int receiver_step_att = 32;
+module_param(receiver_step_att, int, 0644);
+MODULE_PARM_DESC(receiver_step_att, "Earpiece attenuation per call volume step in 1/8 dB, 0 ignores the call volume");
+
+/* the call's RX volume step from q6voice, 0 is the loudest */
+static unsigned int xm_voice_rx_step;
+
 static unsigned int aw88261_xm_att(struct aw_device *aw_dev, unsigned int acf)
 {
 	struct aw_prof_info *info = &aw_dev->prof_info;
@@ -122,8 +210,12 @@ static unsigned int aw88261_xm_att(struct aw_device *aw_dev, unsigned int acf)
 
 	if (!strcmp(name, "Music"))
 		att = music_att;
-	else if (!strcmp(name, "Receiver"))
+	else if (!strcmp(name, "Receiver")) {
 		att = receiver_att;
+		if (att >= 0 && receiver_step_att > 0)
+			att = min_t(int, att + READ_ONCE(xm_voice_rx_step) *
+				    receiver_step_att, AW88261_MUTE_VOL - 1);
+	}
 
 	if (att < 0 || att >= AW88261_MUTE_VOL)
 		return acf;
