@@ -596,6 +596,24 @@ int msm_comm_ctrl_init(struct msm_vidc_inst *inst,
 			return -EINVAL;
 		}
 
+		switch (ctrl->id) {
+		case V4L2_CID_MPEG_VIDEO_H264_PROFILE:
+		case V4L2_CID_MPEG_VIDEO_HEVC_PROFILE:
+		case V4L2_CID_MPEG_VIDEO_H264_LEVEL:
+		case V4L2_CID_MPEG_VIDC_VIDEO_VP8_PROFILE_LEVEL:
+		case V4L2_CID_MPEG_VIDEO_HEVC_LEVEL:
+		case V4L2_CID_MIN_BUFFERS_FOR_CAPTURE:
+		case V4L2_CID_MIN_BUFFERS_FOR_OUTPUT:
+		case V4L2_CID_MPEG_VIDC_VIDEO_EXTRADATA:
+		case V4L2_CID_MPEG_VIDC_VIDEO_ROI_TYPE:
+			/* read back from the instance, still set through s_ctrl */
+			ctrl->flags |= V4L2_CTRL_FLAG_VOLATILE |
+				V4L2_CTRL_FLAG_EXECUTE_ON_WRITE;
+			break;
+		default:
+			break;
+		}
+
 		ret_val = inst->ctrl_handler.error;
 		if (ret_val) {
 			s_vpr_e(inst->sid,

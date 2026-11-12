@@ -1489,9 +1489,22 @@ static int try_get_ctrl_for_instance(struct msm_vidc_inst *inst,
 	return rc;
 }
 
-static const struct v4l2_ctrl_ops msm_vidc_ctrl_ops = {
+/*
+ * Controls whose value the driver computes (see try_get_ctrl_for_instance)
+ * are volatile: the control framework asks for them here, as 6.18 no longer
+ * routes VIDIOC_G_CTRL to the driver.
+ */
+static int msm_vidc_op_g_volatile_ctrl(struct v4l2_ctrl *ctrl)
+{
+	struct msm_vidc_inst *inst;
 
+	inst = container_of(ctrl->handler, struct msm_vidc_inst, ctrl_handler);
+	return try_get_ctrl_for_instance(inst, ctrl);
+}
+
+static const struct v4l2_ctrl_ops msm_vidc_ctrl_ops = {
 	.s_ctrl = msm_vidc_op_s_ctrl,
+	.g_volatile_ctrl = msm_vidc_op_g_volatile_ctrl,
 };
 
 static struct msm_vidc_inst_smem_ops  msm_vidc_smem_ops = {
