@@ -415,6 +415,12 @@ static int pick_logdev(void)
 			seq = strtoul(hdr + 18, NULL, 10);
 		if (seq > top)
 			top = seq;
+		/*
+		 * An Android log is what a shell boot is usually there to read:
+		 * overwrite the other partition instead, even if it is newer.
+		 */
+		if (strstr(hdr, " android"))
+			seq += 1u << 30;
 		if (seq < best) {
 			best = seq;
 			snprintf(logdev, sizeof(logdev), "%s", devs[i]);

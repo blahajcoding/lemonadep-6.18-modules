@@ -110,6 +110,18 @@ static int place_fstab(void)
 			exit(6);
 		if (mount(LOOP_DIR "/fstab.default", DST_FSTAB, NULL, MS_BIND, NULL))
 			exit(4);
+		/*
+		 * Optional: a system_ext build.prop with adb on, for test boots
+		 * (system_ext is mounted before vendor, and init only reads the
+		 * properties in second stage). Not fatal if it fails.
+		 */
+		if (!access(LOOP_DIR "/system_ext.build.prop", F_OK)) {
+			if (mount(LOOP_DIR "/system_ext.build.prop", "/system_ext/etc/build.prop",
+				  NULL, MS_BIND, NULL))
+				klog("binding the test system_ext build.prop failed: %d\n", errno);
+			else
+				klog("test system_ext build.prop bound: adb on\n");
+		}
 		exit(0);
 	}
 	if (pid < 0)
