@@ -3,7 +3,7 @@
 # kernel in ~/r618/out, from Qualcomm's Bazel module lists via ddk2kbuild.py.
 R=~/r618; K=$R/redwood-6.18-kernel; O=$R/out; V=$R/redwood-6.18-modules; W=$R/vb; B=$V/bringup
 export PATH=$HOME/tc/clang-r596125/bin:$PATH
-MK="make -C $K O=$O ARCH=arm64 LLVM=1 LLVM_IAS=1 LOCALVERSION= -j$(nproc)"
+MK="make -C $K O=$O ARCH=arm64 LLVM=1 LLVM_IAS=1 LOCALVERSION= ${PAHOLE:+PAHOLE=$PAHOLE} -j$(nproc)"
 G="python3 $B/ddk2kbuild.py"
 LAH="--set CONFIG_ARCH_LAHAINA=y --set CONFIG_ARCH_YUPIK=y"
 

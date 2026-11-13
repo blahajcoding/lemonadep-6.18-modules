@@ -3,7 +3,7 @@
 # 6.18 kernel in ~/r618/out.
 R=~/r618; K=$R/redwood-6.18-kernel; O=$R/out; V=$R/redwood-6.18-modules; W=$R/vb
 export PATH=$HOME/tc/clang-r596125/bin:$PATH
-MK="make -C $K O=$O ARCH=arm64 LLVM=1 LLVM_IAS=1 LOCALVERSION= -j$(nproc)"
+MK="make -C $K O=$O ARCH=arm64 LLVM=1 LLVM_IAS=1 LOCALVERSION= ${PAHOLE:+PAHOLE=$PAHOLE} -j$(nproc)"
 for t in ${*:-nfc-driver camera-kernel}; do
 	rsync -a --delete $V/$t/ $W/$t/
 	case $t in
