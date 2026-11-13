@@ -232,6 +232,7 @@ enum msm_mdp_crtc_property {
 	CRTC_PROP_BATCH_SIZE,
 	CRTC_PROP_BATCH_INDEX,
 	CRTC_PROP_BATCH_TYPE,
+	CRTC_PROP_IDLE_TIMEOUT,
 
 	/* total # of properties */
 	CRTC_PROP_COUNT

@@ -6167,6 +6167,15 @@ int sde_crtc_reset_hw(struct drm_crtc *crtc, struct drm_crtc_state *old_state,
 	return !recovery_events ? 0 : -EAGAIN;
 }
 
+static void sde_crtc_idle_notify_work(struct kthread_work *work)
+{
+	struct sde_crtc *sde_crtc = container_of(work, struct sde_crtc,
+			idle_notify_work.work);
+	u32 ret = 0;
+
+	sde_crtc_event_notify(&sde_crtc->base, DRM_EVENT_IDLE_NOTIFY, &ret, sizeof(ret));
+}
+
 void sde_crtc_commit_kickoff(struct drm_crtc *crtc,
 		struct drm_crtc_state *old_state)
 {
@@ -6181,6 +6190,7 @@ void sde_crtc_commit_kickoff(struct drm_crtc *crtc,
 	struct sde_encoder_kickoff_params params = { 0 };
 	bool is_vid = false;
 	enum msm_disp_op disp_op;
+	u64 idle_time;
 
 	if (!crtc) {
 		SDE_ERROR("invalid argument\n");
@@ -6206,6 +6216,8 @@ void sde_crtc_commit_kickoff(struct drm_crtc *crtc,
 		return;
 
 	SDE_ATRACE_BEGIN("crtc_commit");
+
+	kthread_cancel_delayed_work_sync(&sde_crtc->idle_notify_work);
 
 	idle_pc_state = sde_crtc_get_property(cstate, CRTC_PROP_IDLE_PC_STATE);
 
@@ -6320,6 +6332,14 @@ void sde_crtc_commit_kickoff(struct drm_crtc *crtc,
 		spin_lock_irqsave(&dev->event_lock, flags);
 		sde_crtc->event = crtc->state->event;
 		spin_unlock_irqrestore(&dev->event_lock, flags);
+	}
+
+	idle_time = sde_crtc_get_property(cstate, CRTC_PROP_IDLE_TIMEOUT);
+	if (is_vid && idle_time) {
+		struct msm_drm_private *priv = sde_kms->dev->dev_private;
+
+		kthread_queue_delayed_work(&priv->event_thread[crtc->index].worker,
+				&sde_crtc->idle_notify_work, msecs_to_jiffies(idle_time));
 	}
 
 	SDE_ATRACE_END("crtc_commit");
@@ -6818,6 +6838,7 @@ static void sde_crtc_disable(struct drm_crtc *crtc)
 	mutex_lock(&sde_crtc->crtc_lock);
 
 	kthread_cancel_delayed_work_sync(&sde_crtc->static_cache_read_work);
+	kthread_cancel_delayed_work_sync(&sde_crtc->idle_notify_work);
 
 	SDE_EVT32(DRMID(crtc), sde_crtc->enabled, crtc->state->active,
 			crtc->state->enable, sde_crtc->cached_encoder_mask);
@@ -8505,6 +8526,10 @@ static void sde_crtc_install_properties(struct drm_crtc *crtc,
 			ARRAY_SIZE(e_vm_req_state), init_idx,
 			CRTC_PROP_VM_REQ_STATE);
 	}
+
+	msm_property_install_range(&sde_crtc->property_info,
+			"idle_time", 0x0, 0, U64_MAX, 0,
+			CRTC_PROP_IDLE_TIMEOUT);
 
 	if (test_bit(SDE_FEATURE_IDLE_PC, catalog->features))
 		msm_property_install_enum(&sde_crtc->property_info,
@@ -10216,6 +10241,8 @@ struct drm_crtc *sde_crtc_init(struct drm_device *dev, struct drm_plane *plane)
 
 	kthread_init_delayed_work(&sde_crtc->static_cache_read_work,
 			__sde_crtc_static_cache_read_work);
+	kthread_init_delayed_work(&sde_crtc->idle_notify_work,
+			sde_crtc_idle_notify_work);
 
 	SDE_DEBUG("%s: successfully initialized crtc, hwfence_out:%d, hwfence_in:%d\n",
 		sde_crtc->name,

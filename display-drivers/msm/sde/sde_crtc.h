@@ -659,6 +659,7 @@ struct sde_crtc {
 	int target_bpp;
 
 	struct kthread_delayed_work static_cache_read_work;
+	struct kthread_delayed_work idle_notify_work;
 	enum sde_sys_cache_state cache_state;
 	enum sde_sys_cache_type cache_type;
 
