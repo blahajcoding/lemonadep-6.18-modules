@@ -20,6 +20,7 @@
 #include <linux/msm_sysstats.h>
 #include <linux/of.h>
 #include <linux/of_fdt.h>
+#include <linux/qcom-dma-mapping.h>
 #include <linux/pm_runtime.h>
 #include <linux/security.h>
 #include <linux/sort.h>
@@ -3139,6 +3140,16 @@ static int kgsl_setup_dma_buf(struct kgsl_device *device,
 				struct kgsl_mem_entry *entry,
 				struct dma_buf *dmabuf);
 
+/*
+ * A qcom heap names its buffers after the heap. One from an uncached heap is
+ * written around the CPU caches, so an I/O coherent GPU read could be served a
+ * stale line that a speculative fetch left in a CPU cache.
+ */
+static bool kgsl_dma_buf_cached(struct dma_buf *dmabuf)
+{
+	return !dmabuf->exp_name || !strstr(dmabuf->exp_name, "uncached");
+}
+
 static long _gpuobj_map_dma_buf(struct kgsl_device *device,
 		struct kgsl_pagetable *pagetable,
 		struct kgsl_mem_entry *entry,
@@ -3183,21 +3194,19 @@ static long _gpuobj_map_dma_buf(struct kgsl_device *device,
 	if (IS_ERR(dmabuf))
 		return PTR_ERR(dmabuf);
 
-	/*
-	 * DMA BUFS are always cached so make sure that is reflected in
-	 * the memdesc.
-	 */
-	entry->memdesc.flags |=
-		FIELD_PREP(KGSL_CACHEMODE_MASK, KGSL_CACHEMODE_WRITEBACK);
+	if (kgsl_dma_buf_cached(dmabuf)) {
+		entry->memdesc.flags |=
+			FIELD_PREP(KGSL_CACHEMODE_MASK, KGSL_CACHEMODE_WRITEBACK);
 
-	/*
-	 * Enable I/O coherency if it is 1) a thing, and either
-	 * 2) enabled by default or 3) enabled by the caller
-	 */
-	if (kgsl_mmu_has_feature(device, KGSL_MMU_IO_COHERENT) &&
-			(IS_ENABLED(CONFIG_QCOM_KGSL_IOCOHERENCY_DEFAULT) ||
-			 iocoherent))
-		entry->memdesc.flags |= KGSL_MEMFLAGS_IOCOHERENT;
+		/*
+		 * Enable I/O coherency if it is 1) a thing, and either
+		 * 2) enabled by default or 3) enabled by the caller
+		 */
+		if (kgsl_mmu_has_feature(device, KGSL_MMU_IO_COHERENT) &&
+				(IS_ENABLED(CONFIG_QCOM_KGSL_IOCOHERENCY_DEFAULT) ||
+				 iocoherent))
+			entry->memdesc.flags |= KGSL_MEMFLAGS_IOCOHERENT;
+	}
 
 	ret = kgsl_setup_dma_buf(device, pagetable, entry, dmabuf);
 	if (ret)
@@ -3434,6 +3443,8 @@ static int kgsl_setup_dma_buf(struct kgsl_device *device,
 	 */
 	if (entry->memdesc.flags & KGSL_MEMFLAGS_IOCOHERENT)
 		attach->dma_map_attrs |= DMA_ATTR_SKIP_CPU_SYNC;
+	else
+		attach->dma_map_attrs |= DMA_ATTR_FORCE_NON_COHERENT;
 
 	metadata->dmabuf = dmabuf;
 	metadata->attach = attach;
