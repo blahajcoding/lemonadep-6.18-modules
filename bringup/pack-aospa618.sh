@@ -9,7 +9,7 @@
 # Usage: pack-aospa618.sh <boot.img> <vendor_boot.img>   (run pack-bringup618.sh first)
 set -e
 BOOT=${1:?boot.img}; VBOOT=${2:?vendor_boot.img}
-R=~/r618; O=$R/out; T=$R/tools; W=$R/pack-aospa
+R=${R:-$HOME/r618}; O=$R/out; T=$R/tools; W=$R/pack-aospa
 UNPACK="python3 $T/unpack_bootimg"; MK="python3 $T/mkbootimg/mkbootimg.py"
 REL=$(cat $O/include/config/kernel.release)
 SRC=$R/pack/rd/lib/modules/$REL

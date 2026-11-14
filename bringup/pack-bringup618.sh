@@ -7,8 +7,8 @@
 # Usage: pack-bringup618.sh <boot.img> <vendor_boot.img>
 set -e
 BOOT=${1:?boot.img}; VBOOT=${2:?vendor_boot.img}
-R=~/r618; O=$R/out; T=$R/tools; W=$R/pack; DT=$R/out-dt
-export PATH=$HOME/tc/clang-r596125/bin:$PATH
+R=${R:-$HOME/r618}; O=$R/out; T=$R/tools; W=$R/pack; DT=$R/out-dt
+export PATH=${CLANG:-$HOME/tc/clang-r596125/bin}:$PATH
 UNPACK="python3 $T/unpack_bootimg"; MK="python3 $T/mkbootimg/mkbootimg.py"
 REL=$(cat $O/include/config/kernel.release)
 

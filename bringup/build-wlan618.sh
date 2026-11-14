@@ -2,8 +2,8 @@
 # Build redwood Wi-Fi (WCN6750 on the WPSS) against the 6.18 kernel in ~/r618/out:
 # the platform drivers (icnss2, cnss_utils, cnss_nl, cnss_prealloc,
 # wlan_firmware_service) and qcacld (wlan.ko, profile lahaina_gki_qca6750).
-R=~/r618; K=$R/redwood-6.18-kernel; O=$R/out; V=$R/redwood-6.18-modules; W=$R/vb
-export PATH=$HOME/tc/clang-r596125/bin:$PATH
+R=${R:-$HOME/r618}; K=$R/redwood-6.18-kernel; O=$R/out; V=$R/redwood-6.18-modules; W=$R/vb
+export PATH=${CLANG:-$HOME/tc/clang-r596125/bin}:$PATH
 MK="make -C $K O=$O ARCH=arm64 LLVM=1 LLVM_IAS=1 LOCALVERSION= ${PAHOLE:+PAHOLE=$PAHOLE} -j$(nproc)"
 rsync -a --delete $V/wlan/ $W/wlan/
 P=$W/wlan/platform

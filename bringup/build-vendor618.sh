@@ -4,9 +4,9 @@
 # ~/r618/vb/<name>.log. Usage: build-vendor618.sh [tree ...]
 # Vendor trees never get out/Module.symvers in KBUILD_EXTRA_SYMBOLS: modpost
 # already reads it through O=, passing it again makes every symbol "exported twice".
-R=~/r618; K=$R/redwood-6.18-kernel; O=$R/out; V=$R/redwood-6.18-modules; W=$R/vb
+R=${R:-$HOME/r618}; K=$R/redwood-6.18-kernel; O=$R/out; V=$R/redwood-6.18-modules; W=$R/vb
 B=$V/bringup
-export PATH=$HOME/tc/clang-r596125/bin:$PATH
+export PATH=${CLANG:-$HOME/tc/clang-r596125/bin}:$PATH
 MK="make -C $K O=$O ARCH=arm64 LLVM=1 LLVM_IAS=1 LOCALVERSION= ${PAHOLE:+PAHOLE=$PAHOLE} -j$(nproc)"
 mkdir -p $W
 trees=${*:-"mm-drivers display-drivers graphics-kernel securemsm-kernel audio-kernel"}

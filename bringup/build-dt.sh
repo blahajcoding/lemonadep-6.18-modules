@@ -1,12 +1,12 @@
 #!/bin/bash
 # Build redwood's base dtb (yupik.dtb) and overlay dtbo for the 6.18 kernel.
 set -e
-R=~/r618
+R=${R:-$HOME/r618}
 DT=$R/redwood-6.18-devicetrees
 K=$R/redwood-6.18-kernel
 O=$R/out-dt
 DTC=$R/out/scripts/dtc/dtc
-CC=$HOME/tc/clang-r596125/bin/clang
+CC=${CLANG:-$HOME/tc/clang-r596125/bin}/clang
 mkdir -p $O
 pp() {
 	$CC -E -nostdinc -undef -D__DTS__ -x assembler-with-cpp -P \
