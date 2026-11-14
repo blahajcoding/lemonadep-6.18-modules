@@ -4,15 +4,25 @@
  * redwood 6.18. It runs in the kernel and writes with bios, so it keeps
  * going once Android's init has loaded its SELinux policy, which cuts off a
  * userspace logger reading /dev/kmsg.
+ *
+ * It also turns the Android log records that liblog writes to pmsg into
+ * text, so the logcat of a boot that never finishes can be read back from
+ * recovery: a userdebug liblog sends every buffer to pmsg, and the ramoops
+ * pmsg zone already holds them in kernel memory.
  */
 #include <linux/bio.h>
 #include <linux/ctype.h>
 #include <linux/blkdev.h>
 #include <linux/delay.h>
 #include <linux/fs.h>
+#include <linux/io.h>
 #include <linux/kmsg_dump.h>
 #include <linux/kthread.h>
 #include <linux/module.h>
+#include <linux/of.h>
+#include <linux/of_address.h>
+#include <linux/slab.h>
+#include <linux/unaligned.h>
 #include <linux/sched/signal.h>
 #include <linux/sched/debug.h>
 
@@ -170,6 +180,159 @@ static void flush(void)
 	done = used;
 }
 
+/*
+ * The ramoops zones are dmesg, console, pmsg and ftrace, in that order, each
+ * a persistent_ram_buffer: sig, start (where the next write goes), size,
+ * then the ring. liblog writes a record as several writes (pmsg has no
+ * write_iter), so records are reassembled from a staging buffer and a bad
+ * header makes the parser skip to the next 'l'.
+ */
+#define PRZ_SIG		0x43474244
+#define PMSG_STAGE	(64 * 1024)
+#define PMSG_HDR	7	/* magic 'l', len, uid, pid */
+#define LOG_HDR		11	/* id, tid, sec, nsec */
+#define PMSG_MAX	(5 * 1024)
+/* the logcat stops here so the kernel log of the reset always fits */
+#define LOGCAT_LIMIT	((size_t)(LOG_PAGES - 512) * PAGE_SIZE)
+
+static u8 __iomem *pmsg_va;
+static size_t pmsg_cap, pmsg_pos, pmsg_seen;
+static u8 *stage;
+static size_t staged;
+
+static void pmsg_setup(void)
+{
+	struct device_node *np = of_find_compatible_node(NULL, NULL, "ramoops");
+	u32 ftrace = 0, pmsg = 0, sig;
+	struct resource res;
+	phys_addr_t at;
+
+	if (!np)
+		return;
+	if (of_address_to_resource(np, 0, &res) ||
+	    of_property_read_u32(np, "pmsg-size", &pmsg) || pmsg < PAGE_SIZE) {
+		of_node_put(np);
+		return;
+	}
+	of_property_read_u32(np, "ftrace-size", &ftrace);
+	of_node_put(np);
+	at = res.start + resource_size(&res) - ftrace - pmsg;
+	pmsg_va = memremap(at, pmsg, MEMREMAP_WB);
+	stage = kmalloc(PMSG_STAGE, GFP_KERNEL);
+	if (!pmsg_va || !stage)
+		goto fail;
+	sig = readl(pmsg_va);
+	pmsg_cap = pmsg - 12;
+	pmsg_pos = pmsg_seen = readl(pmsg_va + 4);
+	if (sig != PRZ_SIG || pmsg_pos >= pmsg_cap) {
+		pr_info("bootlog: no pmsg zone at %pa (sig %08x start %zu)\n", &at, sig, pmsg_pos);
+		goto fail;
+	}
+	pr_info("bootlog: copying logcat from pmsg at %pa, %zu bytes\n", &at, pmsg_cap);
+	return;
+fail:
+	if (pmsg_va)
+		memunmap((void *)pmsg_va);
+	pmsg_va = NULL;
+	kfree(stage);
+	stage = NULL;
+}
+
+static void pmsg_line(const u8 *r, size_t len)
+{
+	static char out[1200];
+	static const char prios[] = "??VDIWEFS";
+	u16 pid = get_unaligned_le16(r + 5);
+	u8 id = r[PMSG_HDR];
+	u16 tid = get_unaligned_le16(r + PMSG_HDR + 1);
+	u32 sec = get_unaligned_le32(r + PMSG_HDR + 3);
+	u32 nsec = get_unaligned_le32(r + PMSG_HDR + 7);
+	const char *p = (const char *)r + PMSG_HDR + LOG_HDR, *end = (const char *)r + len;
+	const char *tag, *msg;
+	size_t tl, ml, i;
+	u8 prio;
+	int n;
+
+	/* main, system and crash; radio, events and security are left out */
+	if (id != 0 && id != 3 && id != 4)
+		return;
+	prio = *p++;
+	if (prio < 4 && id != 4)
+		return;
+	tag = p;
+	tl = strnlen(tag, end - tag);
+	if (tag + tl >= end)
+		return;
+	msg = tag + tl + 1;
+	ml = strnlen(msg, end - msg);
+	while (ml && (msg[ml - 1] == '\n' || msg[ml - 1] == ' '))
+		ml--;
+	n = scnprintf(out, sizeof(out), "[logcat %02u:%02u:%02u.%03u] %c %u %u %.*s: ",
+		      sec / 3600 % 24, sec / 60 % 60, sec % 60, nsec / 1000000,
+		      prios[min_t(u8, prio, 8)], pid, tid, (int)min_t(size_t, tl, 64), tag);
+	for (i = 0; i < ml && n < (int)sizeof(out) - 5; i++) {
+		if (msg[i] == '\n') {
+			out[n++] = ' ';
+			out[n++] = '|';
+			out[n++] = ' ';
+		} else if (msg[i] == '\t' || (msg[i] >= ' ' && msg[i] != 0x7f)) {
+			out[n++] = msg[i];
+		} else {
+			out[n++] = '?';
+		}
+	}
+	out[n++] = '\n';
+	append(out, n);
+}
+
+static void pmsg_parse(void)
+{
+	size_t off = 0;
+
+	while (staged - off >= PMSG_HDR) {
+		const u8 *r = stage + off;
+		size_t len = get_unaligned_le16(r + 1);
+
+		if (r[0] != 'l' || len < PMSG_HDR + LOG_HDR + 3 || len > PMSG_MAX) {
+			off++;
+			continue;
+		}
+		if (staged - off < len)
+			break;
+		if (used < LOGCAT_LIMIT)
+			pmsg_line(r, len);
+		off += len;
+	}
+	memmove(stage, stage + off, staged - off);
+	staged -= off;
+}
+
+/* take what was written by the previous poll, so every writer has finished
+ * copying its bytes in */
+static void pmsg_poll(void)
+{
+	size_t now, n;
+
+	if (!pmsg_va)
+		return;
+	now = readl(pmsg_va + 4);
+	if (now >= pmsg_cap)
+		return;
+	n = (pmsg_seen + pmsg_cap - pmsg_pos) % pmsg_cap;
+	while (n) {
+		size_t k = min3(n, pmsg_cap - pmsg_pos, PMSG_STAGE - staged);
+
+		memcpy_fromio(stage + staged, pmsg_va + 12 + pmsg_pos, k);
+		staged += k;
+		pmsg_pos = (pmsg_pos + k) % pmsg_cap;
+		n -= k;
+		pmsg_parse();
+		if (staged == PMSG_STAGE)
+			staged = 0;
+	}
+	pmsg_seen = now;
+}
+
 /* sysrq is off on a user build, so list the processes and the stacks of
  * blocked tasks directly */
 static void show_tasks(void)
@@ -201,6 +364,7 @@ static int bootlog_thread(void *unused)
 	kmsg_dump_rewind(&iter);
 	/* the sequence number goes in once the partition is picked */
 	append(HEADER "00000000 android\n", HEADER_LEN + SEQ_DIGITS + 9);
+	pmsg_setup();
 	while (!kthread_should_stop() && tick < 600) {
 		if (time_after_eq(jiffies, beat)) {
 			beat = jiffies + 2 * HZ;
@@ -211,6 +375,7 @@ static int bootlog_thread(void *unused)
 		}
 		while (kmsg_dump_get_line(&iter, false, line, sizeof(line), &len))
 			append(line, len);
+		pmsg_poll();
 		if (!dev) {
 			struct file *f = find_logdump();
 
@@ -251,6 +416,9 @@ static void __exit bootlog_exit(void)
 	kthread_stop(task);
 	if (dev)
 		fput(dev);
+	if (pmsg_va)
+		memunmap((void *)pmsg_va);
+	kfree(stage);
 	for (i = 0; i < LOG_PAGES; i++)
 		if (pages[i])
 			__free_page(pages[i]);
