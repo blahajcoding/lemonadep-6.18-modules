@@ -511,19 +511,19 @@ static struct dev_config mi2s_tx_cfg[] = {
 static struct tdm_dev_config pri_tdm_dev_config[MAX_PATH][TDM_PORT_MAX] = {
 	{ /* PRI TDM */
 		{ {0,   4, 0xFFFF} }, /* RX_0 */
-		{ {8,  12, 0xFFFF} }, /* RX_1 */
-		{ {16, 20, 0xFFFF} }, /* RX_2 */
-		{ {24, 28, 0xFFFF} }, /* RX_3 */
+		{ {0xFFFF} }, /* RX_1 */
+		{ {0xFFFF} }, /* RX_2 */
+		{ {0xFFFF} }, /* RX_3 */
 		{ {0xFFFF} }, /* RX_4 */
 		{ {0xFFFF} }, /* RX_5 */
 		{ {0xFFFF} }, /* RX_6 */
 		{ {0xFFFF} }, /* RX_7 */
 	},
 	{
-		{ {0,   4,      8, 12, 0xFFFF} }, /* TX_0 */
-		{ {8,  12, 0xFFFF} }, /* TX_1 */
-		{ {16, 20, 0xFFFF} }, /* TX_2 */
-		{ {24, 28, 0xFFFF} }, /* TX_3 */
+		{ {0,   4, 0xFFFF} }, /* TX_0 */
+		{ {0xFFFF} }, /* TX_1 */
+		{ {0xFFFF} }, /* TX_2 */
+		{ {0xFFFF} }, /* TX_3 */
 		{ {0xFFFF} }, /* TX_4 */
 		{ {0xFFFF} }, /* TX_5 */
 		{ {0xFFFF} }, /* TX_6 */
@@ -4880,6 +4880,10 @@ static int lahaina_tdm_snd_hw_params(struct snd_pcm_substream *substream,
 		return -EINVAL;
 	}
 
+	/* redwood: the aw88261 amps run a 2-slot, 32-bit TDM frame */
+	if (slots == TDM_MAX_SLOTS)
+		slots = 2;
+
 	/* RX or TX */
 	path_dir = cpu_dai->id % MAX_PATH;
 
@@ -6265,14 +6269,14 @@ static struct snd_soc_dai_link msm_common_dai_links[] = {
 	},
 	{
 		.capture_only = 1,/* hw:x,32 */
-		.name = "Tertiary MI2S TX_Hostless",
-		.stream_name = "Tertiary MI2S_TX Hostless Capture",
+		.name = "PRI_TDM_TX_0_HOSTLESS",
+		.stream_name = "PRI_TDM_TX_0_HOSTLESS Capture",
 		.dynamic = 1,
 		.trigger = {SND_SOC_DPCM_TRIGGER_POST,
 				SND_SOC_DPCM_TRIGGER_POST},
 		.ignore_suspend = 1,
 		.ignore_pmdown_time = 1,
-		SND_SOC_DAILINK_REG(tert_mi2s_tx_hostless),
+		SND_SOC_DAILINK_REG(pri_tdm_tx_0_hostless),
 	},
 };
 
