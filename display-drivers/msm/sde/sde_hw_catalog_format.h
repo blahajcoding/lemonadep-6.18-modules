@@ -74,7 +74,8 @@
 #define P210_UBWC_FMTS	{DRM_FORMAT_P210, DRM_FORMAT_MOD_QCOM_DX | \
 		DRM_FORMAT_MOD_QCOM_COMPRESSED}
 
-#define SDE_IS_IN_ROT_RESTRICTED_FMT(catalog, fmt) (catalog ? \
+#define SDE_IS_IN_ROT_RESTRICTED_FMT(catalog, fmt) \
+		((catalog && catalog->inline_rot_restricted_formats) ? \
 		(sde_format_validate_fmt(NULL, fmt, \
 		catalog->inline_rot_restricted_formats) == 0) : false)
 

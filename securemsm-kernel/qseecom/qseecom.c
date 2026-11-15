@@ -2490,7 +2490,7 @@ static int __qseecom_process_reentrancy_blocked_on_listener(
 		}
 		ptr_app->blocked_on_listener_id = resp->data;
 
-		pr_warn("Lsntr %d in_use %d, block session(%d) app(%d)\n",
+		pr_debug("Lsntr %d in_use %d, block session(%d) app(%d)\n",
 			resp->data, list_ptr->listener_in_use,
 			session_id, data->client.app_id);
 
@@ -2510,7 +2510,7 @@ static int __qseecom_process_reentrancy_blocked_on_listener(
 			qseecom.app_block_ref_cnt--;
 		}  while (list_ptr->listener_in_use);
 		ptr_app->blocked_on_listener_id = 0;
-		pr_warn("Lsntr %d is available, unblock session(%d) app(%d)\n",
+		pr_debug("Lsntr %d is available, unblock session(%d) app(%d)\n",
 			resp->data, session_id, data->client.app_id);
 
 		/* notify TZ that listener is available */
@@ -2545,7 +2545,7 @@ static int __qseecom_process_reentrancy_blocked_on_listener(
 		resp->result = continue_resp.result;
 		resp->resp_type = continue_resp.resp_type;
 		resp->data = continue_resp.data;
-		pr_err("unblock resp = %d\n", resp->result);
+		pr_debug("unblock resp = %d\n", resp->result);
 	} while (resp->result == QSEOS_RESULT_BLOCKED_ON_LISTENER);
 
 	if (resp->result != QSEOS_RESULT_INCOMPLETE) {

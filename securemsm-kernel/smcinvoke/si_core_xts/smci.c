@@ -1163,7 +1163,7 @@ static void mem_object_release(void *private)
 
 		cbo_release(&cb_x->object);
 	} else
-		pr_err("memory leak detected!\n");
+		pr_debug("memory object released without a callback object\n");
 }
 
 static struct si_object_operations cbo_sio_ops = {
