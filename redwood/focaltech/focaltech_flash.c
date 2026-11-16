@@ -47,6 +47,7 @@
 #define FTS_READ_BOOT_ID_TIMEOUT 3
 #define FTS_FLASH_PACKET_LENGTH_SPI_LOW (4 * 1024 - 4)
 #define FTS_FLASH_PACKET_LENGTH_SPI (32 * 1024 - 16)
+#define FTS_FWUPG_RETRY_MAX 60
 
 /*****************************************************************************
  * Private enumerations, structures and unions using typedef
@@ -79,6 +80,7 @@ struct upgrade_setting_nf upgrade_setting_list[] = {
 };
 
 struct fts_upgrade *fwupgrade;
+static int fwupg_tries;
 
 static int fts_check_bootid(void)
 {
@@ -1115,9 +1117,19 @@ static void fts_fwupg_work(struct work_struct *work)
 		return;
 	}
 
-	/* get fw */
+	/*
+	 * The module loads from the first stage ramdisk, before /vendor and
+	 * ueventd can serve the firmware, and this IC runs from PRAM, so keep
+	 * asking until the file shows up
+	 */
 	ret = fts_fwupg_get_fw_file(upg);
 	if (ret < 0) {
+		if (++fwupg_tries < FTS_FWUPG_RETRY_MAX) {
+			FTS_INFO("fw file not ready, retry %d", fwupg_tries);
+			queue_delayed_work(upg->ts_data->ts_workqueue,
+					   &upg->ts_data->fwupg_work, HZ);
+			return;
+		}
 		FTS_ERROR("get file fail, can't upgrade");
 		return;
 	}
@@ -1187,8 +1199,8 @@ int fts_fwupg_init(struct fts_ts_data *ts_data)
 
 	fts_esdcheck_switch(ts_data, DISABLE);
 	fwupgrade->ts_data = ts_data;
-	INIT_WORK(&ts_data->fwupg_work, fts_fwupg_work);
-	queue_work(ts_data->ts_workqueue, &ts_data->fwupg_work);
+	INIT_DELAYED_WORK(&ts_data->fwupg_work, fts_fwupg_work);
+	queue_delayed_work(ts_data->ts_workqueue, &ts_data->fwupg_work, 0);
 
 	return 0;
 }
@@ -1196,7 +1208,7 @@ int fts_fwupg_init(struct fts_ts_data *ts_data)
 int fts_fwupg_exit(struct fts_ts_data *ts_data)
 {
 	FTS_FUNC_ENTER();
-	cancel_work_sync(&ts_data->fwupg_work);
+	cancel_delayed_work_sync(&ts_data->fwupg_work);
 
 	if (fwupgrade) {
 		if (fwupgrade->fw_from_request) {
