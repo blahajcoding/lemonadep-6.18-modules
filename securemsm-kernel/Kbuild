@@ -34,6 +34,7 @@ include $(SSG_MODULE_ROOT)/config/sec-kernel_defconfig_smcinvoke.conf
 LINUXINCLUDE += -include $(SSG_MODULE_ROOT)/config/sec-kernel_defconfig_smcinvoke.h
 
 obj-$(CONFIG_QCOM_SMCINVOKE) += smcinvoke_dlkm.o
+ccflags-y += -I$(SSG_MODULE_ROOT)/smcinvoke/si_core_xts -I$(SSG_MODULE_ROOT)/smcinvoke/compat
 ifneq ($(filter y m,$(CONFIG_QCOM_SI_CORE)),)
     smcinvoke_dlkm-objs := smcinvoke/si_core_xts/qseecom.o
     smcinvoke_dlkm-objs += smcinvoke/si_core_xts/smci_kernel.o
