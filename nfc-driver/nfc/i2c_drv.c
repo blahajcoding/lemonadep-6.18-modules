@@ -259,8 +259,9 @@ int i2c_write(struct nfc_dev *nfc_dev, const char *buf, size_t count,
 		ret = i2c_master_send(nfc_dev->i2c_dev.client, buf, count);
 		NFCLOG_IPC(nfc_dev, false, "%s ret %d", __func__, ret);
 		if (ret <= 0) {
-			pr_warn("NxpDrv: %s: write failed ret(%d), maybe in standby\n",
-				__func__, ret);
+			/* The controller NAKs the first write out of standby */
+			pr_debug("NxpDrv: %s: write failed ret(%d), maybe in standby\n",
+				 __func__, ret);
 			usleep_range(WRITE_RETRY_WAIT_TIME_US,
 				     WRITE_RETRY_WAIT_TIME_US + 100);
 		} else if (ret != count) {
@@ -269,6 +270,9 @@ int i2c_write(struct nfc_dev *nfc_dev, const char *buf, size_t count,
 		} else if (ret == count)
 			break;
 	}
+	if (ret <= 0)
+		pr_err("NxpDrv: %s: write failed ret(%d) after %d tries\n",
+		       __func__, ret, max_retry_cnt);
 	return ret;
 }
 
