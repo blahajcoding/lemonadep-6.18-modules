@@ -7,7 +7,7 @@
 R=${R:-$HOME/r618}; K=$R/redwood-6.18-kernel; O=$R/out; V=$R/redwood-6.18-modules; W=$R/vb
 B=$V/bringup
 export PATH=${CLANG:-$HOME/tc/clang-r596125/bin}:$PATH
-MK="make -C $K O=$O ARCH=arm64 LLVM=1 LLVM_IAS=1 LOCALVERSION= ${PAHOLE:+PAHOLE=$PAHOLE} -j$(nproc)"
+MK="make -C $K O=$O ARCH=arm64 LLVM=1 LLVM_IAS=1 LOCALVERSION= ${PAHOLE:+PAHOLE=$PAHOLE} -j${JOBS:-$(nproc)}"
 mkdir -p $W
 trees=${*:-"mm-drivers display-drivers graphics-kernel securemsm-kernel audio-kernel"}
 EXT=$V/mm-drivers/msm_ext_display/include
