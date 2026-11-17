@@ -55,7 +55,7 @@ static enum chip_types get_nfcc_chip_type_dl(struct nfc_dev *nfc_dev)
 	ret = nfc_dev->nfc_write(nfc_dev, nfc_dev->write_kbuf, DL_GET_VERSION_CMD_LEN,
 									MAX_RETRY_COUNT);
 	if (ret <= 0) {
-		pr_err("NxpDrv: %s: - nfc get version cmd error ret %d\n", __func__, ret);
+		pr_debug("NxpDrv: %s: - nfc get version cmd error ret %d\n", __func__, ret);
 		goto err;
 	}
 	memset(rsp, 0x00, DL_GET_VERSION_RSP_LEN_2);
@@ -179,7 +179,7 @@ static enum chip_types get_nfcc_chip_type(struct nfc_dev *nfc_dev)
 	pr_debug("NxpDrv: %s:Sending NCI Core Reset cmd of size = %d\n", __func__, NCI_RESET_CMD_LEN);
 	ret = nfc_dev->nfc_write(nfc_dev, nfc_dev->write_kbuf, NCI_RESET_CMD_LEN, NO_RETRY);
 	if (ret <= 0) {
-		pr_err("NxpDrv: %s: - nfc nci core reset cmd error ret %d\n", __func__, ret);
+		pr_debug("NxpDrv: %s: - nfc nci core reset cmd error ret %d\n", __func__, ret);
 		goto err;
 	}
 
@@ -301,7 +301,7 @@ int nfcc_hw_check(struct nfc_dev *nfc_dev)
 
 	/*validate gpio config required as per the chip*/
 	if (!validate_download_gpio(nfc_dev, chip_type)) {
-		pr_info("NxpDrv: %s gpio validation fail\n", __func__);
+		pr_debug("NxpDrv: %s gpio validation fail\n", __func__);
 		ret = -ENXIO;
 		goto err;
 	}

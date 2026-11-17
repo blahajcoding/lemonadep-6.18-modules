@@ -271,8 +271,8 @@ int i2c_write(struct nfc_dev *nfc_dev, const char *buf, size_t count,
 			break;
 	}
 	if (ret <= 0)
-		pr_err("NxpDrv: %s: write failed ret(%d) after %d tries\n",
-		       __func__, ret, max_retry_cnt);
+		pr_debug("NxpDrv: %s: write failed ret(%d) after %d tries\n",
+			 __func__, ret, max_retry_cnt);
 	return ret;
 }
 

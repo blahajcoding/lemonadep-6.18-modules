@@ -503,7 +503,7 @@ int nfc_post_init(struct nfc_dev *nfc_dev)
 #endif
 	ret = nfcc_hw_check(nfc_dev);
 	if (ret || nfc_dev->nfc_state == NFC_STATE_UNKNOWN) {
-		pr_err("NxpDrv: nfc hw check failed ret %d\n", ret);
+		pr_debug("NxpDrv: nfc hw check failed ret %d\n", ret);
 		gpio_free(nfc_gpio->dwl_req);
 		gpio_free(nfc_gpio->ven);
 		return ret;
