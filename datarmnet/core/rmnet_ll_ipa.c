@@ -145,8 +145,12 @@ static void rmnet_ll_ipa_ready(void * __unused)
 				      rmnet_ll_ipa_rx,
 				      (void *)&rmnet_ll_ipa_ep);
 	if (rc) {
-		pr_err("%s(): Registering IPA LL callback failed with rc %d\n",
-		       __func__, rc);
+		/* -ENXIO: this IPA has no low latency pipe, as on yupik */
+		if (rc == -ENXIO)
+			pr_debug("%s(): no IPA low latency pipe\n", __func__);
+		else
+			pr_err("%s(): Registering IPA LL callback failed with rc %d\n",
+			       __func__, rc);
 		if  (rc != -ENXIO)
 			*status = RMNET_LL_PIPE_FAILED;
 		else
