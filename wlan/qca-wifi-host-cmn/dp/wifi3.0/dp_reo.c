@@ -68,19 +68,8 @@ QDF_STATUS dp_reo_send_cmd(struct dp_soc *soc, enum hal_reo_cmd_type type,
 		     struct hal_reo_cmd_params *params,
 		     void (*callback_fn), void *data)
 {
-	struct dp_reo_cmd_info *reo_cmd;
+	struct dp_reo_cmd_info *reo_cmd = NULL;
 	int num;
-
-	num = hal_reo_send_cmd(soc->hal_soc, soc->reo_cmd_ring.hal_srng, type,
-			       params);
-	if (num < 0)
-		return QDF_STATUS_E_INVAL;
-
-	dp_reo_cmd_srng_event_record(soc, type, num);
-
-	if (num < 0) {
-		return QDF_STATUS_E_FAILURE;
-	}
 
 	if (callback_fn) {
 		reo_cmd = qdf_mem_malloc(sizeof(*reo_cmd));
@@ -89,16 +78,29 @@ QDF_STATUS dp_reo_send_cmd(struct dp_soc *soc, enum hal_reo_cmd_type type,
 				   type);
 			return QDF_STATUS_E_NOMEM;
 		}
+	}
 
+	/* The status can arrive as soon as the command is on the ring */
+	qdf_spin_lock_bh(&soc->rx.reo_cmd_lock);
+	num = hal_reo_send_cmd(soc->hal_soc, soc->reo_cmd_ring.hal_srng, type,
+			       params);
+	if (num >= 0 && reo_cmd) {
 		reo_cmd->cmd = num;
 		reo_cmd->cmd_type = type;
 		reo_cmd->handler = callback_fn;
 		reo_cmd->data = data;
-		qdf_spin_lock_bh(&soc->rx.reo_cmd_lock);
 		TAILQ_INSERT_TAIL(&soc->rx.reo_cmd_list, reo_cmd,
 				  reo_cmd_list_elem);
-		qdf_spin_unlock_bh(&soc->rx.reo_cmd_lock);
 	}
+	qdf_spin_unlock_bh(&soc->rx.reo_cmd_lock);
+
+	if (num < 0) {
+		if (reo_cmd)
+			qdf_mem_free(reo_cmd);
+		return QDF_STATUS_E_INVAL;
+	}
+
+	dp_reo_cmd_srng_event_record(soc, type, num);
 
 	return QDF_STATUS_SUCCESS;
 }
@@ -107,7 +109,10 @@ uint32_t dp_reo_status_ring_handler(struct dp_intr *int_ctx, struct dp_soc *soc)
 {
 	hal_ring_desc_t reo_desc;
 	struct dp_reo_cmd_info *reo_cmd = NULL;
+	struct dp_reo_cmd_info *entry, *tmp;
 	union hal_reo_status reo_status;
+	union hal_reo_status drain_status;
+	TAILQ_HEAD(, dp_reo_cmd_info) stale_cmds;
 	int num;
 	int processed_count = 0;
 
@@ -129,16 +134,34 @@ uint32_t dp_reo_status_ring_handler(struct dp_intr *int_ctx, struct dp_soc *soc)
 		if (status != QDF_STATUS_SUCCESS)
 			goto next;
 
+		/*
+		 * Command numbers repeat as the ring wraps. The newest match
+		 * owns this status; an older one lost its status long ago.
+		 */
+		reo_cmd = NULL;
+		TAILQ_INIT(&stale_cmds);
 		qdf_spin_lock_bh(&soc->rx.reo_cmd_lock);
-		TAILQ_FOREACH(reo_cmd, &soc->rx.reo_cmd_list,
-			reo_cmd_list_elem) {
-			if (reo_cmd->cmd == num) {
-				TAILQ_REMOVE(&soc->rx.reo_cmd_list, reo_cmd,
-				reo_cmd_list_elem);
-				break;
-			}
+		TAILQ_FOREACH_SAFE(entry, &soc->rx.reo_cmd_list,
+				   reo_cmd_list_elem, tmp) {
+			if (entry->cmd != num)
+				continue;
+			TAILQ_REMOVE(&soc->rx.reo_cmd_list, entry,
+				     reo_cmd_list_elem);
+			if (reo_cmd)
+				TAILQ_INSERT_TAIL(&stale_cmds, reo_cmd,
+						  reo_cmd_list_elem);
+			reo_cmd = entry;
 		}
 		qdf_spin_unlock_bh(&soc->rx.reo_cmd_lock);
+
+		while ((entry = TAILQ_FIRST(&stale_cmds))) {
+			TAILQ_REMOVE(&stale_cmds, entry, reo_cmd_list_elem);
+			qdf_mem_zero(&drain_status, sizeof(drain_status));
+			drain_status.queue_status.header.status =
+				HAL_REO_CMD_DRAIN;
+			entry->handler(soc, entry->data, &drain_status);
+			qdf_mem_free(entry);
+		}
 
 		if (reo_cmd) {
 			reo_cmd->handler(soc, reo_cmd->data,
