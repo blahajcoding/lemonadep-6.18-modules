@@ -19,6 +19,12 @@ def sub(path, old, new):
 
 sub(h, "\tbool phase_sync;\n};", "\tbool phase_sync;\n\tbool xm_off;\n};")
 
+# the PLL locks as the I2S clock starts; polling it is not an error
+sub(c, """		dev_err(aw_dev->dev, "check pll lock fail,reg_val:0x%04x", reg_val);""",
+    """		dev_dbg(aw_dev->dev, "check pll lock fail,reg_val:0x%04x", reg_val);""")
+sub(c, """			dev_err(aw_dev->dev, "mode1 iis signal check error");""",
+    """			dev_dbg(aw_dev->dev, "mode1 iis signal check error");""")
+
 # an amp switched off stays muted across restarts
 sub(c, """			dev_info(aw88261->aw_pa->dev, "start success\\n");
 			break;""", """			dev_info(aw88261->aw_pa->dev, "start success\\n");
