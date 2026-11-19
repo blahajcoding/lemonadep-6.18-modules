@@ -1,0 +1,4 @@
+ccflags-y += -I$(srctree)
+
+obj-m += sched-cass.o
+sched-cass-y := cass.o

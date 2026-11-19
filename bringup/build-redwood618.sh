@@ -6,7 +6,7 @@ R=${R:-$HOME/r618}; K=$R/redwood-6.18-kernel; O=$R/out; S=$R/redwood-6.18-module
 export PATH=${CLANG:-$HOME/tc/clang-r596125/bin}:$PATH
 MK="make -C $K O=$O ARCH=arm64 LLVM=1 LLVM_IAS=1 LOCALVERSION= ${PAHOLE:+PAHOLE=$PAHOLE} -j${JOBS:-$(nproc)}"
 mkdir -p $W
-mods=${*:-"xiaomitouch focaltech touch speaker btpower btfmslim fingerprint haptics ioncompat irspi mithermal subsys_compat usbrole adsprpc bootlog testguard logcap video"}
+mods=${*:-"xiaomitouch focaltech touch speaker btpower btfmslim fingerprint haptics ioncompat irspi mithermal subsys_compat usbrole adsprpc bootlog testguard logcap video cass"}
 for m in $mods; do
 	rm -rf $W/$m; cp -r $S/$m $W/$m
 	E=""

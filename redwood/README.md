@@ -57,3 +57,10 @@ Built like the display driver, against the lahaina modules_prepare output
   no `ir_led_slot_id` in the sensor query, 256 link handles. LRME isn't
   built (the bzl has no sources for it). Its DT is
   [qcom/redwood-camera.dtsi](../qcom/redwood-camera.dtsi).
+- `cass`: Sultan Alsawaf's Capacity Aware Superset Scheduler task
+  placement, as genie1997 ported it to the redwood 6.12 vendor hooks. Light
+  background wakeups keep energy aware placement and prefer an idle
+  smaller CPU that fits them, so housekeeping work stops waking the gold
+  and prime cores; the foreground app takes the faster idle CPU. New tasks
+  start with no utilization. `/sys/module/sched_cass/parameters/enable`
+  turns it off at runtime.
