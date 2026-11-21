@@ -25,7 +25,8 @@ MODULE_PARM_DESC(eas_gate, "Unboosted wakeups below this utilization keep energy
 
 static int newborn_util_max;
 module_param(newborn_util_max, int, 0644);
-MODULE_PARM_DESC(newborn_util_max, "Most utilization a new task starts with, -1 = the kernel's");
+MODULE_PARM_DESC(newborn_util_max,
+		 "Most utilization a new task outside the app on screen starts with, -1 = the kernel's");
 
 static unsigned int rt_mode = 2;
 module_param_named(rt, rt_mode, uint, 0644);
@@ -503,6 +504,10 @@ static void cass_post_init_entity_util_avg(void *unused, struct sched_entity *se
 
 	if (max < 0 || !entity_is_task(se) || se->avg.util_avg <= max ||
 	    cass_sustained())
+		return;
+
+	/* The app on screen starts its threads as usual, so launches ramp at once */
+	if (task_group(task_of(se))->latency_sensitive)
 		return;
 
 	se->avg.util_avg = max;
