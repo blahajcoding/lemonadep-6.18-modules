@@ -26,7 +26,7 @@ MODULE_PARM_DESC(eas_gate, "Unboosted wakeups below this utilization keep energy
 static int newborn_util_max;
 module_param(newborn_util_max, int, 0644);
 MODULE_PARM_DESC(newborn_util_max,
-		 "Most utilization a new task outside the app on screen starts with, -1 = the kernel's");
+		 "Most utilization a new task starts with outside app launches, -1 = the kernel's");
 
 static unsigned int rt_mode = 2;
 module_param_named(rt, rt_mode, uint, 0644);
@@ -498,6 +498,18 @@ static void cass_cpu_util_cfs_boost(void *unused, int cpu, unsigned long *ret)
 	*ret = max_t(unsigned long, util, min_t(unsigned long, busy, cap));
 }
 
+/*
+ * The PowerHAL lifts the prime CPU's minimum clock to its maximum only for
+ * an app launch; nothing else pins it there.
+ */
+static inline bool cass_launch_boost(void)
+{
+	struct cpufreq_policy *policy = cpufreq_cpu_get_raw(nr_cpu_ids - 1);
+
+	return policy && policy->cpuinfo.max_freq &&
+	       READ_ONCE(policy->min) >= policy->cpuinfo.max_freq;
+}
+
 static void cass_post_init_entity_util_avg(void *unused, struct sched_entity *se)
 {
 	int max = READ_ONCE(newborn_util_max);
@@ -506,8 +518,8 @@ static void cass_post_init_entity_util_avg(void *unused, struct sched_entity *se
 	    cass_sustained())
 		return;
 
-	/* The app on screen starts its threads as usual, so launches ramp at once */
-	if (task_group(task_of(se))->latency_sensitive)
+	/* During a launch the app on screen starts its threads as usual */
+	if (cass_launch_boost() && task_group(task_of(se))->latency_sensitive)
 		return;
 
 	se->avg.util_avg = max;
