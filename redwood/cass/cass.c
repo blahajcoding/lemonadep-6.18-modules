@@ -202,6 +202,22 @@ static inline unsigned long cass_min_freq_cap(int cpu, unsigned long cap_orig)
 	return READ_ONCE(policy->min) * cap_orig / policy->cpuinfo.max_freq;
 }
 
+/* The capacity a cpufreq cap (mi_thermald, cpufreq QoS) takes away, like cpufreq_update_pressure() */
+static inline unsigned long cass_cpufreq_pressure(int cpu, unsigned long cap_orig)
+{
+	struct cpufreq_policy *policy = cpufreq_cpu_get_raw(cpu);
+	unsigned long max;
+
+	if (!policy || !policy->cpuinfo.max_freq)
+		return 0;
+
+	max = READ_ONCE(policy->max);
+	if (max >= policy->cpuinfo.max_freq)
+		return 0;
+
+	return cap_orig - max * cap_orig / policy->cpuinfo.max_freq;
+}
+
 static void cass_cpu_util(struct cass_cpu_cand *c, int this_cpu, bool sync)
 {
 	struct rq *rq = cpu_rq(c->cpu);
@@ -334,7 +350,9 @@ static int cass_best_cpu(struct task_struct *p, int prev_cpu, bool sync,
 		unsigned long hw;
 
 		curr->cap_orig = arch_scale_cpu_capacity(cpu);
-		hw = READ_ONCE(rq->avg_hw.load_avg);
+		/* The larger of the LMh and the cpufreq pressure, as get_actual_cpu_capacity() */
+		hw = max(READ_ONCE(rq->avg_hw.load_avg),
+			 cass_cpufreq_pressure(cpu, curr->cap_orig));
 		curr->cap_max = curr->cap_orig - min(hw, curr->cap_orig - 1);
 
 		/* Prefer the CPU that more closely meets the uclamp minimum */
