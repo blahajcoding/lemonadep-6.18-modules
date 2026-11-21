@@ -500,14 +500,14 @@ static void cass_cpu_util_cfs_boost(void *unused, int cpu, unsigned long *ret)
 
 /*
  * The PowerHAL lifts the prime CPU's minimum clock to its maximum only for
- * an app launch; nothing else pins it there.
+ * an app launch; nothing else pins it there. A thermal cap lowers both, so
+ * compare with the current maximum, not the hardware one.
  */
 static inline bool cass_launch_boost(void)
 {
 	struct cpufreq_policy *policy = cpufreq_cpu_get_raw(nr_cpu_ids - 1);
 
-	return policy && policy->cpuinfo.max_freq &&
-	       READ_ONCE(policy->min) >= policy->cpuinfo.max_freq;
+	return policy && READ_ONCE(policy->min) >= READ_ONCE(policy->max);
 }
 
 static void cass_post_init_entity_util_avg(void *unused, struct sched_entity *se)
