@@ -32519,6 +32519,7 @@ static int msm_routing_put_app_type_gain_control(struct snd_kcontrol *kcontrol,
 	int app_type = ucontrol->value.integer.value[1];
 	int gain = (ucontrol->value.integer.value[2] +
 		    ucontrol->value.integer.value[3])/2;
+	DECLARE_BITMAP(asm_set, MSM_FRONTEND_DAI_MAX) = { 0 };
 
 	port_type = (dir == SESSION_TYPE_RX) ? MSM_AFE_PORT_TYPE_RX :
 					       MSM_AFE_PORT_TYPE_TX;
@@ -32542,6 +32543,23 @@ static int msm_routing_put_app_type_gain_control(struct snd_kcontrol *kcontrol,
 			if (app_type !=
 			    fe_dai_app_type_cfg[fe_id][dir][be_id].app_type)
 				continue;
+
+			/*
+			 * The ADM gain below doesn't reach the VoIP speaker path, so
+			 * the call volume never changed. Set the stream's ASM volume
+			 * too, once per stream, as "Playback N Volume" does.
+			 */
+			if (dir == SESSION_TYPE_RX &&
+			    !test_and_set_bit(fe_id, asm_set)) {
+				int sid = fe_dai_map[fe_id][dir].strm_id;
+				struct audio_client *ac = NULL;
+
+				if (sid > 0 && sid <= ASM_ACTIVE_STREAMS_ALLOWED)
+					ac = q6asm_get_audio_client(sid);
+				if (ac && q6asm_set_volume(ac, gain) < 0)
+					pr_err("%s: ASM volume %d for stream %d failed\n",
+					       __func__, gain, sid);
+			}
 
 			copp = session_copp_map[fe_id][dir][be_id];
 			for (j = 0; j < MAX_COPPS_PER_PORT; j++) {
