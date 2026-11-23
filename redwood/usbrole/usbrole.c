@@ -66,6 +66,13 @@ static void usbrole_work(struct work_struct *w)
 	}
 
 	role = usb_role_switch_get_role(sw);
+	/*
+	 * UCSI does see a device we power (USB-C earphones, a flash drive)
+	 * and turns the host role on for it. The charger shows no cable
+	 * then, so leave the host role to UCSI.
+	 */
+	if (role == USB_ROLE_HOST)
+		return;
 	wanted = usbrole_wanted();
 	if (role != wanted) {
 		if (usb_role_switch_set_role(sw, wanted))
