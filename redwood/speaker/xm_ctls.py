@@ -33,13 +33,14 @@ sub_once(c, """		dev_err(aw_dev->dev, "check pll lock fail,reg_val:0x%04x", reg_
 sub_once(c, """			dev_err(aw_dev->dev, "mode1 iis signal check error");""",
          """			dev_dbg(aw_dev->dev, "mode1 iis signal check error");""")
 
-# an amp switched off stays muted across restarts
-# (upstream logs "start success" at info or debug level depending on version)
-sub(c, """ "start success\\n");
-			break;""", """ "start success\\n");
-			if (aw88261->xm_off)
-				aw88261_dev_mute(aw88261->aw_pa, true);
-			break;""")
+# An amp switched off stays muted across restarts. Don't unmute it at start
+# at all: muting it after the start let the call play on the bottom speaker
+# for the fade in and out each time the shared TDM restarted.
+sub(c, """	/* close mute */
+	if (!aw88261->mute_st)
+		aw88261_dev_mute(aw_dev, false);""", """	/* close mute */
+	if (!aw88261->mute_st && !aw88261->xm_off)
+		aw88261_dev_mute(aw_dev, false);""")
 
 sub(c, "static int aw88261_codec_probe(struct snd_soc_component *component)\n{",
     """static const char * const aw88261_xm_switch_text[] = { "Disable", "Enable" };
