@@ -17,17 +17,26 @@ def sub(path, old, new):
     open(path, "w").write(s.replace(old, new))
 
 
+def sub_once(path, old, new):
+    """Like sub(), but a change the source already has is fine."""
+    if open(path).read().count(new) == 1:
+        return
+    sub(path, old, new)
+
+
 sub(h, "\tbool phase_sync;\n};", "\tbool phase_sync;\n\tbool xm_off;\n};")
 
-# the PLL locks as the I2S clock starts; polling it is not an error
-sub(c, """		dev_err(aw_dev->dev, "check pll lock fail,reg_val:0x%04x", reg_val);""",
-    """		dev_dbg(aw_dev->dev, "check pll lock fail,reg_val:0x%04x", reg_val);""")
-sub(c, """			dev_err(aw_dev->dev, "mode1 iis signal check error");""",
-    """			dev_dbg(aw_dev->dev, "mode1 iis signal check error");""")
+# the PLL locks as the I2S clock starts; polling it is not an error. The
+# kernel tree may already log these at debug level.
+sub_once(c, """		dev_err(aw_dev->dev, "check pll lock fail,reg_val:0x%04x", reg_val);""",
+         """		dev_dbg(aw_dev->dev, "check pll lock fail,reg_val:0x%04x", reg_val);""")
+sub_once(c, """			dev_err(aw_dev->dev, "mode1 iis signal check error");""",
+         """			dev_dbg(aw_dev->dev, "mode1 iis signal check error");""")
 
 # an amp switched off stays muted across restarts
-sub(c, """			dev_info(aw88261->aw_pa->dev, "start success\\n");
-			break;""", """			dev_info(aw88261->aw_pa->dev, "start success\\n");
+# (upstream logs "start success" at info or debug level depending on version)
+sub(c, """ "start success\\n");
+			break;""", """ "start success\\n");
 			if (aw88261->xm_off)
 				aw88261_dev_mute(aw88261->aw_pa, true);
 			break;""")
