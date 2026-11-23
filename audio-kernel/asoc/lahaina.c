@@ -8273,9 +8273,18 @@ void msm_common_set_pdata(struct snd_soc_card *card,
 
 static void qcom_check_hostless(void *data, struct snd_pcm_substream *substream, bool *no_buffer)
 {
-	if (!substream || !substream->pcm) return;
+	struct snd_soc_card *card = data;
+	struct snd_soc_pcm_runtime *rtd;
 
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	/*
+	 * The hook runs for every PCM in the system. Only this card's PCMs
+	 * carry an ASoC runtime in private_data; a USB audio card has its own.
+	 */
+	if (!substream || !substream->pcm || !card ||
+	    substream->pcm->card != card->snd_card)
+		return;
+
+	rtd = substream->private_data;
 
 	if (!rtd)
 		return;
@@ -8520,7 +8529,7 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 	dev_err(&pdev->dev, "%s: setting snd_card to ONLINE\n", __func__);
 	snd_card_set_card_status(SND_CARD_STATUS_ONLINE);
 
-	register_trace_android_vh_snd_pcm_check_no_buffer(qcom_check_hostless, NULL);
+	register_trace_android_vh_snd_pcm_check_no_buffer(qcom_check_hostless, card);
 
 	return 0;
 err:
@@ -8544,7 +8553,7 @@ static void msm_asoc_machine_remove(struct platform_device *pdev)
 	msm_audio_remove_qos_request();
 	snd_event_master_deregister(&pdev->dev);
 	snd_soc_unregister_card(card);
-	unregister_trace_android_vh_snd_pcm_check_no_buffer(qcom_check_hostless, NULL);
+	unregister_trace_android_vh_snd_pcm_check_no_buffer(qcom_check_hostless, card);
 
 }
 
