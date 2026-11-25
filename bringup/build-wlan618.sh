@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build lemonadep Wi-Fi (PCIe QCA6490) against the 6.18 kernel in ~/r618/out:
 # the platform drivers (cnss2, cnss_utils, cnss_nl, cnss_prealloc,
-# wlan_firmware_service, cnss_plat_ipc_qmi_svc) and qcacld (wlan.ko,
+# wlan_firmware_service, cnss_plat_ipc_qmi_svc) and qcacld (qca_cld3_wlan.ko,
 # profile lahaina_gki_qca6490). redwood's integrated-icnss2 path is not used.
 R=${R:-$HOME/r618}; K=$R/lemonadep-6.18-kernel; O=$R/out; V=$R/lemonadep-6.18-modules; W=$R/vb
 export PATH=${CLANG:-$HOME/tc/clang-r596125/bin}:$PATH
@@ -25,7 +25,7 @@ check_rc $? "wlan platform" $W/wlanplat.log
 [ -s "$P/Module.symvers" ] || { echo "error: wlan platform Module.symvers missing" >&2; exit 1; }
 [ "${1:-}" = platform ] && exit 0
 Q=$W/wlan/qcacld-3.0
-$MK M=$Q WLAN_ROOT=$Q WLAN_PROFILE=lahaina_gki_qca6490 MODNAME=wlan BUILD_DIAG_VERSION=y \
+$MK M=$Q WLAN_ROOT=$Q WLAN_PROFILE=lahaina_gki_qca6490 MODNAME=qca_cld3_wlan BUILD_DIAG_VERSION=y \
 	CONFIG_QCA_CLD_WLAN=m CONFIG_QCA_WIFI_ISOC=0 CONFIG_QCA_WIFI_2_0=1 QCA_WIFI_FTM_NL80211=y \
 	KBUILD_EXTRA_SYMBOLS=$P/Module.symvers \
 	KCFLAGS="-I$P/inc -I$W/wlan/inc-net -include $Q/configs/kbuild_defines.h -include $Q/configs/config_to_feature.h -include $Q/configs/grep_defines_lahaina.h -Wno-macro-redefined -DWLAN_OPEN_SOURCE -Wno-error=missing-prototypes -Wno-error=unused-variable -Wno-error=unused-but-set-variable" \
