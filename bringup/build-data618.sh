@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build redwood's mobile data stack (rmnet_mem, IPA, rmnet) against the 6.18
+# Build lemonadep's mobile data stack (rmnet_mem, IPA, rmnet) against the 6.18
 # kernel in ~/r618/out, from Qualcomm's Bazel module lists via ddk2kbuild.py.
-R=${R:-$HOME/r618}; K=$R/redwood-6.18-kernel; O=$R/out; V=$R/redwood-6.18-modules; W=$R/vb; B=$V/bringup
+R=${R:-$HOME/r618}; K=$R/lemonadep-6.18-kernel; O=$R/out; V=$R/lemonadep-6.18-modules; W=$R/vb; B=$V/bringup
 export PATH=${CLANG:-$HOME/tc/clang-r596125/bin}:$PATH
 MK="make -C $K O=$O ARCH=arm64 LLVM=1 LLVM_IAS=1 LOCALVERSION= ${PAHOLE:+PAHOLE=$PAHOLE} -j${JOBS:-$(nproc)}"
 G="python3 $B/ddk2kbuild.py"
-LAH="--set CONFIG_ARCH_LAHAINA=y --set CONFIG_ARCH_YUPIK=y"
+LAH="--set CONFIG_ARCH_LAHAINA=y"
 
 rsync -a --delete $V/datarmnet-ext/mem/ $W/rmnet_mem/
 $G $W/rmnet_mem $W/rmnet_mem/define_mem.bzl 'define_mem("lahaina", "perf")' $LAH

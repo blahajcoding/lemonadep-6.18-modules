@@ -1,10 +1,10 @@
 #!/bin/bash
-# Build redwood's out-of-tree vendor modules against the 6.18 kernel in
+# Build lemonadep's out-of-tree vendor modules against the 6.18 kernel in
 # ~/r618/out. Each tree builds in its own copy under ~/r618/vb, logs go to
 # ~/r618/vb/<name>.log. Usage: build-vendor618.sh [tree ...]
 # Vendor trees never get out/Module.symvers in KBUILD_EXTRA_SYMBOLS: modpost
 # already reads it through O=, passing it again makes every symbol "exported twice".
-R=${R:-$HOME/r618}; K=$R/redwood-6.18-kernel; O=$R/out; V=$R/redwood-6.18-modules; W=$R/vb
+R=${R:-$HOME/r618}; K=$R/lemonadep-6.18-kernel; O=$R/out; V=$R/lemonadep-6.18-modules; W=$R/vb
 B=$V/bringup
 export PATH=${CLANG:-$HOME/tc/clang-r596125/bin}:$PATH
 MK="make -C $K O=$O ARCH=arm64 LLVM=1 LLVM_IAS=1 LOCALVERSION= ${PAHOLE:+PAHOLE=$PAHOLE} -j${JOBS:-$(nproc)}"
@@ -21,19 +21,19 @@ for t in $trees; do
 		printf 'ccflags-y += -DCONFIG_MSM_EXT_DISPLAY=1 -I$(src)/include\nobj-m += msm_ext_display.o\nmsm_ext_display-y := src/msm_ext_display.o\n' \
 			> $W/mm-drivers/msm_ext_display/Kbuild
 		for d in msm_ext_display sync_fence hw_fence; do
-			$MK M=$W/mm-drivers/$d CONFIG_ARCH_LAHAINA=y CONFIG_ARCH_YUPIK=y \
+			$MK M=$W/mm-drivers/$d CONFIG_ARCH_LAHAINA=y \
 				CONFIG_MSM_EXT_DISPLAY=m CONFIG_QCOM_SPEC_SYNC=m CONFIG_QTI_HW_FENCE=m \
 				KCFLAGS="$FENCE" modules > $W/mm-$d.log 2>&1
 			echo "mm-drivers/$d rc=$?"
 		done ;;
 	display-drivers)
 		$MK M=$W/display-drivers DISPLAY_ROOT=$W/display-drivers KBUILD_EXTRA_SYMBOLS="$(mmsyms)" \
-			CONFIG_ARCH_LAHAINA=y CONFIG_ARCH_YUPIK=y CONFIG_DRM_MSM=m \
+			CONFIG_ARCH_LAHAINA=y CONFIG_DRM_MSM=m \
 			SOCINCLUDE="$FENCE" modules > $W/display.log 2>&1
 		echo "display-drivers rc=$?" ;;
 	graphics-kernel)
 		$MK M=$W/graphics-kernel KGSL_PATH=$W/graphics-kernel KBUILD_EXTRA_SYMBOLS="$(mmsyms)" \
-			CONFIG_ARCH_LAHAINA=y CONFIG_ARCH_YUPIK=y KCFLAGS="-I$K/drivers/devfreq $FENCE" \
+			CONFIG_ARCH_LAHAINA=y KCFLAGS="-I$K/drivers/devfreq $FENCE" \
 			SOCINCLUDE="$FENCE" modules > $W/gpu.log 2>&1
 		echo "graphics-kernel rc=$?" ;;
 	securemsm-kernel)
