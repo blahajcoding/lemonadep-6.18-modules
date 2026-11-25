@@ -3046,7 +3046,7 @@ static int kgsl_setup_anon_useraddr(struct kgsl_device *device, struct kgsl_page
 
 	int ret;
 
-	if (size == 0 || offset != 0 ||
+	if (size == 0 || size > UINT_MAX || offset != 0 ||
 		!IS_ALIGNED(size, PAGE_SIZE))
 		return -EINVAL;
 
