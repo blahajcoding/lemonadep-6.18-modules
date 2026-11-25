@@ -4156,7 +4156,7 @@ static u64 cap_alignment(struct kgsl_device *device, u64 flags)
 
 	if (align >= ilog2(KGSL_MAX_ALIGN)) {
 	/* Cap the alignment bits to the highest number we can handle */
-		dev_err(device->dev,
+		dev_err_ratelimited(device->dev,
 			"Alignment too large; restricting to %dK\n",
 			KGSL_MAX_ALIGN >> 10);
 		align = ilog2(KGSL_MAX_ALIGN);
