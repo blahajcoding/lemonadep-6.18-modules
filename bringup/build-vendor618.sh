@@ -17,7 +17,7 @@ check_rc() {
 	fi
 }
 mkdir -p $W
-trees=${*:-"mm-drivers display-drivers graphics-kernel securemsm-kernel audio-kernel"}
+trees=${*:-"mm-drivers display-drivers graphics-kernel securemsm-kernel audio-kernel touchscreen misc"}
 EXT=$V/mm-drivers/msm_ext_display/include
 FENCE="-I$W/mm-drivers/hw_fence/include -I$W/mm-drivers/sync_fence/include -I$EXT"
 mmsyms() { ls $W/mm-drivers/*/Module.symvers 2>/dev/null | tr '\n' ' '; }
@@ -49,6 +49,12 @@ for t in $trees; do
 		$MK M=$W/securemsm-kernel SSG_MODULE_ROOT=$W/securemsm-kernel \
 			CONFIG_ARCH_LAHAINA=y CONFIG_DISABLE_TEST_MODULES=y CONFIG_QSEECOM=m modules > $W/securemsm.log 2>&1
 		check_rc $? "securemsm-kernel" ;;
+	touchscreen)
+		$MK M=$W/touchscreen/synaptics_tcm modules > $W/touch.log 2>&1
+		check_rc $? "touchscreen" ;;
+	misc)
+		$MK M=$W/misc/tristatekey modules > $W/tristatekey.log 2>&1
+		check_rc $? "misc/tristatekey" ;;
 	audio-kernel)
 		# audio-kernel only ships a Bazel registry for lahaina; generate a Kbuild from it
 		rm -f $W/audio-kernel/Makefile
