@@ -1,0 +1,1 @@
+obj-m += tristatekey_stub.o

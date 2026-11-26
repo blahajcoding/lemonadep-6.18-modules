@@ -1,0 +1,1 @@
+savedcmd_synaptics_tcm_touch.ko := ld.lld -r -EL  -maarch64elf -z norelro --compress-debug-sections=zstd -z noexecstack --build-id=sha1  -T /home/venus/lemonadep-6.18/build/out/scripts/module.lds -o synaptics_tcm_touch.ko synaptics_tcm_touch.o synaptics_tcm_touch.mod.o .module-common.o;  true

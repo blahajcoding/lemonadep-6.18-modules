@@ -1,8 +1,9 @@
 #!/bin/bash
-# Build redwood's own out-of-tree drivers (redwood-6.18-modules/redwood) against
-# the 6.18 kernel in ~/r618/out. Each module builds in ~/r618/vb/rw/<name>;
-# logs land next to it. Usage: build-redwood618.sh [module ...]
-R=${R:-$HOME/r618}; K=$R/redwood-6.18-kernel; O=$R/out; S=$R/redwood-6.18-modules/redwood; W=$R/vb/rw
+# Build inherited redwood board/out-of-tree drivers for comparison only.
+# These are not lemonadep product drivers and are deliberately omitted from
+# the top-level build until each one has a OnePlus userspace/SELinux audit.
+# Usage: build-board618.sh [module ...]
+R=${R:-$HOME/r618}; K=$R/lemonadep-6.18-kernel; O=$R/out; S=$R/lemonadep-6.18-modules/redwood; W=$R/vb/rw
 export PATH=${CLANG:-$HOME/tc/clang-r596125/bin}:$PATH
 MK="make -C $K O=$O ARCH=arm64 LLVM=1 LLVM_IAS=1 LOCALVERSION= ${PAHOLE:+PAHOLE=$PAHOLE} -j${JOBS:-$(nproc)}"
 mkdir -p $W

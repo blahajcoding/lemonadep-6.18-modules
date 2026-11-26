@@ -50,6 +50,11 @@ def define_rmnet_ctl_module(target, variant):
                     "core/rmnet_ctl_client.c",
                 ],
             },
+            "CONFIG_ARCH_LAHAINA": {
+                True: [
+                    "core/rmnet_ctl_client.c",
+                ],
+            },
             "CONFIG_ARCH_YUPIK": {
                 True: [
                     "core/rmnet_ctl_client.c",

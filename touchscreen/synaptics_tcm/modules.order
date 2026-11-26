@@ -1,0 +1,3 @@
+synaptics_tcm_core.o
+synaptics_tcm_i2c.o
+synaptics_tcm_touch.o

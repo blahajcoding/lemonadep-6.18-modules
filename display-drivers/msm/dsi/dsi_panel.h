@@ -445,6 +445,9 @@ struct dsi_panel {
 	bool gpios_held;
 	int power_mode;
 	bool powered;
+	bool need_power_on_backlight;
+	bool panel_id2_valid;
+	int panel_id2;
 	enum dsi_panel_physical_type panel_type;
 	bool need_post_on_supply;
 	bool post_power_enable_status;

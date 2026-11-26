@@ -96,6 +96,8 @@ static const char *pick_heap(u32 mask, u32 flags)
 	if (mask & ION_SYSTEM_HEAP_MASK)
 		return (flags & ION_FLAG_CACHED) ? "qcom,system" : "qcom,system-uncached";
 special:
+	if (mask & BIT(14))
+		return "qcom,sp-hlos";
 	if (mask & BIT(7))
 		return "qcom,qseecom";
 	if (mask & BIT(1))

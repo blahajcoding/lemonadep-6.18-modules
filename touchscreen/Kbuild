@@ -1,0 +1,1 @@
+obj-m += synaptics_tcm/
