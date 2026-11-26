@@ -1,0 +1,4 @@
+0x00000000	syna_tcm_add_module	synaptics_tcm_core	EXPORT_SYMBOL	
+0x00000000	tcm_get_panel	synaptics_tcm_i2c	EXPORT_SYMBOL	
+0x00000000	syna_tcm_bus_init	synaptics_tcm_i2c	EXPORT_SYMBOL	
+0x00000000	syna_tcm_bus_exit	synaptics_tcm_i2c	EXPORT_SYMBOL	

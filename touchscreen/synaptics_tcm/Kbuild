@@ -1,0 +1,8 @@
+ccflags-y += -I$(src)/include
+
+# Minimal bring-up set: bus glue, protocol core, and input reporting.
+# Sysfs firmware-update/test modules from the stock driver are deferred until
+# basic touch input is validated.
+obj-m += synaptics_tcm_core.o
+obj-m += synaptics_tcm_i2c.o
+obj-m += synaptics_tcm_touch.o

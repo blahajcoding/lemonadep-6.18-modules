@@ -1,0 +1,1 @@
+./synaptics_tcm_i2c.o
