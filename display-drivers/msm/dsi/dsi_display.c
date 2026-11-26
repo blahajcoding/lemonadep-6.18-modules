@@ -12,6 +12,7 @@
 #include <linux/version.h>
 #include <linux/ktime.h>
 #include <linux/pinctrl/qcom-pinctrl.h>
+#include <video/mipi_display.h>
 
 #include "msm_drv.h"
 #include "hfi_msm_drv.h"
@@ -63,6 +64,9 @@ static struct dsi_display_boot_param boot_displays[MAX_DSI_ACTIVE_DISPLAY] = {
 };
 
 static void dsi_display_panel_id_notification(struct dsi_display *display);
+static int dsi_display_cmd_rx(struct dsi_display *display, struct dsi_cmd_desc *cmd);
+static int dsi_display_ctrl_get_host_init_state(struct dsi_display *display, bool *state);
+static int dsi_display_read_panel_id2(struct dsi_display *display);
 
 static const struct of_device_id dsi_display_dt_match[] = {
 	{.compatible = "qcom,dsi-display"},
@@ -257,11 +261,29 @@ int dsi_display_set_backlight(struct drm_connector *connector,
 	panel = dsi_display->panel;
 	sde_conn = to_sde_connector(connector);
 
+	if (bl_lvl > 1 && !panel->panel_id2_valid)
+		dsi_display_read_panel_id2(dsi_display);
+
 	mutex_lock(&panel->panel_lock);
 
 	if (!dsi_panel_initialized(panel)) {
 		rc = -EINVAL;
 		goto error;
+	}
+
+	if (panel->need_power_on_backlight && bl_lvl) {
+		panel->need_power_on_backlight = false;
+		rc = dsi_display_clk_ctrl(dsi_display->dsi_clk_handle,
+			DSI_CORE_CLK, DSI_CLK_ON);
+		if (!rc)
+			rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_POST_ON_BACKLIGHT, false);
+		dsi_display_clk_ctrl(dsi_display->dsi_clk_handle,
+			DSI_CORE_CLK, DSI_CLK_OFF);
+		if (rc) {
+			DSI_ERR("[%s] failed to send DSI_CMD_SET_POST_ON_BACKLIGHT cmds, rc=%d\n",
+			       panel->name, rc);
+			goto error;
+		}
 	}
 
 	panel->bl_config.bl_level = bl_lvl;
@@ -1216,6 +1238,53 @@ enable_error_interrupts:
 release_panel_lock:
 	dsi_panel_release_panel_lock(display->panel);
 	return rc;
+}
+
+static int dsi_display_read_panel_id2(struct dsi_display *display)
+{
+	struct dsi_cmd_desc cmd = {};
+	bool state = false;
+	u8 reg = 0xdb;
+	u8 value = 0;
+	int rc;
+
+	if (!display || !display->panel)
+		return -EINVAL;
+
+	if (display->panel->panel_id2_valid)
+		return display->panel->panel_id2;
+
+	if (!strstr(display->panel->name, "amb670yf01") &&
+	    !strstr(display->panel->name, "AMB670YF01")) {
+		display->panel->panel_id2 = 0;
+		display->panel->panel_id2_valid = true;
+		return 0;
+	}
+
+	mutex_lock(&display->display_lock);
+	rc = dsi_display_ctrl_get_host_init_state(display, &state);
+	if (!rc && state) {
+		cmd.msg.type = MIPI_DSI_DCS_READ;
+		cmd.msg.tx_buf = &reg;
+		cmd.msg.tx_len = 1;
+		cmd.msg.rx_buf = &value;
+		cmd.msg.rx_len = 1;
+		cmd.msg.flags |= MIPI_DSI_MSG_UNICAST_COMMAND;
+
+		rc = dsi_display_cmd_rx(display, &cmd);
+		if (rc > 0) {
+			display->panel->panel_id2 = value;
+			display->panel->panel_id2_valid = true;
+			pr_info("[DSI] %s panel id2=0x%02x\n",
+				display->panel->name, value);
+		} else {
+			DSI_ERR("[%s] failed to read panel id2, rc=%d\n",
+				display->panel->name, rc);
+		}
+	}
+	mutex_unlock(&display->display_lock);
+
+	return display->panel->panel_id2_valid ? display->panel->panel_id2 : 0;
 }
 
 

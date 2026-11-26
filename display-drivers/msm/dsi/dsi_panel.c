@@ -2604,6 +2604,9 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	"Privacy layer not parsed from DTSI, generated dynamically",
 	"Brightness not parsed from DTSI, generated dynamically",
 	"qcom,mdss-dsi-custom-on-command",
+	"qcom,mdss-dsi-post-on-backlight",
+	"qcom,mdss-dsi-lp1-pvt-command",
+	"qcom,mdss-dsi-nolp-pvt-command",
 };
 
 /**
@@ -2665,6 +2668,9 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	"Privacy layer not parsed from DTSI, generated dynamically",
 	"Brightness not parsed from DTSI, generated dynamically",
 	"qcom,mdss-dsi-custom-on-command-state",
+	"qcom,mdss-dsi-post-on-backlight-state",
+	"qcom,mdss-dsi-lp1-pvt-command-state",
+	"qcom,mdss-dsi-nolp-pvt-command-state",
 };
 
 /**
@@ -5942,6 +5948,17 @@ error:
 	return rc;
 }
 
+static bool dsi_panel_use_pvt_lp_cmds(struct dsi_panel *panel)
+{
+	if (!panel || !panel->name || !panel->panel_id2_valid || panel->panel_id2 < 5)
+		return false;
+
+	return strstr(panel->name, "amb670yf01") ||
+		strstr(panel->name, "AMB670YF01") ||
+		strstr(panel->name, "s6e3hc3") ||
+		strstr(panel->name, "S6E3HC3");
+}
+
 int dsi_panel_set_lp1(struct dsi_panel *panel)
 {
 	int rc = 0;
@@ -5968,10 +5985,14 @@ int dsi_panel_set_lp1(struct dsi_panel *panel)
 			"ibb", REGULATOR_MODE_IDLE);
 
 	if (panel->disp_op == MSM_DISP_OP_HWIO) {
-		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_LP1, false);
+		enum dsi_cmd_set_type lp1_cmd = dsi_panel_use_pvt_lp_cmds(panel) ?
+			DSI_CMD_SET_LP1_PVT : DSI_CMD_SET_LP1;
+
+		rc = dsi_panel_tx_cmd_set(panel, lp1_cmd, false);
 		if (rc)
 			DSI_ERR("[%s] failed to send DSI_CMD_SET_LP1 cmd, rc=%d\n",
 				panel->name, rc);
+		panel->need_power_on_backlight = true;
 	}
 
 exit:
@@ -6048,7 +6069,12 @@ int dsi_panel_set_nolp(struct dsi_panel *panel)
 	     panel->power_mode == SDE_MODE_DPMS_LP2))
 		dsi_pwr_panel_regulator_mode_set(&panel->power_info,
 			"ibb", REGULATOR_MODE_NORMAL);
-	rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_NOLP, false);
+	{
+		enum dsi_cmd_set_type nolp_cmd = dsi_panel_use_pvt_lp_cmds(panel) ?
+			DSI_CMD_SET_NOLP_PVT : DSI_CMD_SET_NOLP;
+
+		rc = dsi_panel_tx_cmd_set(panel, nolp_cmd, false);
+	}
 	if (rc)
 		DSI_ERR("[%s] failed to send DSI_CMD_SET_NOLP cmd, rc=%d\n",
 		       panel->name, rc);
@@ -7486,6 +7512,7 @@ int dsi_panel_enable(struct dsi_panel *panel)
 		}
 	}
 	panel->panel_initialized = true;
+	panel->need_power_on_backlight = true;
 
 error:
 	mutex_unlock(&panel->panel_lock);
